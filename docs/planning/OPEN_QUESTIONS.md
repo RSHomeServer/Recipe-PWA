@@ -6,17 +6,17 @@ once data exists, which is why it is here rather than being decided quietly in a
 
 Questions that do *not* block anything are in the last section, with the default taken.
 
-| # | Question | Blocks | Recommendation |
-| --- | --- | --- | --- |
-| [Q1](#q1) | Are ingredient nutrition edits retroactive? | Ingredients, Insights | Accept retroactivity for recipes and ingredient logs; never for batches |
-| [Q2](#q2) | Portions or physical containers? | Batches, Logging | Portion count only |
-| [Q3](#q3) | Does cooking automatically deduct pantry stock? | Pantry, Batches | Yes, with a confirm step and editable quantities |
-| [Q4](#q4) | Does the planner separate cook day from eat day? | Meal plan, Shopping | Yes — plan meals, derive cook sessions |
-| [Q5](#q5) | Which plan window feeds the shopping list? | Shopping | User-chosen range, defaulting to the next 7 days |
-| [Q6](#q6) | Batch portions: reserved when planned, or free-for-all? | Meal plan, Logging | Warn on over-commitment; do not hard-reserve |
-| [Q7](#q7) | Single device, no sync, for v1? | Persistence, whole architecture | Yes — local only, with JSON export/import |
-| [Q8](#q8) | Are nutrition targets in v1? | Insights, DESIGN.md charts | No — absolute figures only in v1 |
-| [Q9](#q9) | Who owns the interactive component layer? | UI foundation (first ticket) | shadcn/ui owns it; PWA-Base owns tokens, theme, shell, display primitives |
+| # | Question | Blocks | Recommendation | Decision |
+| --- | --- | --- | --- | --- |
+| [Q1](#q1) | Are ingredient nutrition edits retroactive? | Ingredients, Insights | Accept retroactivity for recipes and ingredient logs; never for batches | **Decided (human):** version by date — `nutritionHistory` + resolve logs by date in `expand()`. Batches remain frozen. Overrides the recommendation. |
+| [Q2](#q2) | Portions or physical containers? | Batches, Logging | Portion count only | Open |
+| [Q3](#q3) | Does cooking automatically deduct pantry stock? | Pantry, Batches | Yes, with a confirm step and editable quantities | Open |
+| [Q4](#q4) | Does the planner separate cook day from eat day? | Meal plan, Shopping | Yes — plan meals, derive cook sessions | Open |
+| [Q5](#q5) | Which plan window feeds the shopping list? | Shopping | User-chosen range, defaulting to the next 7 days | Open |
+| [Q6](#q6) | Batch portions: reserved when planned, or free-for-all? | Meal plan, Logging | Warn on over-commitment; do not hard-reserve | Open |
+| [Q7](#q7) | Single device, no sync, for v1? | Persistence, whole architecture | Yes — local only, with JSON export/import | Open (human parked / decide later) |
+| [Q8](#q8) | Are nutrition targets in v1? | Insights, DESIGN.md charts | No — absolute figures only in v1 | Open |
+| [Q9](#q9) | Who owns the interactive component layer? | UI foundation (first ticket) | shadcn/ui owns it; PWA-Base owns tokens, theme, shell, display primitives | **Decided (human):** accept recommendation — shadcn owns interactive layer |
 
 ---
 
@@ -33,16 +33,11 @@ date per nutrition record, with logs resolving against the version current at th
 is a schema-level change: retrofitting it after logs exist means a migration and a rewrite of
 `expand()`.
 
-**Recommendation: accept the retroactivity and do not version.** For a personal app, a
-nutrition edit is nearly always a *correction*, and having last month's figures silently
-improve is what the user wants. Versioning would double the complexity of the most-used
-entity to serve a rare case. Mitigations: a note in the ingredient editor that the change
-affects past logs but not cooked batches; and a nudge to prefer archiving plus a new
-ingredient when the food genuinely changed (different brand, different product) rather than
-editing.
+**Recommendation (Architect, not taken):** accept the retroactivity and do not version.
 
-**If the answer is "must be versioned":** add `nutritionHistory: { from: IsoDate; nutrition }[]`
-to `Ingredient` and resolve by log date in `expand()`. Decide **before** the Ingredients
+**Decision (human):** **must be versioned.** Add `nutritionHistory: { from: IsoDate; nutrition }[]`
+to `Ingredient` and resolve by log date in `expand()`. Batches remain frozen at cook-time
+snapshots. DOMAIN_MODEL / NUTRITION_MODEL must be updated to match before the Ingredients
 ticket.
 
 ---
@@ -237,6 +232,9 @@ afterwards inherits the answer.
 genuinely best at — tokens, theming, app shell, site contract, PWA runtime, and the
 non-interactive display primitives (`EmptyState`, `Skeleton`, `Spinner`, `Stack`, `Divider`).
 
+**Decision (human):** accept recommendation — shadcn owns the interactive layer; PWA-Base
+owns tokens, theme, shell, and display primitives.
+
 Rationale: sourcing buttons and inputs from both libraries means two button styles, two focus
 treatments and two disabled states in one product. Because shadcn must supply the dialogs,
 tables, comboboxes and toasts that dominate every dense screen here, it should also own the
@@ -280,13 +278,12 @@ accepted boundary; any of them can be overridden without a migration.
 
 ## What is needed to unblock implementation
 
-The UI-foundation ticket (step 1 of the [sequence](./ARCHITECTURE.md)) needs only **Q9**, and
-its recommendation is safe to proceed on.
+**Decided:** **Q9** (UI foundation may proceed once explicitly started). **Q1** (Ingredients /
+Insights must implement `nutritionHistory` — update DOMAIN_MODEL / NUTRITION_MODEL before
+those tickets).
 
-The domain and persistence tickets (steps 2–3) need **Q1** and **Q7**, because both touch
-schema shape.
-
-Everything else can be answered while the foundation is built, provided **Q3** and **Q4**
-land before the Pantry ticket (step 6) and **Q5** and **Q6** before Shopping and Meal Plan
-(steps 7–8). **Q8** must land before Insights (step 10) but also affects DESIGN.md's chart
-section, so an early answer is preferable to a late one.
+**Still open:** **Q7** blocks persistence architecture until answered. Everything else can be
+answered while the foundation is built, provided **Q3** and **Q4** land before the Pantry
+ticket (step 6) and **Q5** and **Q6** before Shopping and Meal Plan (steps 7–8). **Q8** must
+land before Insights (step 10) but also affects DESIGN.md's chart section, so an early answer
+is preferable to a late one.
