@@ -21,9 +21,11 @@ The mature reference for *recording what was eaten*.
 | Diary organised by day → meal slot (breakfast/lunch/dinner/snacks) | **Adopt.** Matches our plan/log slot model. |
 | Recipe box with servings + per-serving nutrition derived from ingredient lines | **Adopt.** This is our core recipe rule. |
 | "Save & Log It" — create a recipe and log it in one flow | **Adopt.** Log-from-anything is the highest-value shortcut. |
-| Quick Add (log bare calories/macros with no food item) | **Adopt, narrowly.** Honest escape hatch for eating out; must be visibly unattributable. |
+| Quick Add (log bare calories/macros with no food item) | **Adopt, narrowly.** Custom food is the honest escape hatch for eating out; it must be visibly unattributable (decision 17). |
 | Multi-day logging / copy meals from a previous day | **Adopt later.** Cheap once the log model exists. |
-| Macros per meal slot, per-meal calorie targets | **Defer.** Needs a goals model we have not decided on. |
+| A daily calorie target with a remaining figure | **Adopt the arithmetic, reject the framing.** Decision 20 adds an optional manual target; decision 25 keeps the presentation restrained — plain figures, no rings or scoreboard. |
+| Macro targets, per-meal targets | **Defer.** V2 (decision 20); calories first. |
+| Automatically calculated targets (BMR/TDEE, weight-loss goals) | **Exclude.** Decision 20 — the user enters their own number. |
 | Barcode scanning, photo "Meal Scan", 20M-item food database | **Exclude.** Brief says a personal ingredient library first; external DBs are a later option, not a prerequisite. |
 | Recipe importer that fuzzy-matches free-text ingredient lines to database items | **Exclude for now.** Depends on a large external food DB. |
 | Premium gating, ads, streaks, social feed | **Exclude.** Single-user personal app. |
@@ -114,16 +116,20 @@ and portion-level tracking is the segment nobody joins up with quantitative nutr
 Ordered by how distinctive they are.
 
 1. **Batch and Portion as first-class, quantitative entities.** Cooking a Recipe creates a
-   Batch with a portion count and nutrition frozen at cook time. Portions are then planned,
-   logged (including half portions), and depleted. This single decision fixes the leftovers
-   gap in all four references at once.
+   Batch with a portion count and nutrition **frozen at cook time from the quantities actually
+   used**. Portions are then planned, logged (including half portions), and depleted. This
+   single decision fixes the leftovers gap in all four references at once, and the frozen
+   snapshot means a correction made in April never rewrites what March reported — something no
+   reference product offers.
 2. **Ingredient-level calorie attribution across logged meals.** Answer "where did my
    calories come from?" — by meal, by recipe, and by ingredient — by expanding every logged
    entry down to ingredient contributions. No reference product does this over a week.
 3. **One quantitative pantry serving three consumers.** The same stock quantities drive
    availability ("what can I make?"), shopping subtraction, and batch cooking deductions.
    SuperCook has availability without quantities; Samsung Food and Eat This Much have
-   quantities without a real inventory ledger.
+   quantities that no other part of the product genuinely consumes. Deliberately *not* an
+   inventory system: no lots, no expiry, no FIFO — a practical planning aid that tolerates
+   imperfect data (decisions 10, 12).
 4. **Shopping as pure arithmetic, always live.** `plan requirements − pantry stock`,
    recomputed on every change, with planned Portions correctly requiring *nothing* because
    they are already cooked. Never a stored, stale list.
@@ -131,17 +137,20 @@ Ordered by how distinctive they are.
    portion each move stock automatically. The pantry stays true without dedicated upkeep —
    the failure mode every pantry app suffers.
 6. **Explicitly no scores, no coaching, no judgement.** Report and attribute; never grade a
-   recipe A–E or nudge. This is both a product position and a design constraint.
+   recipe A–E or nudge. An optional calorie target (decision 20) is a figure the user chose,
+   not a verdict the product issues. This is both a product position and a design constraint.
 7. **Offline-first personal PWA.** Local data, no account, no network dependency, instant.
    Every reference product is a cloud service with a sign-up wall.
 
 ## Deliberately excluded from v1
 
-Recorded so later tickets do not relitigate it: external food databases and barcode
-scanning, recipe scraping/import from URLs, AI plan generation or photo recognition, social
-and community features, retailer/delivery integrations, composite health scores or diet
-grading, multi-user households and sharing, coaching/client management, subscriptions and
-gating, micronutrients beyond the initial four macros, exercise and weight tracking.
+Recorded so later tickets do not relitigate it — the full boundary is decision 24: external
+food databases, barcode scanning and restaurant databases · recipe scraping or import from URLs
+· AI recipe or plan generation and photo recognition · social, community and multi-user features
+· cloud synchronisation · retailer, delivery and price integrations · composite health scores or
+diet grading · automatic calorie-target calculation · expiry and food-waste tracking · complex
+dietary planning · recipe-to-recipe nesting · cooked-weight tracking · arbitrary cooking units ·
+micronutrients beyond the initial four · exercise and weight tracking.
 
 Several of these are model-compatible later additions (external food DBs, micronutrients,
 saved plans, copy-a-day). The domain model is shaped so they can be added without rework —

@@ -22,10 +22,14 @@ meet the contrast requirements in §9. Nothing in the product references a raw h
 
 Two design facts drive every decision that follows:
 
-1. **There is no food photography** and no pipeline for any. Type, colour, spacing and
-   numbers carry the design. **No layout may reserve or assume image space.**
-2. **This product reports; it does not judge.** No grades, scores, rings, streaks, or
-   goal framing. Consequence: macro colours are **categorical, never evaluative**.
+1. **Type, colour, spacing and numbers carry the design — never imagery.** Recipes may have a
+   user-supplied image (decision 4), but images are **strictly optional and never structural**:
+   no layout reserves image space, no grey placeholder appears where one is absent, and a
+   recipe without an image must look deliberate rather than broken. See §11.
+2. **This product reports; it does not judge.** No grades, scores, rings, streaks or
+   goal framing. A user may set an optional daily calorie target (decision 20); it is presented
+   as three plain figures, never as a scoreboard — see §8.4. Consequence: macro colours are
+   **categorical, never evaluative**.
 
 ## 2. Token foundation
 
@@ -151,7 +155,7 @@ The most consequential colour decision in the product. These encode *which nutri
   --color-macro-protein: #B5462F;   /* rust */
   --color-macro-carbs:   #D99A2B;   /* amber */
   --color-macro-fat:     #4E7C8A;   /* slate */
-  --color-macro-none:    #A79C8D;   /* unattributed (quick-add) */
+  --color-macro-none:    #A79C8D;   /* unattributed (custom food) */
 }
 [data-theme="dark"] {
   --color-macro-energy:  #C9C0B2;
@@ -176,21 +180,24 @@ Three deliberate choices:
 
 **Rules.** These five colours mean the same thing everywhere — chart series, table header
 accents, badges, inline dots — so the association is learned once. They are never used for
-non-nutrition purposes. `--color-macro-none` is always rendered for quick-add entries; the
+non-nutrition purposes. `--color-macro-none` is always rendered for custom-food entries; the
 unattributed share is never hidden.
 
 ### Availability colours
 
-Uses status tokens, but **never colour alone** (§9):
+The three states from [DOMAIN_MODEL.md](./DOMAIN_MODEL.md), using status tokens but **never
+colour alone** (§9):
 
 | State | Token | Also carries |
 | --- | --- | --- |
-| Can make now | `--color-success` | Text "Ready to cook" + check icon |
-| Missing staples only | `--color-warning` | "Missing salt, oil" — named, not counted |
-| Missing key ingredients | `--color-muted` | "Missing chicken, rice" — muted, **not error red** |
+| `canMake` | `--color-success` | Text "Ready to cook" + check icon |
+| `almostCanMake` | `--color-warning` | The missing items **named with amounts** — "Missing: onion 50 g" |
+| `missingSignificant` | `--color-muted` | Named shortfalls, muted, **not error red** |
 
-Missing ingredients is a neutral fact, not a failure. Red would scold the user for their
-own fridge.
+Two rules. **Always name the shortfall with its amount**, per decision 11's example — "missing
+3 ingredients" is nearly useless, "missing onion 50 g" is actionable. And **missing ingredients
+is a neutral fact, not a failure**: red would scold the user for the contents of their own
+fridge, and availability never gates an action.
 
 ## 4. Typography
 
@@ -240,7 +247,18 @@ figures use the sans with `tabular-nums`. Units are set at `--font-size-sm` in
 
 Formatting rules for quantities and nutrition live in
 [UNIT_MODEL.md](./UNIT_MODEL.md) and [NUTRITION_MODEL.md](./NUTRITION_MODEL.md), applied via
-one shared formatter. Components must not invent their own rounding.
+one shared formatter. Components must not invent their own rounding. The display rules, per
+decision 3:
+
+| Value | Rendered | Example |
+| --- | --- | --- |
+| Calories | Integer, never a decimal | `524 kcal` |
+| Macros | One decimal place | `42.4 g` |
+| Percentages | Integer | `45%` |
+| Quantities | Promoted per [UNIT_MODEL.md](./UNIT_MODEL.md) | `1.2 kg`, `1.65 L` |
+
+Rounded parts will not always sum to the rounded total. **Show the true total** and never fudge
+the parts to reconcile — a footnote is better than a lie.
 
 ## 5. Spacing, layout, surfaces
 
@@ -297,7 +315,7 @@ ingredient row does not. Never nest a card inside a card.
 
 ### Ownership
 
-Per [ARCHITECTURE.md](./ARCHITECTURE.md) and [Q9](./OPEN_QUESTIONS.md): shadcn/ui owns the
+Per [ARCHITECTURE.md](./ARCHITECTURE.md) and decision 25: shadcn/ui owns the
 interactive layer (buttons, inputs, dialogs, sheets, popovers, command, tabs, tables, toasts,
 checkboxes, switches, comboboxes, calendars, dropdowns, tooltips); PWA-Base owns tokens,
 theme, app shell, site contract, and the display primitives `EmptyState`, `Skeleton`,
@@ -330,21 +348,61 @@ Defining these once prevents seven screens inventing seven treatments:
 | `PortionStepper` | Fractional portion input | 0.5 steps; large targets |
 | `IngredientChip` | Pantry / picker chip | In-stock vs known-not-stocked states |
 | `PlanSlotTile` | A planned meal | **Must** visually distinguish recipe-to-cook from batch-portion |
-| `MealSlotSection` | Day → slot grouping | Shared by plan and log |
+| `MealSlotSection` | Day → slot grouping | Shared by plan and log; iterates `mealSlots` data, never a hard-coded three |
+| `AttributionList` | Ranked ingredient contribution + % | The headline insight (decisions 6, 22); used at recipe, day and week scope |
+| `TargetReadout` | Target / consumed / remaining | §8.4; renders nothing when no target is set |
+| `ShortfallNotice` | "You are missing 200g chicken" | Warn-and-proceed, with adjust-pantry and cook-anyway actions (decision 12) |
+| `DateRangeControl` | The shopping window | §6.1; default today → +6 days, with nudge and preset affordances |
 
 `PlanSlotTile` matters most: recipe-to-cook and batch-portion are the product's core
 distinction, and if the planner renders them identically the differentiator is invisible.
 Use different surface treatment and an icon, not a small badge — a cook tile reads as work to
 do, a portion tile as food that already exists.
 
+### 6.1 The shopping window
+
+The shopping list is derived from a **user-chosen date range defaulting to today through the
+next six days**. That range is a first-class part of the screen, because a list whose scope is
+invisible is a list the user cannot trust.
+
+The simplest UX that satisfies it, drawn from the shopping-list patterns in
+[DESIGN_RESEARCH.md](./DESIGN_RESEARCH.md):
+
+- **One line of text at the top of the shopping view**, stating the range in plain language —
+  "Shopping for Tue 25 Aug – Mon 31 Aug" — acting as the control. Not a filter bar, not a pair
+  of date inputs sitting permanently on screen.
+- Tapping it opens a small popover with **two presets (next 7 days, next 14 days)** and a date
+  pair for anything else. Presets cover the real cases; the date pair is the escape hatch.
+- **Nudge affordances** beside the label for shifting a week forward or back, since "next
+  week's shop" is the common variation.
+- The range is **persisted per user**, so it survives navigation and reload. It is not a
+  transient piece of view state.
+
+Because ticks are scoped to the range ([DOMAIN_MODEL.md](./DOMAIN_MODEL.md)), changing it must
+never look like data loss. If the outgoing range has ticked items, say so and offer to carry
+them over — "8 ticked items in the previous range. Carry them over?" — rather than silently
+emptying the list or silently reinterpreting the ticks.
+
 ### Forms
 
 React Hook Form + Zod, reusing domain schemas. Labels always visible (never placeholder-only).
 Errors below the field, in `--color-error`, referenced by `aria-describedby`, with
 `aria-invalid`. Required fields marked in text, never with colour alone. Numeric inputs use
-`inputMode="decimal"`. Unit selection sits adjacent to its amount field, and a
-missing-conversion-factor case renders as an inline prompt, not an error toast
-([UNIT_MODEL.md](./UNIT_MODEL.md)).
+`inputMode="decimal"`. Unit selection sits adjacent to its amount field and offers only units
+from that ingredient's family, so a cross-family entry is unreachable rather than an error to
+recover from ([UNIT_MODEL.md](./UNIT_MODEL.md)).
+
+Two forms carry more weight than the rest and deserve specific treatment:
+
+- **The cook flow** pre-fills each ingredient quantity from the scaled recipe and lets the user
+  adjust it, because the batch snapshot records what was *actually* used
+  ([DOMAIN_MODEL.md](./DOMAIN_MODEL.md)). Pre-filled values must be immediately editable
+  without a mode switch, and an edited row should read as deliberate rather than as an error.
+  Most cooks change nothing, so the default path is one confirming tap.
+- **Negative pantry stock** is a normal state, not a validation failure. Show the negative
+  figure plainly with a one-tap "set to…" correction inline in the pantry row. No red, no
+  warning icon, no blocking dialog — it means the records are behind reality, which the product
+  explicitly tolerates (decision 12).
 
 ## 7. Responsive behaviour
 
@@ -378,7 +436,7 @@ Every chart answers a stated question. Insights is organised by question, not by
 | Question | Chart | Notes |
 | --- | --- | --- |
 | What did I eat today? | Horizontal stacked `MacroBar` + figures | Bar supports the numbers; it is not the headline |
-| How did this week go? | Bar chart, kcal per day | One bar per day; no target line in v1 |
+| How did this week go? | Bar chart, kcal per day | One bar per day; a thin target reference line only if a target is set |
 | Which meals did calories come from? | Horizontal stacked bar by slot | Slots are few and ordered — bars beat a pie |
 | Which recipes? | Horizontal bar, descending, top 8 + "other" | Ranking, so bars not pie |
 | **Which ingredients?** | Horizontal bar, descending, top 10 + "other" + unattributed | The headline insight; most design attention |
@@ -389,14 +447,44 @@ Rules:
 1. **Categorical macro colours only** (§3), identical everywhere.
 2. **No pie or donut charts.** Four macros or ten ingredients both read better as ranked or
    stacked bars, and neither invites the calorie-ring aesthetic.
-3. **No progress rings, gauges or dials** in v1 — there are no targets ([Q8](./OPEN_QUESTIONS.md)).
+3. **No progress rings, gauges or dials** — including for the calorie target. See §8.4.
 4. **Every chart has a text or table equivalent** in the DOM, not merely an `aria-label`.
    For four macros a well-set table often beats a chart outright.
 5. Axes are minimal: no gridlines beyond a single baseline, no 3D, no drop shadows, no
    animated entry beyond a fast fade.
-6. Unattributed (quick-add) share always rendered in `--color-macro-none`, never omitted.
+6. Unattributed (custom food) share always rendered in `--color-macro-none`, never omitted —
+   the ingredient breakdown must be honest about what it cannot explain.
 7. Chart colours come from CSS variables (`var(--color-macro-protein)`), so both themes and
    any token tuning apply automatically.
+
+### 8.4 The calorie target
+
+Decision 20 adds an optional, manually entered daily calorie target, while decision 25 still
+rules out fitness-bro aesthetics. Both hold, because the objection was never to targets — it
+was to the *framing* that usually accompanies them. So:
+
+**Present it as three plain figures, in one line, with tabular numerals.**
+
+```
+Target 2400   ·   Consumed 1840   ·   Remaining 560 kcal
+```
+
+Optionally accompanied by a **single slim horizontal meter** (4–6px, full width, `--radius-sm`,
+`--color-accent` fill on `--color-muted-background`) — the same visual language as the
+`MacroBar`, so it reads as part of the product rather than as a fitness widget.
+
+Required:
+
+- **Going over target is stated, not scolded.** Remaining renders as a negative number, or as
+  "180 over", in `--color-foreground` — *not* red. Red means error; eating is not an error.
+- **No colour-coded pass/fail, no congratulation, no streak, no emoji, no celebration.** The
+  number is the feedback.
+- **The meter is never the largest element on the screen.** Today's meals outrank it.
+- **Absent target, absent UI.** No "set a target" nag, no empty ring, no placeholder. Every
+  view is complete without one, and the majority of the screen must not change shape when a
+  target is added or removed.
+- Macro targets are a later addition (decision 20) and would extend the same one-line pattern
+  — not add three more meters.
 
 ## 9. Accessibility
 
@@ -453,7 +541,36 @@ reserved for sheets. Prefer opacity and small transforms over large positional m
 | Bouncy or elastic easing | Wrong register for a working tool |
 | Motion as the only feedback for a state change | Inaccessible |
 
-## 11. Empty, loading, and error states
+## 11. Optional recipe images, empty, loading, and error states
+
+### Optional recipe images
+
+Decision 4 allows a recipe to carry an optional user-supplied image. This does not change §1:
+the design still works entirely without imagery, and an image is an enhancement to one entity,
+not a layout dependency.
+
+Rules:
+
+- **Absent is the default and must look finished.** No grey placeholder, no dashed drop zone in
+  the reading view, no "add a photo" prompt on the recipe page. A recipe without an image shows
+  its title in display type, exactly as specified in §4 — which is the design doing the job
+  photography would normally do.
+- **The layout must not shift shape.** An image is added *within* the existing composition (a
+  bounded banner on the recipe page, a small leading thumbnail in list rows) rather than
+  introducing a reserved slot that collapses when empty. A list of ten recipes where three have
+  images must not look ragged: either the thumbnail column is present for all rows with a
+  typographic monogram fallback, or it is absent for all rows in that view. **Do not mix.**
+- **Never the largest element.** The most useful thing on a recipe card is availability and
+  calories per serving, not a photo.
+- Images are cropped to a fixed aspect (4:3 banner, 1:1 thumbnail) with `object-fit: cover`,
+  `--radius-md`, and no border or shadow. No captions, no lightbox, no gallery — one image per
+  recipe.
+- Upload lives in the recipe **editor** only, as an unobtrusive control alongside the name
+  field, with removal always available.
+- `alt` text is the recipe name. Decorative-only usage means it must never be the sole carrier
+  of information (§9).
+
+### Empty
 
 Every list and every chart has all three specified before it ships. A brand-new install is
 **entirely empty**, so empty states are the genuine first-run experience, not an edge case.
@@ -512,15 +629,16 @@ Rejecting these is what makes the product look intentional rather than generated
 | Everything wrapped in a bordered card | Lists with dividers; cards only for separable objects |
 | A border on every row, or a full grid of cell borders | Spacing and one border per real boundary |
 | Generic SaaS dashboard of KPI tiles | Insights organised by question |
-| Hero calorie rings, "remaining calories" scoreboards | Absolute figures, stated plainly |
+| Hero calorie rings, gauges, dials, scoreboard framing | The one-line target readout in §8.4 |
 | Streaks, badges, congratulation, nudging, scolding | Report; never judge |
+| Red "over target" warnings | A plain negative number in normal ink |
 | Nutri-Score, traffic-light nutrients, health grades | Composition and attribution |
 | Green = good / red = bad for macros | Categorical macro colours (§3) |
 | Giant headings above thin content | Modest page titles; display type for real content |
 | Pie and donut charts | Ranked or stacked bars |
 | Placeholder-only form labels | Always-visible labels |
 | Proportional (non-tabular) figures in data | `tabular-nums` everywhere |
-| Grey image placeholders, reserved 16:9 slots | No layout assumes imagery |
+| Grey image placeholders, reserved 16:9 slots, "add a photo" nags | Optional images that collapse cleanly when absent (§11) |
 | Decorative animation, page-load staggers, parallax | Motion only for state and space |
 | Drag-only interactions | Always a keyboard and pointer alternative |
 | Colour as the only carrier of meaning | Colour plus text or icon |

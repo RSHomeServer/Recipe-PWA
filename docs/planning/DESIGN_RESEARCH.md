@@ -9,22 +9,28 @@ is adopted are structural and interaction patterns.
 
 ## The constraint that shapes everything
 
-**We have no food photography, and no pipeline to get any.**
+**There is no image library, and most recipes will never have a picture.**
 
 Every polished recipe product leans on photography: Samsung Food, NYT Cooking, and the whole
 cookbook-publishing aesthetic are built on full-bleed imagery. A personal app with
-user-authored recipes has, realistically, no images at all — and the honest failure mode of
+user-authored recipes has, realistically, almost no images — and the honest failure mode of
 "design for photos, ship without them" is grey placeholder rectangles everywhere, which looks
 broken rather than minimal.
 
 So the design must be **typographically and chromatically led**: type, colour, spacing and
 numeric data do the work that photography usually does. This turns out to be a good fit for
 what the product actually is — a working tool used mid-task, in a kitchen or on a phone —
-rather than a browsing experience. It also means an optional recipe image later is a bonus,
-never a dependency.
+rather than a browsing experience.
 
-Consequence for DESIGN.md: no layout may assume an image, no card may reserve a 16:9 slot,
-and recipe identity must come from type and colour treatment.
+Decision 4 allows an **optional** user-supplied recipe image, which does not change this
+conclusion: it is an enhancement to one entity, never a structural dependency. The design must
+be complete without any image, and a library where three recipes in ten have pictures must not
+look ragged.
+
+Consequence for DESIGN.md: no layout may assume or reserve image space, no grey placeholder
+ever appears where an image is absent, recipe identity comes from type and colour treatment,
+and a thumbnail column is either present for every row in a view (with a typographic fallback)
+or absent for all of them.
 
 ## Reference patterns worth adopting
 
@@ -154,12 +160,12 @@ Each of these is a specific failure this product is at risk of, not a generic wa
 | **Purple/blue AI gradients** | The 2020s default for anything data-shaped | Warm earth palette. No gradient as a surface fill anywhere. Nothing in the product implies AI. |
 | **Everything in cards** | Seven list-heavy screens make card-wrapping each row tempting | Lists are lists: dividers and spacing, not a border per row. A card must earn itself by being a genuinely separable object. |
 | **Excessive borders** | Data-dense tables invite boxing every cell | One border per boundary. Prefer spacing and background shifts over rules. Never a full grid of cell borders. |
-| **Fitness-bro aesthetic** — hero calorie rings, "remaining" scoreboards, streaks, black-and-neon | This is a nutrition app; the pull is enormous | No progress rings as page heroes. No goal framing in v1 ([Q8](./OPEN_QUESTIONS.md)). Report figures; never congratulate or scold. |
+| **Fitness-bro aesthetic** — hero calorie rings, "remaining" scoreboards, streaks, black-and-neon | This is a nutrition app; the pull is enormous | No rings, gauges or dials at all. Decision 20 adds an optional calorie target, so the discipline moves to *framing*: three plain figures and at most one slim meter (DESIGN.md §8.4). Report; never congratulate or scold. |
 | **Giant headings, little content** | Marketing-page habit leaking into an app | Page titles are modest. Display sizes are for recipe titles and key figures, not for the word "Pantry". |
 | **Glassmorphism / blur** | Cheap way to look modern | Not used. Surfaces are opaque. |
 | **Decorative animation** | Motion library is available and tempting | Motion communicates state change or spatial relationship, or it does not ship. No page-load staggers, no parallax, no ambient loops. |
 | **Spreadsheet feel** | The brief warns of it, and the data really is tabular | Tabular where tabular is right, but with generous row height, no vertical rules, right-aligned tabular figures, and one emphasised column per table rather than uniform grey text. |
-| **Grey image placeholders** | Direct consequence of having no photography | No layout reserves image space. Recipe identity comes from type and colour. |
+| **Grey image placeholders** | Direct consequence of most recipes having no image | No layout reserves image space and no placeholder is ever drawn. Recipe identity comes from type and colour; an optional image sits inside the existing composition. |
 | **Colour-only meaning** | Availability states and macro charts both invite it | Every state carries text or an icon as well as colour ([Open Food Facts](https://github.com/openfoodfacts/openfoodfacts-design) rule, and PWA-Base's own a11y baseline). |
 
 ## Distinctive opportunities
@@ -195,7 +201,26 @@ Carried forward as decisions:
 - Lists as lists; cards only for separable objects; minimal borders.
 - Phone-first treatment for logging and shopping; density permitted for authoring and
   insights.
-- No layout depends on imagery.
+- No layout depends on imagery; an optional recipe image is an enhancement, never a slot.
 - Colour never carries meaning alone; charts always have a text or table equivalent.
 - Motion only for state change and spatial continuity.
-- No grades, scores, rings, streaks or goal framing.
+- No grades, scores, rings, streaks or gamified goal framing. The optional calorie target
+  (decision 20) is three plain figures and at most one slim meter — DESIGN.md §8.4.
+
+## Remaining research focus
+
+Decision 26 settles the domain concepts and redirects research at the UX around them. The
+open areas, in rough order of how much they will shape the product:
+
+| Area | The question worth researching |
+| --- | --- |
+| Pantry matching | How to present three availability states across a library without noise, and how much shortfall tolerance feels helpful rather than pedantic |
+| Fast meal logging | How few taps can log yesterday's dinner again; where the log entry point lives on a phone |
+| Recipe creation | Ingredient-row entry that stays quick at twenty lines, with unit entry that never fights the user |
+| Nutrition breakdown | Making ingredient attribution legible at recipe, day and week scope with one visual language |
+| Weekly planning | A 7 × slot grid on a phone; drag with a genuinely equal keyboard and menu path |
+| Shopping interaction | Grouping, ticking one-handed, and showing an adjustment beside the derived figure without clutter |
+| Batch and portion management | Making "2.5 portions of Sunday's curry left" feel physical, and where closing a batch belongs |
+| Insight visualisation | Which of the five insight views earn a chart and which read better as a table |
+| Mobile navigation | Route grouping across ten routes without a crowded tab bar |
+| Modern food-app visual patterns | Continued reference gathering for warmth and character within the constraints above |

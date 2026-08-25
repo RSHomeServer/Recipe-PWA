@@ -1,12 +1,13 @@
 # Nutrition Model
 
-How calories and macros are represented, calculated, and attributed. Entities and their
-invariants are in [DOMAIN_MODEL.md](./DOMAIN_MODEL.md); units and conversion in
+How calories and macros are represented, calculated and attributed, per V1 decisions 3, 6,
+20, 21, 22 and 23. Entities are in [DOMAIN_MODEL.md](./DOMAIN_MODEL.md); units in
 [UNIT_MODEL.md](./UNIT_MODEL.md).
 
-The governing rule: **nutrition is stored in exactly two places — on an `Ingredient`, and
-inside a `Batch.snapshot`. Everywhere else it is computed.** Every figure the UI shows is
-either one of those two, or the output of a pure function over them.
+The governing rule: **nutrition is stored in exactly three places — on an `Ingredient`, in a
+`Batch.snapshot`, and on a `customFood` log entry. Everywhere else it is computed**
+(decisions 3, 6, 23). The first is reference data; the other two are historical provenance.
+Recipe totals are never manually entered and never stored.
 
 ## Representation
 
@@ -21,192 +22,200 @@ type Nutrition = {
 
 Decisions:
 
-- **Four values only** in v1: energy plus the three macros the brief names. Fibre, sugar,
-  saturates, salt and micronutrients are later additions — adding a key to this record and a
-  term to the summing helpers, nothing more.
-- **kcal is stored, not derived.** It is tempting to compute energy from macros via Atwater
-  factors (4/4/9 kcal per gram), but real food labels do not reconcile with that arithmetic
-  (fibre, sugar alcohols, rounding), and users copy figures from labels. Store what the
-  label says. Optionally *warn* when the declared kcal deviates from the Atwater estimate by
-  more than ~20%, as a data-entry sanity check — never silently correct it.
-- **Grams for all macros**, always. No percentages stored; percentage-of-energy is a
-  presentation concern computed at display time.
-- **No negative values.** Zero is legal and common (water, most spices).
+- **Four values in V1** (decision 21), with the record **extensible** to fibre, sugar,
+  saturated fat and sodium (decision 1). Adding a nutrient is one key here plus one term in
+  the summing helpers — no reshaping, because every function below is generic over the record.
+- **kcal is stored, not derived from macros.** Computing energy via Atwater factors (4/4/9
+  kcal per gram) does not reconcile with real food labels once fibre, sugar alcohols and
+  label rounding are involved, and users copy figures from labels. Store what the label says.
+  Optionally *warn* when declared kcal deviates from the Atwater estimate by more than ~20%,
+  as a data-entry sanity check — never silently correct it.
+- **Grams for all macros.** No percentages stored; percentage-of-energy is computed at display
+  time.
+- No negative values. Zero is legal and common.
 - `Nutrition` is a value object with no identity, freely summed and scaled.
 
 ### Reference basis
 
-An `Ingredient` declares its nutrition against a fixed basis implied by its `measureKind`:
+An `Ingredient` declares its nutrition against a fixed, intuitive basis implied by its
+canonical unit (decision 3):
 
-| `measureKind` | Nutrition is per | Canonical unit |
+| Family | Nutrition is per | Canonical unit |
 | --- | --- | --- |
-| `mass` | **100 g** | g |
-| `volume` | **100 ml** | ml |
-| `count` | **1 item** | item |
-
-A fixed basis rather than a per-ingredient "reference amount" field is deliberate: every
-calculation becomes one multiplication, there is no per-row basis to get wrong, and food
-labels are already per 100 g / 100 ml in the UK and EU.
+| Weight | **100 g** | g |
+| Volume | **100 ml** | ml |
+| Count | **1 item** | item |
 
 ```ts
 const basis = (kind: MeasureKind) => (kind === "count" ? 1 : 100);
 ```
 
+A fixed basis rather than a per-ingredient reference amount is deliberate: every calculation
+becomes one multiplication, there is no per-row basis to get wrong, and UK/EU labels are
+already printed per 100 g / 100 ml. Internally everything normalises to the base unit
+(decision 3); the 100-unit basis is the *entry and display* convention.
+
 ## Core scaling primitives
 
-Three pure functions, and everything else is built from them.
+Three pure functions; everything else is built from them.
 
 ```ts
-/** Scale a nutrition record by a factor. */
 scale(n: Nutrition, f: number): Nutrition
   => { kcal: n.kcal * f, proteinG: n.proteinG * f, carbsG: n.carbsG * f, fatG: n.fatG * f }
 
-/** Sum any number of nutrition records. */
-sum(ns: Nutrition[]): Nutrition        // identity: ZERO = { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 }
+sum(ns: Nutrition[]): Nutrition        // identity ZERO = { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 }
 
-/** Nutrition of a canonical quantity of one ingredient. */
 nutritionOf(ingredient, q: CanonicalQuantity): Nutrition {
   assert(q.kind === ingredient.measureKind);
   return scale(ingredient.nutrition, q.amount / basis(ingredient.measureKind));
 }
 ```
 
-Worked example — 500 g chicken breast at 165 kcal / 31 g protein / 0 g carbs / 3.6 g fat per
-100 g: factor `500 / 100 = 5` → 825 kcal, 155 g protein, 0 g carbs, 18 g fat.
+Worked example, using decision 3's figures — chicken at 120 kcal / 23 g protein / 0 g carbs /
+2.6 g fat per 100 g. For 500 g the factor is `500 / 100 = 5`: 600 kcal, 115 g protein, 0 g
+carbs, 13 g fat.
 
-`(Nutrition, sum, ZERO)` forms a commutative monoid, and `scale` distributes over `sum`.
-That is not pedantry: it means aggregation order never changes a total, which is what makes
-the reconciliation invariant at the end of this document testable.
+`(Nutrition, sum, ZERO)` is a commutative monoid and `scale` distributes over `sum`. That is
+not pedantry: it means aggregation order never changes a total, which is what makes the
+reconciliation invariant at the end of this document hold.
 
 ## Recipe nutrition
 
-Derived on every read. A recipe never stores calories.
+Derived on every read (decisions 6, 23). A recipe never stores calories.
 
 ```ts
 recipeTotal(recipe, ingredientsById): Nutrition =
   sum(recipe.lines
-        .filter(l => !l.optional)                       // see note below
+        .filter(l => !l.optional)
         .map(l => nutritionOf(ingredientsById[l.ingredientId], l.quantity)))
 
 recipePerServing(recipe, …): Nutrition = scale(recipeTotal(recipe, …), 1 / recipe.servings)
 
-recipeBreakdown(recipe, …): { line, nutrition, shareOfKcal }[]   // the ingredient-level view
+recipeBreakdown(recipe, …): { line, nutrition, shareOfKcal }[]
 ```
 
-Worked example — Chicken Curry, 4 servings:
+Worked example — decision 6's recipe at 4 servings:
 
-| Line | Amount | Per 100 g | Contribution |
-| --- | --- | --- | --- |
-| Chicken breast | 500 g | 165 kcal | 825 kcal |
-| Rice (dry) | 300 g | 360 kcal | 1080 kcal |
-| Curry sauce | 200 g | 90 kcal | 180 kcal |
-| Oil | 10 g | 884 kcal | 88 kcal |
-| **Total** | | | **2173 kcal** |
-| **Per serving** | | | **543 kcal** |
+| Line | Contribution | Share of kcal |
+| --- | --- | --- |
+| Chicken | 600 kcal | 45% |
+| Rice | 450 kcal | 34% |
+| Sauce | 200 kcal | 15% |
+| Oil | 90 kcal | 7% |
+| **Total** | **1340 kcal** | |
+| **Per serving** | **335 kcal** | |
 
-The breakdown answers "where do this dish's calories come from": rice 50%, chicken 38%,
-sauce 8%, oil 4%. Rendering this well is the single most useful nutrition view in the
-product, and it is the recipe-scoped version of the week-scoped Insights attribution.
+`recipeBreakdown` answers "where do this dish's calories come from". Rendering it well is the
+most useful nutrition view in the product and **a core feature, not a detail** (decision 6).
+It is the recipe-scoped version of the week-scoped attribution below.
 
-**Optional lines** are excluded from the recipe's headline totals so the number matches the
-dish as normally made. The UI must label totals as excluding optional lines, and the
-breakdown should still list them with their contribution shown separately. (Availability and
-shopping already ignore optional lines — DOMAIN_MODEL.md.)
+**Optional lines** are excluded from headline totals so the figure matches the dish as
+normally made. The UI labels totals as excluding optional lines, and the breakdown still lists
+them with their contribution shown separately. Availability and shopping also ignore optional
+lines ([DOMAIN_MODEL.md](./DOMAIN_MODEL.md)).
 
-### Scaling a recipe
+### Scaling
 
 ```ts
-scaledLines(recipe, servings) = recipe.lines.map(l => ({
-  ...l,
-  quantity: { ...l.quantity, amount: l.quantity.amount * (servings / recipe.servings) },
-}))
+scaledLines(recipe, servings) = lines with quantity × (servings / recipe.servings)
 ```
 
-Used by plan requirements, by the cook-a-batch flow, and by `recipeServings` meal entries.
-Scaling is strictly linear — no yield curves, no "reduce the salt when doubling".
+Linear and dynamic (decision 5): 4 servings with 500 g chicken scaled to 8 servings is 1000 g.
+Used by plan requirements, batch creation, and `recipeServings` entries. No yield curves, no
+"reduce the salt when doubling".
 
-## Batch nutrition — the freeze
+## Batch and portion nutrition
 
-Cooking a recipe computes its nutrition once and stores it, because history must not change
-when a recipe is later edited.
+**A Batch carries a frozen snapshot captured at cook time, and that snapshot is the only
+source of its nutrition.** Nothing recomputes a batch from the live recipe.
 
 ```ts
-createBatch(recipe, ingredientsById, actualLines, portionsTotal): Batch {
-  const lines = actualLines.map(l => ({
-    ingredientId:   l.ingredientId,
-    ingredientName: ingredientsById[l.ingredientId].name,   // denormalised, durable
-    quantity:       l.quantity,                             // what was ACTUALLY used
-    nutrition:      nutritionOf(ingredientsById[l.ingredientId], l.quantity),
-  }));
-  return { …, snapshot: { recipeName: recipe.name, lines, total: sum(lines.map(l => l.nutrition)) } };
+batchNutrition(batch)          = batch.snapshot.total
+portionNutrition(batch)        = batch.snapshot.total / batch.portionsNominal
+portionsNutrition(batch, p)    = batch.snapshot.total × (p / batch.portionsNominal)
+```
+
+Note what these signatures do **not** take: no recipe, no ingredient map, no scale factor. A
+batch is nutritionally self-contained, which is both the correctness guarantee and a
+convenience — insights over a year of logs need no recipe lookups.
+
+At creation, the snapshot is built once from the quantities actually used:
+
+```ts
+createSnapshot(recipe, ingredients, actualLines): BatchSnapshot {
+  const lines = actualLines.map(l => {
+    const ing = ingredients[l.ingredientId];
+    return { ingredientId: ing.id, ingredientName: ing.name,
+             quantity: l.quantity, nutrition: nutritionOf(ing, l.quantity) };
+  });
+  return { recipeName: recipe.name, lines, total: sum(lines.map(l => l.nutrition)) };
 }
 ```
 
-- `actualLines` defaults to the recipe's lines scaled to the batch size, and is **editable at
-  cook time** — you used 550 g of chicken, not 500 g. Deviation is captured where it happens.
-- After creation the snapshot is immutable. Correcting a batch means voiding and re-creating.
-- Ingredient names are denormalised into the snapshot so a batch cooked in March still reads
-  correctly after the ingredient is renamed or archived.
+`actualLines` is seeded from `scaledLines(recipe, recipe.servings × scale)` and is editable in
+the cook flow, so 500 g of recipe chicken cooked as 550 g stores 550 g and the nutrition to
+match.
 
-### Portion nutrition
+Worked example — the 1340 kcal recipe cooked at 2× into 8 portions: snapshot total 2680 kcal,
+portion 335 kcal; logging 1.5 portions records 502.5 kcal. Because `p` is a real number,
+fractional portions need no special handling (decision 8).
 
-```ts
-portionNutrition(batch)          = scale(batch.snapshot.total, 1 / batch.portionsTotal)
-portionsNutrition(batch, p)      = scale(batch.snapshot.total, p / batch.portionsTotal)
-```
+Note the deliberate distinction between `recipePerServing` (a property of the definition,
+always current) and `portionNutrition` (a property of a batch's division into helpings, frozen
+at cook time). They are often equal. They are not the same thing, and after a recipe edit they
+will differ — correctly.
 
-Worked example — the curry above cooked as one batch divided into 4 portions: 543 kcal per
-portion; logging 1.5 portions records 815 kcal. Because `p` is a real number, half and
-one-and-a-half portions need no special handling anywhere.
+**History is immutable.** Editing a recipe or correcting an ingredient's nutrition changes
+future recipe totals and future batches, and changes **nothing** about batches already cooked
+or logs already recorded. A week you reviewed in March still reads the same in April. This is
+the guarantee that makes historical attribution (decisions 21, 22) worth trusting, and it is
+why `snapshot` is written once and never updated.
 
-Note the deliberate difference between `recipePerServing` (a property of the definition,
-which moves when the recipe is edited) and `portionNutrition` (a property of a past event,
-which never moves). They will often be equal. They are not the same thing.
-
-### Cooked weight and yield loss
-
-Cooking changes weight — 300 g of dry rice absorbs water, a sauce reduces. Nutrition,
-however, is conserved (water carries no calories), so **nutrition is always computed from
-the ingredients as added**, never from the cooked weight. This is correct and needs no
-cooked-weight data.
-
-`Recipe.cookedWeightG` is therefore optional and used only for *portioning by weight*:
-knowing the batch weighed 1400 g lets the UI say "each portion is about 350 g", which is
-genuinely useful when dividing into containers. It never enters a nutrition calculation.
-Weight-based portioning as an alternative to portion counts is deferred, not v1.
+**Cooked weight is not modelled** (decisions 7, 24). This is nutritionally sound regardless:
+cooking changes weight (rice absorbs water, sauces reduce) but not nutrition, because water
+carries no calories. Nutrition always comes from the ingredients as added — which is exactly
+what the snapshot records — so no cooked-weight data is needed for correctness.
 
 ## Meal entry nutrition
 
-One function resolves any entry — planned or logged — to a nutrition figure.
+One function resolves any entry — planned or logged.
 
 ```ts
 entryNutrition(entry, ctx): Nutrition {
   switch (entry.kind) {
-    case "recipeServings": return scale(recipeTotal(ctx.recipe(entry.recipeId), ctx.ingredients),
-                                        entry.servings / ctx.recipe(entry.recipeId).servings);
-    case "batchPortions":  return portionsNutrition(ctx.batch(entry.batchId), entry.portions);
-    case "ingredient":     return nutritionOf(ctx.ingredient(entry.ingredientId),
-                                              toCanonical(entry.quantity, ctx.ingredient(entry.ingredientId)));
-    case "quickAdd":       return entry.nutrition;
+    case "recipeServings":
+      return scale(recipeTotal(ctx.recipe(entry.recipeId), ctx.ingredients),
+                   entry.servings / ctx.recipe(entry.recipeId).servings);
+    case "batchPortions":
+      return portionsNutrition(ctx.batch(entry.batchId), entry.portions);   // from the snapshot
+    case "ingredient":
+      return nutritionOf(ctx.ingredient(entry.ingredientId),
+                         toCanonical(entry.quantity, ctx.ingredient(entry.ingredientId)));
+    case "customFood":
+      return scale(entry.food.nutrition, entry.food.quantity);
   }
 }
 ```
 
-Because planning and logging share `MealEntry`, planned-day nutrition and logged-day
-nutrition come from the same function and are directly comparable — which is what makes
-"planned vs actual" a later formatting exercise rather than a new model.
+Because planning and logging share `MealEntry` (decisions 14–15), planned-day and logged-day
+nutrition come from the same function and are directly comparable — so planned-versus-actual
+is later a formatting exercise, not a new model.
+
+`customFood` nutrition is the figures the user entered multiplied by `quantity`
+(decision 17) — so "one 250 kcal wrap × 2" records 500 kcal.
 
 ## Attribution — "where did my calories come from?"
 
-The headline insight, and the thing no reference product does across a week. It rests on one
-expansion function that takes a logged meal down to ingredient-level contributions.
+The headline capability (decisions 21, 22), and the thing no reference product does across a
+week. It rests on one expansion function taking a logged meal down to ingredient-level
+contributions.
 
 ```ts
 expand(log, ctx): Contribution[] {
-  const at = { logId: log.id, date: log.date, slot: log.slot };
+  const at = { logId: log.id, date: log.date, slotId: log.slotId };
 
   switch (log.entry.kind) {
-    // A recipe eaten directly: attribute each line, scaled to servings eaten.
+    // A recipe eaten directly: attribute the CURRENT recipe lines, scaled to servings eaten.
     case "recipeServings": {
       const r = ctx.recipe(log.entry.recipeId);
       const f = log.entry.servings / r.servings;
@@ -219,12 +228,14 @@ expand(log, ctx): Contribution[] {
       });
     }
 
-    // A portion of a batch: attribute from the FROZEN SNAPSHOT, not the live recipe.
+    // A portion of a batch: the FROZEN snapshot lines, scaled to the portion share.
+    // No recipe lookup, no ingredient lookup — the snapshot already holds both.
     case "batchPortions": {
       const b = ctx.batch(log.entry.batchId);
-      const f = log.entry.portions / b.portionsTotal;
+      const f = log.entry.portions / b.portionsNominal;
       return b.snapshot.lines.map(l => ({
-        ingredientId: l.ingredientId, ingredientName: l.ingredientName,
+        ingredientId: l.ingredientId,
+        ingredientName: l.ingredientName,
         quantity: { ...l.quantity, amount: l.quantity.amount * f },
         nutrition: scale(l.nutrition, f),
         source: { ...at, recipeId: b.recipeId, batchId: b.id },
@@ -235,81 +246,130 @@ expand(log, ctx): Contribution[] {
     case "ingredient": { … }
 
     // Eating out: honestly unattributable.
-    case "quickAdd":
-      return [{ ingredientId: null, ingredientName: log.entry.label, quantity: null,
-                nutrition: log.entry.nutrition,
+    case "customFood":
+      return [{ ingredientId: null, ingredientName: log.entry.food.name, quantity: null,
+                nutrition: scale(log.entry.food.nutrition, log.entry.food.quantity),
                 source: { ...at, recipeId: null, batchId: null } }];
   }
 }
 ```
 
-The `batchPortions` case is the reason Batch snapshots exist. Attribution for a meal eaten in
-March must reflect what actually went into that pot in March, even if the recipe has since
-been edited or an ingredient's nutrition corrected.
+The two recipe-derived cases are deliberately asymmetric, and the asymmetry is the model
+working as intended:
+
+- `recipeServings` reads the **live recipe**, because it records "I ate this dish" without a
+  tracked cooking event. There is no frozen record to read, so it reflects the recipe's current
+  definition. Users choosing this path are accepting an approximation.
+- `batchPortions` reads the **snapshot**, because a batch *is* the record of what happened. It
+  needs no recipe and no ingredient lookup, and no later edit can move it.
+
+`snapshot.lines` retain `ingredientId`, so a batch's calories still group under the same
+ingredient as everything else in the attribution folds, while `ingredientName` keeps the
+snapshot readable if that ingredient is later renamed or archived. Optional lines were already
+resolved when the snapshot was written, so there is no filtering to repeat here.
 
 ### Every insight is a fold
 
 ```ts
 const cs = logs.flatMap(l => expand(l, ctx));   // Contribution[] for the period
 
-dailyTotals     = groupSum(cs, c => c.source.date);
-weeklyTotals    = groupSum(cs, c => isoWeek(c.source.date));
-byMealSlot      = groupSum(cs, c => c.source.slot);
-byRecipe        = groupSum(cs, c => c.source.recipeId ?? "__none__");
-byIngredient    = groupSum(cs, c => c.ingredientId ?? "__unattributed__");
+byDay        = groupSum(cs, c => c.source.date);          // calories by day (decision 22)
+byMeal       = groupSum(cs, c => c.source.slotId);        // calories by meal
+byRecipe     = groupSum(cs, c => c.source.recipeId ?? "__none__");
+byIngredient = groupSum(cs, c => c.ingredientId ?? "__unattributed__");
+weekTotals   = groupSum(cs, c => isoWeek(c.source.date));
 ```
 
-Daily average over a week is `weeklyTotal / daysWithAnyLog` — not `/ 7`. Dividing by 7 makes
-a partially logged week look like undereating, which is the most common way calorie
-dashboards mislead. Show the divisor.
+Daily and weekly totals plus macro totals and averages (decision 21) all come from these
+folds. **Weekly average is `weeklyTotal / daysWithAnyLog`, not `/ 7`** — dividing by seven
+makes a partially logged week look like undereating, the most common way calorie dashboards
+mislead. Show the divisor.
 
-**`quickAdd` is never hidden.** It lands in an explicit "unattributed" bucket that charts
-must render (typically a neutral grey slice) so the ingredient breakdown is honest about how
-much of the week it cannot explain.
+Weekly ingredient contribution produces exactly decision 22's example shape: chicken 2700
+kcal, rice 2200 kcal, and so on, descending.
+
+**`customFood` is never hidden.** It lands in an explicit unattributed bucket that charts must
+render, so the ingredient breakdown is honest about how much of the week it cannot explain.
+
+## Calorie target
+
+Optional and manually entered (decision 20), read from `Settings`. Purely presentational — no
+calculation depends on it, and every view must work without one.
+
+```ts
+remaining(target, consumedKcal) = target - consumedKcal;   // may be negative
+```
+
+Reported as three plain figures — target, consumed, remaining — per decision 20's example
+(2400 / 1840 / 560). Explicitly **not** implemented: BMR, TDEE, activity multipliers,
+automatic weight-loss targets, weight projections (decisions 20, 24). Macro targets are a
+later addition: nullable fields on `Settings`, no calculation change.
+
+Going over target is a neutral fact. It is displayed without colour-coded pass/fail,
+congratulation or warning — see [DESIGN.md](./DESIGN.md) for the restrained presentation this
+requires.
 
 ## Rounding and precision
 
-- **Compute in full precision. Round only at the moment of display.** Never round an
-  intermediate, never store a rounded value and calculate from it.
-- Display defaults: `kcal` → integer; macros → 1 decimal place below 10 g, otherwise
-  integer. Percentages → integer.
-- Rounded parts will not always sum to the rounded whole (four 543.25 kcal portions display
-  as 543 each but total 2173). Display the true total; do not force parts to reconcile by
-  fudging. Where a chart shows both, label the total as the authoritative figure.
-- Use `toFixed`-style formatting in one shared formatter, so the rule lives in one place and
-  the UI cannot invent its own rounding.
+**Compute in full precision. Round only at display.** Never round an intermediate, never
+store a rounded value and calculate from it (decision 3).
+
+Display rules, matching decision 3's examples:
+
+| Value | Rule | Example |
+| --- | --- | --- |
+| Calories | Integer | `523.7 → 524 kcal` |
+| Macros (g) | 1 decimal place | `42.37 → 42.4 g` |
+| Percentages | Integer | `45%` |
+| Quantities | Per [UNIT_MODEL.md](./UNIT_MODEL.md) | `1200 g → 1.2 kg` |
+
+Consequences to accept rather than hide:
+
+- Rounded parts will not always sum to the rounded whole. Four 335.25 kcal portions display
+  as 335 each but total 1341. **Display the true total**; never fudge parts to reconcile. Where
+  a view shows both, the total is authoritative.
+- Formatting lives in **one shared formatter**, so the rule exists in one place and no
+  component invents its own rounding.
 - Percent-of-energy is presentation-only:
-  `pct = macroG × kcalPerGram / kcal`, with 4/4/9 kcal per gram for protein/carbs/fat, and
-  guarded against `kcal === 0`. Because stored kcal comes from labels, these percentages
-  will not always sum to exactly 100% — display them as approximate rather than normalising
-  them to hide the discrepancy.
+  `pct = macroG × kcalPerGram / kcal`, using 4/4/9 for protein/carbs/fat, guarded against
+  `kcal === 0`. Because stored kcal comes from labels, these will not always total exactly
+  100% — display them as approximate rather than normalising to hide the discrepancy.
 
 ## Testable properties
 
-The calculation core is pure and has no React or storage dependency, so these are cheap
-Vitest properties and should exist from the first nutrition ticket
-([ARCHITECTURE.md](./ARCHITECTURE.md)):
+The calculation core is pure, with no React or storage dependency, so these are cheap Vitest
+properties and belong with the first nutrition ticket (decision 23,
+[ARCHITECTURE.md](./ARCHITECTURE.md)):
 
 1. `sum` is commutative and associative; `ZERO` is its identity.
 2. `scale(sum(xs), f) === sum(xs.map(x => scale(x, f)))` within tolerance.
 3. `recipeTotal === sum(recipeBreakdown().nutrition)` — the breakdown always explains the
-   total.
-4. `sum(portionsNutrition(b, 1) × portionsTotal) === b.snapshot.total`.
-5. `batch.snapshot.total === sum(batch.snapshot.lines.nutrition)` for every batch.
-6. Editing a recipe or an ingredient's nutrition does not change any existing
-   `Batch.snapshot`, nor any insight computed from `batchPortions` logs. **The history
-   regression test.**
-7. **Reconciliation:** over any period,
-   `Σ byMealSlot = Σ byRecipe = Σ byIngredient (incl. unattributed) = Σ dailyTotals`.
-8. `nutritionOf(ing, { amount: 0 }) === ZERO`; scaling by zero servings/portions yields
-   `ZERO`.
+   total, and `shareOfKcal` sums to 100% within rounding.
+4. `portionsNutrition(b, b.portionsNominal) === b.snapshot.total`.
+5. `snapshot.total === sum(snapshot.lines.map(l => l.nutrition))` for every batch ever written.
+6. **History immutability — the highest-value test in the repo.** Create a batch, log portions,
+   then edit the source recipe's quantities and an ingredient's nutrition. Assert the batch's
+   snapshot, every `expand()` result for those logs, and every insight over that period are
+   **byte-identical** to before the edit.
+7. A snapshot built from edited quantities reports those quantities, not the recipe's — cook a
+   500 g recipe with 550 g and assert the snapshot and its nutrition reflect 550 g.
+8. **Reconciliation:** over any period,
+   `Σ byMeal = Σ byRecipe = Σ byIngredient (incl. unattributed) = Σ byDay`.
+9. `expand()` on a `batchPortions` log and on the equivalent `recipeServings` log produce the
+   same per-ingredient contributions **when the snapshot matches the recipe** — that is, before
+   any edit and with scale and servings aligned. After an edit they must legitimately differ.
+10. `nutritionOf(ing, { amount: 0 }) === ZERO`; scaling by zero servings or portions yields
+    `ZERO`.
+11. Display rounding is stable: formatting the same value twice gives the same string, and no
+    formatter emits more precision than the table above allows.
+12. Weekly average divides by days with logs, not by 7.
 
-## Extension points (no rework required)
+## Extension points
 
 | Later capability | Change needed |
 | --- | --- |
-| Fibre, sugar, saturates, salt | Add keys to `Nutrition`; `sum`/`scale` are generic over them. |
-| Micronutrients | Same, or a `micros: Record<string, number>` companion. |
-| Nutrition targets / goals | New `Goal` entity read alongside insights; no calculation change. |
-| External food database | Populates `Ingredient.nutrition` plus a provenance field. Calculations untouched. |
-| Per-100 g cooked-basis nutrition | Uses the existing `cookedWeightG`; still never feeds totals. |
+| Fibre, sugar, saturated fat, sodium | Add keys to `Nutrition`; `sum`/`scale` are already generic (decision 1) |
+| Micronutrients | Same, or a `micros: Record<string, number>` companion |
+| Macro targets | Nullable fields on `Settings`; no calculation change (decision 20) |
+| External food database | Populates `Ingredient.nutrition` plus a provenance field; calculations untouched (decision 1) |
+| Reusable custom foods / barcode | `CustomFood` becomes a stored `Food` entity; `expand()` gains one case (decision 17) |
