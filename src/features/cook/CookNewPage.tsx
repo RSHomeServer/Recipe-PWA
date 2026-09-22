@@ -89,6 +89,12 @@ function seedEditableLines(
   });
 }
 
+/** Default batch divide = recipe servings × cook scale; still editable afterward. */
+function defaultPortions(recipe: Pick<Recipe, "servings">, scaleFactor: number): number {
+  const value = recipe.servings * scaleFactor;
+  return value > 0 ? value : 1;
+}
+
 function toActualLines(
   lines: EditableLine[],
   ingredientsById: ReadonlyMap<string, Ingredient>,
@@ -134,7 +140,7 @@ export default function CookNewPage() {
 
   const [recipeId, setRecipeId] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
-  const [portionsNominal, setPortionsNominal] = useState(4);
+  const [portionsNominal, setPortionsNominal] = useState(1);
   const [label, setLabel] = useState("");
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<EditableLine[]>([]);
@@ -162,6 +168,7 @@ export default function CookNewPage() {
   ) {
     setLinesSeedKey(seedKey);
     setLines(seedEditableLines(selectedRecipe, scale, ingredientsById));
+    setPortionsNominal(defaultPortions(selectedRecipe, scale));
     setPendingShortfalls(null);
   }
 
@@ -314,7 +321,9 @@ export default function CookNewPage() {
               }}
             />
             <p className="text-sm text-muted-foreground">
-              1 = recipe as written ({selectedRecipe?.servings ?? "?"} servings)
+              1× = recipe as written (
+              {selectedRecipe?.servings ?? "?"} servings). Doubling scale
+              doubles ingredient quantities and resets portions to match.
             </p>
           </div>
           <div className="space-y-2">
@@ -324,6 +333,13 @@ export default function CookNewPage() {
               min={0.5}
               onChange={setPortionsNominal}
             />
+            <p className="text-sm text-muted-foreground">
+              Defaults to servings × scale (
+              {selectedRecipe
+                ? defaultPortions(selectedRecipe, scale)
+                : "—"}
+              ). Adjust if you pack differently.
+            </p>
           </div>
         </div>
 
