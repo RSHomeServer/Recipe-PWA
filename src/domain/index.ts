@@ -10,6 +10,8 @@ export * from "./recipes/form";
 export * from "./recipes/image";
 export * from "./batches/schemas";
 export * from "./pantry/schemas";
+export * from "./pantry/stock";
+export * from "./pantry/availability";
 export * from "./planning/schemas";
 export * from "./logging/schemas";
 export * from "./shopping/schemas";
