@@ -16,7 +16,8 @@
       "@songara/pwa-base": ["./src/types/pwa-base-shim.d.ts"],
       "@songara/pwa-base/contract": ["./src/types/pwa-base-shim.d.ts"],
       "@songara/pwa-base/ui": ["./src/types/pwa-base-shim.d.ts"],
-      "@songara/pwa-base/config/vite-app-version": ["./src/types/pwa-base-shim.d.ts"]
+      "@songara/pwa-base/config/vite-app-version": ["./src/types/pwa-base-shim.d.ts"],
+      "@songara/pwa-base/preview/dexie": ["./src/types/pwa-base-shim.d.ts"]
     }
   },
   "include": ["src"]

@@ -86,3 +86,37 @@ declare module "@songara/pwa-base/ui/tokens.css" {}
 declare module "@songara/pwa-base/config/vite-app-version" {
   export function appVersionPlugin(): { name: string };
 }
+
+declare module "@songara/pwa-base/preview/dexie" {
+  export { default as Dexie } from "dexie";
+  export type {
+    EntityTable,
+    IndexableType,
+    PromiseExtended,
+    Table,
+    Transaction,
+  } from "dexie";
+
+  export type SongaraSchemaVersion = {
+    version: number;
+    stores: { [tableName: string]: string | null };
+    upgrade?: (tx: import("dexie").Transaction) => Promise<void> | void;
+  };
+
+  export type CreateSongaraDbOptions = {
+    name: string;
+    versions: readonly SongaraSchemaVersion[];
+  };
+
+  export function createSongaraDb(
+    options: CreateSongaraDbOptions,
+  ): import("dexie").default;
+  export function applySchemaVersions(
+    db: import("dexie").default,
+    versions: readonly SongaraSchemaVersion[],
+  ): import("dexie").default;
+  export function sortSchemaVersions(
+    versions: readonly SongaraSchemaVersion[],
+  ): SongaraSchemaVersion[];
+  export function songaraDbName(appId: string, dbKey: string): string;
+}
