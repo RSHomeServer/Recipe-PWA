@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useRepos, useRecipeData } from "@/data";
 import {
+  createId,
   type Ingredient,
   type IngredientFormParsed,
 } from "@/domain";
@@ -83,7 +84,7 @@ export default function IngredientDetailPage() {
 
     if (isCreate) {
       const row: Ingredient = {
-        id: crypto.randomUUID(),
+        id: createId(),
         ...parsed,
         archivedAt: null,
       };
