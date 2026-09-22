@@ -45,8 +45,12 @@ export default defineConfig({
     }),
   ],
   resolve: {
+    // preview/dexie is aliased into PWA-Base source, which otherwise pulls a
+    // nested dexie (e.g. 4.4.4) while the app + dexie-react-hooks use another.
+    dedupe: ["dexie", "dexie-react-hooks"],
     alias: {
       "@": path.resolve(root, "./src"),
+      dexie: path.resolve(root, "node_modules/dexie"),
       "@platform/config/tsconfig.base.json": platform(
         "config",
         "tsconfig.base.json",
