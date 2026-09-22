@@ -153,9 +153,9 @@ The most consequential colour decision in the product. These encode *which nutri
 :root {
   --color-macro-energy:  #3D372F;   /* graphite — calories */
   --color-macro-protein: #B5462F;   /* rust */
-  --color-macro-carbs:   #D99A2B;   /* amber */
-  --color-macro-fat:     #4E7C8A;   /* slate */
-  --color-macro-none:    #A79C8D;   /* unattributed (custom food) */
+  --color-macro-carbs:   #8F5F07;   /* amber (darkened for AA on surface) */
+  --color-macro-fat:     #3D6673;   /* slate (darkened for AA on surface) */
+  --color-macro-none:    #6E665C;   /* unattributed (custom food) */
 }
 [data-theme="dark"] {
   --color-macro-energy:  #C9C0B2;
