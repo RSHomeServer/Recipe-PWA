@@ -35,14 +35,33 @@ export default defineConfig([
               message: "domain/ must not import React DOM.",
             },
             {
+              name: "react-dom/client",
+              message: "domain/ must not import React DOM.",
+            },
+            {
               name: "dexie",
+              message: "domain/ must not import Dexie.",
+            },
+            {
+              name: "dexie-react-hooks",
               message: "domain/ must not import Dexie.",
             },
           ],
           patterns: [
             {
-              group: ["dexie/*", "dexie-react-hooks", "dexie-react-hooks/*"],
-              message: "domain/ must not import Dexie.",
+              group: [
+                "dexie/*",
+                "dexie-react-hooks",
+                "dexie-react-hooks/*",
+                "react/*",
+                "react-dom/*",
+                "react-router",
+                "react-router/*",
+                "react-router-dom",
+                "react-router-dom/*",
+              ],
+              message:
+                "domain/ must not import React, routers, Dexie, or DOM packages.",
             },
           ],
         },
@@ -50,3 +69,4 @@ export default defineConfig([
     },
   },
 ]);
+
