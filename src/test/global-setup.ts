@@ -24,7 +24,6 @@ export default function globalSetup(): void {
     process.env.KANDEV_TASK_ID?.trim() ||
     "(set KANDEV_TASK_TITLE to label the ticket)";
 
-  // eslint-disable-next-line no-console -- intentional test-run banner
   console.log(
     [
       "",
