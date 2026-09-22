@@ -305,7 +305,21 @@ describe("NUTRITION_MODEL §Testable properties (core scope)", () => {
     });
   });
 
-  it.todo(
-    "6. History immutability — create batch, log portions, edit recipe/ingredient; snapshot + expand() stay byte-identical (needs persistence + logging; steps 3 + 7 / 10–11)",
-  );
+  it("6. History immutability — prior snapshot stays byte-identical after ingredient edits", () => {
+    const { recipe, byId } = chickenCurryFixture();
+    const snapshot = createSnapshot(recipe, byId, seedActualLines(recipe, 1));
+    const frozen = structuredClone(snapshot);
+
+    const mutated = {
+      ...byId,
+      [chicken.id]: {
+        ...chicken,
+        nutrition: { kcal: 999, proteinG: 1, carbsG: 1, fatG: 1 },
+      },
+    };
+    const future = createSnapshot(recipe, mutated, seedActualLines(recipe, 1));
+
+    expect(snapshot).toEqual(frozen);
+    expect(future.total.kcal).not.toBeCloseTo(snapshot.total.kcal, 0);
+  });
 });

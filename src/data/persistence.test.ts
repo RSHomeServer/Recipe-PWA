@@ -190,6 +190,61 @@ describe("Dexie repositories", () => {
       batch.snapshot,
     );
   });
+
+  it("cook plan with edited actuals persists snapshot and pantry deduction", async () => {
+    const { repos } = await openFresh();
+    const ingredient = sampleIngredient();
+    const recipe = sampleRecipe();
+    await repos.ingredients.put(ingredient);
+    await repos.recipes.put(recipe);
+    await repos.pantryStock.put({
+      ingredientId,
+      quantity: { amount: 2000, kind: "mass" },
+      updatedAt: now(),
+    });
+
+    const { planCookBatch, seedActualLines } = await import("@/domain");
+    const seeded = seedActualLines(recipe, 1);
+    const actual = seeded.map((line) =>
+      line.ingredientId === ingredientId
+        ? { ...line, quantity: { amount: 550, kind: "mass" as const } }
+        : line,
+    );
+    const stock = await repos.pantryStock.all();
+    const plan = planCookBatch(
+      {
+        id: batchId,
+        recipe,
+        ingredientsById: new Map([[ingredientId, ingredient]]),
+        scale: 1,
+        portionsNominal: 4,
+        actualLines: actual,
+        cookedAt: now(),
+        label: "Edited cook",
+        notes: null,
+      },
+      new Map(stock.map((row) => [row.ingredientId, row])),
+    );
+
+    await repos.batches.create(plan.batch);
+    for (const row of plan.pantryAfter) {
+      await repos.pantryStock.put(row);
+    }
+
+    const stored = await repos.batches.byId(batchId);
+    expect(stored?.snapshot.lines[0]?.quantity.amount).toBe(550);
+    expect(
+      (await repos.pantryStock.byIngredientId(ingredientId))?.quantity.amount,
+    ).toBe(1450);
+
+    await repos.ingredients.put({
+      ...ingredient,
+      nutrition: { kcal: 999, proteinG: 1, carbsG: 1, fatG: 1 },
+    });
+    expect((await repos.batches.byId(batchId))?.snapshot).toEqual(
+      stored?.snapshot,
+    );
+  });
 });
 
 describe("JSON backup V1", () => {

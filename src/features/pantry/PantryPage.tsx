@@ -158,7 +158,7 @@ export default function PantryPage() {
               </h2>
               <p className="text-sm text-muted-foreground">
                 One quantity per ingredient. Stock currently changes only from
-                this screen — cooking deduction arrives with batches.
+                this screen — cooking a batch deducts the snapshot amounts.
               </p>
               <AddStockForm
                 candidates={addCandidates}
