@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ChefHat, Utensils, Leaf } from "lucide-react";
 import { cn } from "@/ui/lib/utils";
 
 export type QuantityProps = {
@@ -248,46 +249,80 @@ export function IngredientChip({ label, stocked = true, className }: IngredientC
   );
 }
 
+export type PlanSlotTileVariant = "cook" | "portion" | "ingredient";
+
 export type PlanSlotTileProps = {
   title: string;
   subtitle?: string;
-  variant: "cook" | "portion";
+  variant: PlanSlotTileVariant;
   className?: string;
+  children?: ReactNode;
 };
 
-export function PlanSlotTile({ title, subtitle, variant, className }: PlanSlotTileProps) {
-  const isCook = variant === "cook";
+const PLAN_TILE_META: Record<
+  PlanSlotTileVariant,
+  {
+    label: string;
+    surface: string;
+    iconWrap: string;
+    Icon: typeof ChefHat;
+  }
+> = {
+  cook: {
+    label: "Recipe to cook",
+    surface:
+      "border-2 border-[var(--color-accent)] bg-[var(--color-surface-raised)]",
+    iconWrap: "bg-accent text-primary-foreground",
+    Icon: ChefHat,
+  },
+  portion: {
+    label: "Batch portion",
+    surface:
+      "border border-[var(--color-border-subtle)] bg-[var(--color-surface-sunken)]",
+    iconWrap: "bg-muted text-muted-foreground",
+    Icon: Utensils,
+  },
+  ingredient: {
+    label: "Ingredient",
+    surface: "border border-dashed border-border bg-background",
+    iconWrap: "bg-[var(--color-surface-raised)] text-foreground",
+    Icon: Leaf,
+  },
+};
+
+export function PlanSlotTile({
+  title,
+  subtitle,
+  variant,
+  className,
+  children,
+}: PlanSlotTileProps) {
+  const meta = PLAN_TILE_META[variant];
+  const Icon = meta.Icon;
 
   return (
     <article
       data-slot="plan-slot-tile"
       data-variant={variant}
-      className={cn(
-        "rounded-lg p-4",
-        isCook
-          ? "border-2 border-[var(--color-accent)] bg-[var(--color-surface-raised)]"
-          : "border border-[var(--color-border-subtle)] bg-[var(--color-surface-sunken)]",
-        className,
-      )}
+      className={cn("rounded-lg p-4", meta.surface, className)}
     >
       <div className="flex items-start gap-3">
         <span
           className={cn(
-            "inline-flex size-10 shrink-0 items-center justify-center rounded-md text-lg",
-            isCook
-              ? "bg-accent text-primary-foreground"
-              : "bg-muted text-muted-foreground",
+            "inline-flex size-10 shrink-0 items-center justify-center rounded-md",
+            meta.iconWrap,
           )}
           aria-hidden="true"
         >
-          {isCook ? "🍳" : "🍽"}
+          <Icon className="size-5" />
         </span>
-        <div className="min-w-0 space-y-1">
+        <div className="min-w-0 flex-1 space-y-1">
           <p className="font-display text-lg font-semibold">{title}</p>
           {subtitle ? <p className="text-sm text-muted-foreground">{subtitle}</p> : null}
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {isCook ? "Recipe to cook" : "Batch portion"}
+            {meta.label}
           </p>
+          {children}
         </div>
       </div>
     </article>
