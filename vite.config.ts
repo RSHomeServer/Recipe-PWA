@@ -72,6 +72,11 @@ export default defineConfig({
         "contract.ts",
       ),
       "@platform/math": platform("math", "src", "index.ts"),
+      "@songara/pwa-base/preview/dexie": platform(
+        "preview-dexie",
+        "src",
+        "index.ts",
+      ),
     },
   },
   server: {
