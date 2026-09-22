@@ -13,6 +13,7 @@ const alias = {
 export default defineConfig({
   resolve: { alias },
   test: {
+    globalSetup: ["./src/test/global-setup.ts"],
     projects: [
       {
         resolve: { alias },
