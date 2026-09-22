@@ -41,3 +41,7 @@ export {
   recipeImageFromExport,
   type BackupV1,
 } from "./backup";
+export {
+  RecipeDataProvider,
+} from "./RecipeDataProvider";
+export { useRecipeData, useRepos } from "./use-recipe-data";

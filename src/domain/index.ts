@@ -3,6 +3,8 @@ export * from "./nutrition";
 export * from "./shared/primitives";
 export * from "./shared/meal-entry";
 export * from "./ingredients/schemas";
+export * from "./ingredients/references";
+export * from "./ingredients/form";
 export * from "./recipes/schemas";
 export * from "./batches/schemas";
 export * from "./pantry/schemas";
