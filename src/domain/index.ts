@@ -8,7 +8,7 @@ export * from "./ingredients/form";
 export * from "./recipes/schemas";
 export * from "./recipes/form";
 export * from "./recipes/image";
-export * from "./batches/schemas";
+export * from "./batches";
 export * from "./pantry/schemas";
 export * from "./pantry/stock";
 export * from "./pantry/availability";
