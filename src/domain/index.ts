@@ -13,6 +13,6 @@ export * from "./pantry/schemas";
 export * from "./pantry/stock";
 export * from "./pantry/availability";
 export * from "./planning";
-export * from "./logging/schemas";
+export * from "./logging";
 export * from "./shopping";
 export * from "./settings/schemas";
