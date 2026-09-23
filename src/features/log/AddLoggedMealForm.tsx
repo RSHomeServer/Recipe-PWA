@@ -321,7 +321,7 @@ export function AddLoggedMealForm({
             <Input
               id="log-servings"
               type="number"
-              min={0.1}
+              min={0.5}
               step={0.5}
               value={servings}
               onChange={(e) => setServings(e.target.value)}
@@ -439,7 +439,7 @@ export function AddLoggedMealForm({
               <Input
                 id="log-custom-qty"
                 type="number"
-                min={0.1}
+                min={0.5}
                 step={0.5}
                 value={customQty}
                 onChange={(e) => setCustomQty(e.target.value)}
