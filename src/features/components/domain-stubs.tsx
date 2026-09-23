@@ -465,6 +465,8 @@ export type DateRangeControlProps = {
   label: string;
   onPrevious?: () => void;
   onNext?: () => void;
+  /** Replace the default label button (e.g. PopoverTrigger). */
+  labelSlot?: ReactNode;
   children?: ReactNode;
   className?: string;
 };
@@ -473,6 +475,7 @@ export function DateRangeControl({
   label,
   onPrevious,
   onNext,
+  labelSlot,
   children,
   className,
 }: DateRangeControlProps) {
@@ -491,12 +494,14 @@ export function DateRangeControl({
           ←
         </button>
       ) : null}
-      <button
-        type="button"
-        className="rounded-md border border-border bg-background px-4 py-2 text-base font-medium"
-      >
-        {label}
-      </button>
+      {labelSlot ?? (
+        <button
+          type="button"
+          className="rounded-md border border-border bg-background px-4 py-2 text-base font-medium"
+        >
+          {label}
+        </button>
+      )}
       {onNext ? (
         <button
           type="button"

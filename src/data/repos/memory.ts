@@ -11,6 +11,7 @@ import {
   RecipeSchema,
   SettingsSchema,
   ShoppingOverlaySchema,
+  normalizeSettingsRow,
   type Batch,
   type BatchUpdate,
   type Ingredient,
@@ -340,7 +341,12 @@ export function createMemoryRepositories(
 
   const settingsRepo: SettingsRepo = {
     async get() {
-      return parseRow(SettingsSchema, "settings", settingsRow, "singleton");
+      return parseRow(
+        SettingsSchema,
+        "settings",
+        normalizeSettingsRow(settingsRow),
+        "singleton",
+      );
     },
     async put(row) {
       settingsRow = SettingsSchema.parse(row);

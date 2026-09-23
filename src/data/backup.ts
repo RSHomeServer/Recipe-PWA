@@ -13,6 +13,7 @@ import {
   RecipeSchema,
   SettingsSchema,
   ShoppingOverlaySchema,
+  normalizeSettingsRow,
   type RecipeImage,
   type RecipeImageExport,
 } from "@/domain";
@@ -170,7 +171,11 @@ function parseAllTables(data: BackupV1["data"]): ParsedBackupData {
       ShoppingOverlaySchema,
       data.shoppingOverlays,
     ),
-    settings: parseArray("settings", SettingsSchema, data.settings),
+    settings: parseArray(
+      "settings",
+      SettingsSchema,
+      data.settings.map(normalizeSettingsRow),
+    ),
   };
 }
 

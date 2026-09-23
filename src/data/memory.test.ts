@@ -60,6 +60,7 @@ describe("in-memory repositories", () => {
       dailyCalorieTarget: 2000,
       weekStartsOn: 1,
       themePreference: "light",
+      shoppingWindow: null,
     });
     await repos.settings.put(settings);
     expect(await repos.settings.get()).toEqual(settings);
