@@ -11,6 +11,7 @@ import {
   RecipeSchema,
   SettingsSchema,
   ShoppingOverlaySchema,
+  normalizeSettingsRow,
   type BatchUpdate,
 } from "@/domain";
 import { DEFAULT_SETTINGS } from "@/domain";
@@ -309,7 +310,12 @@ export function createDexieRepositories(db: Dexie): RecipeRepositories {
         await db.table("settings").put(fallback);
         return fallback;
       }
-      return parseRow(SettingsSchema, "settings", row, "singleton");
+      return parseRow(
+        SettingsSchema,
+        "settings",
+        normalizeSettingsRow(row),
+        "singleton",
+      );
     },
     async put(row) {
       await db.table("settings").put(SettingsSchema.parse(row));

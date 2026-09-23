@@ -9,6 +9,7 @@ export {
   requirements,
   type DateRange,
   type PlanRequirementLine,
+  type PlanRequirementSource,
   type PlanRequirementsContext,
 } from "./requirements";
 

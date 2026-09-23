@@ -124,9 +124,16 @@ describe("requirements", () => {
       }),
     ];
     const lines = requirements(meals, { from: "2026-09-22", to: "2026-09-22" }, ctx);
-    expect(lines).toEqual([
+    expect(lines.map(({ ingredientId, quantity }) => ({ ingredientId, quantity }))).toEqual([
       { ingredientId: chicken.id, quantity: { amount: 250, kind: "mass" } },
       { ingredientId: rice.id, quantity: { amount: 150, kind: "mass" } },
+    ]);
+    expect(lines.find((l) => l.ingredientId === chicken.id)?.sources).toEqual([
+      {
+        recipeId: recipe.id,
+        date: "2026-09-22",
+        amount: { amount: 250, kind: "mass" },
+      },
     ]);
   });
 
@@ -144,6 +151,9 @@ describe("requirements", () => {
       1500,
     );
     expect(lines.find((l) => l.ingredientId === rice.id)?.quantity.amount).toBe(900);
+    expect(
+      lines.find((l) => l.ingredientId === chicken.id)?.sources,
+    ).toHaveLength(3);
   });
 
   it("batchPortions contribute nothing", () => {
@@ -164,8 +174,15 @@ describe("requirements", () => {
       }),
     ];
     const lines = requirements(meals, { from: "2026-09-22", to: "2026-09-22" }, ctx);
-    expect(lines).toEqual([
+    expect(lines.map(({ ingredientId, quantity }) => ({ ingredientId, quantity }))).toEqual([
       { ingredientId: yoghurt.id, quantity: { amount: 200, kind: "volume" } },
+    ]);
+    expect(lines[0]?.sources).toEqual([
+      {
+        recipeId: null,
+        date: "2026-09-22",
+        amount: { amount: 200, kind: "volume" },
+      },
     ]);
   });
 
@@ -181,7 +198,7 @@ describe("requirements", () => {
       }),
     ];
     const lines = requirements(meals, { from: "2026-09-22", to: "2026-09-22" }, ctx);
-    expect(lines).toEqual([
+    expect(lines.map(({ ingredientId, quantity }) => ({ ingredientId, quantity }))).toEqual([
       { ingredientId: chicken.id, quantity: { amount: 1200, kind: "mass" } },
     ]);
   });
