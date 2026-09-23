@@ -13,13 +13,16 @@ MFP = MyFitnessPal · SF = Samsung Food · SC = SuperCook · ETM = Eat This Much
 | Capability | MFP | SF | SC | ETM | Recipe PWA | Note |
 | --- | :-: | :-: | :-: | :-: | :-: | --- |
 | Personal ingredient library (user-authored) | Y | Y | — | Y | **V1** | The only source of ingredients in v1. |
+| Seeded reference ingredient library with citations | P | P | — | P | **V2** | ~150 curated CoFID generics, per-ingredient `source` with dataset, entry code and URL ([ADR-002](../adr/002-reference-ingredient-data-and-provenance.md)). No reference product cites its figures per item. |
+| Per-ingredient provenance visible to the user | — | — | — | — | **V2** | `reference` / `packaging` / `userEntered` / `estimated`, and editing a reference figure says so. |
+| Ingredient photo | P | Y | Y | — | **V2** | Optional and user-supplied; a category icon is the always-present default ([ADR-002](../adr/002-reference-ingredient-data-and-provenance.md) §3). |
 | Nutrition per ingredient (kcal + P/C/F) | Y | Y | — | Y | **V1** | Per 100 g / 100 ml / 1 item. |
 | Unit metadata (mass / volume / count) | Y | Y | — | Y | **V1** | One canonical measure kind per ingredient. |
 | Density and per-item weight for cross-kind conversion | P | P | — | P | **No** (V2-ready) | Decision 2 excludes ingredient-specific conversion tables. Conversion is in-family only (g↔kg, ml↔L). |
 | Arbitrary units (tbsp, cup, pinch, slice) | Y | Y | — | Y | **No** | Decision 2. Needs per-ingredient conversion data; a feature of its own, not a units addition. |
 | Staple flag (salt, oil, spice) for availability rules | — | — | P | — | **V2** | Availability now classifies by *how many* ingredients are short (decision 11). A staple flag refines that later. |
 | Category / aisle grouping | Y | Y | Y | Y | **V1** | Reused by pantry and shopping list. |
-| External food database lookup | Y | Y | Y | Y | **No** (V2-ready) | Model leaves room; not a prerequisite. |
+| External food database lookup (live, on demand) | Y | Y | Y | Y | **No** | V2 seeds from a dataset once, offline; live lookup stays out. The `source` field makes it a later data-entry route, not a model change. |
 | Barcode scanning | Y | Y | — | Y | **No** | |
 | Photo / AI ingredient recognition | Y | P | Y | — | **No** | |
 | Micronutrients beyond the four macros | Y | Y | — | Y | **No** (V2-ready) | Nutrition record is extensible. |
@@ -92,7 +95,10 @@ SF) or absent (MFP, SC).
 | Plan aggregates ingredient requirements | — | Y | — | Y | **V1** | Derived, never stored. |
 | Planning consumes pantry stock | — | — | — | P | **No** | Decision 12 — planning changes nothing physical. |
 | Separate cook-day field on a planned meal | — | — | — | P | **No** | Decisions 12, 14: plan meals, and create a Batch when you actually cook. No cook-session entity. |
-| Save / reload a favourite week | — | P | — | P | **V2** | |
+| Save / reload a favourite week | — | P | — | P | **V3** | Deferred behind meal templates, which cover most of the need. |
+| **Saved meals: a named combination of recipes and items** | — | P | — | P | **V2** | "Chicken thighs + hashbrowns + peas + sauce". Expands into ordinary planned meals sharing a group id, so no derivation changes and recipe nesting stays banned ([ADR-004](../adr/004-meal-templates-by-expansion.md)). |
+| Apply a saved meal to several days at once | — | — | — | P | **V2** | The highest-value interaction in V2 — four dinners in one action. |
+| Recently planned or logged items, one tap | P | — | — | P | **V2** | Derived from `plannedMeals` + `loggedMeals`, deduplicated, capped at twelve. Nothing stored. |
 | Automatic plan generation from macro targets | — | P | — | Y | **No** | Authorship over generation (decision 24). |
 | Household / per-meal head count | — | P | — | Y | **No** (V2-ready) | Servings scaling covers most of it. |
 
@@ -175,3 +181,23 @@ export/import · offline installable PWA.
 Everything marked **V2** is model-compatible and should not require rework. Everything marked
 **No** is out of scope per decision 24 and recorded here so later tickets do not reopen it.
 **Nothing is undecided** — see [OPEN_QUESTIONS.md](./OPEN_QUESTIONS.md).
+
+## V2 scope summary
+
+V1 is built and shipped. V2 responds to use rather than adding a new product area, and is
+specified in [V2_SCOPE.md](./V2_SCOPE.md) against five ADRs in [`docs/adr`](../adr/README.md):
+
+Centre every page and give width a role, so the dead band down the right of every route
+disappears and forms stop stretching to 1400px ([ADR-001](../adr/001-page-geometry-and-density.md))
+· seed ~150 cited reference ingredients so the first session is productive, with
+per-ingredient provenance and category icons ([ADR-002](../adr/002-reference-ingredient-data-and-provenance.md))
+· replace tense-based labels with source-based ones, write down when something should be a
+recipe rather than an ingredient, and explain the loop where the choice is made
+([ADR-003](../adr/003-food-nomenclature-and-promotion-rule.md)) · add saved meals that expand
+into ordinary planned rows, applicable to several days at once, with a recents rail
+([ADR-004](../adr/004-meal-templates-by-expansion.md)) · choose the control from the option
+count rather than using a dropdown for everything
+([ADR-005](../adr/005-choice-controls-by-cardinality.md)).
+
+The measure of success is one scenario: four dinners of chicken, hashbrowns, veg and sauce
+planned from a fresh install in under a minute, without typing a nutrition figure.

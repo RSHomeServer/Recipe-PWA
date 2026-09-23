@@ -1,11 +1,18 @@
 # Domain Model
 
-Authoritative entity model for Recipe PWA V1. Every rule here traces to an agreed decision —
+Authoritative entity model for Recipe PWA. Every rule here traces to an agreed decision —
 see the [decision map](#v1-decision-map). Nothing in this document is provisional. Companions:
 [UNIT_MODEL.md](./UNIT_MODEL.md) (quantities),
 [NUTRITION_MODEL.md](./NUTRITION_MODEL.md) (calculation and attribution),
 [ARCHITECTURE.md](./ARCHITECTURE.md) (where the code lives and how it is tested),
 [OPEN_QUESTIONS.md](./OPEN_QUESTIONS.md) (the decision log — no blocking questions remain).
+
+> **V2 additions.** Three sections below carry V2 changes, each marked and traced to an ADR in
+> [`docs/adr`](../adr/README.md): `Ingredient` gains provenance and an optional photo
+> ([ADR-002](../adr/002-reference-ingredient-data-and-provenance.md)), `PlannedMeal` and
+> `LoggedMeal` gain a display-only `group`, and `MealTemplate` is a new entity
+> ([ADR-004](../adr/004-meal-templates-by-expansion.md)). Everything else is unchanged, and
+> **no V1 invariant is reversed**. The build specification is [V2_SCOPE.md](./V2_SCOPE.md).
 
 TypeScript shapes are the intended contract, not final code. Zod schemas are the single
 source of truth at implementation time, with types inferred from them.
@@ -51,7 +58,8 @@ Ingredient ──< RecipeLine >── Recipe ──< Batch (+ frozen snapshot) �
 ```
 
 Stored: `Ingredient`, `IngredientCategory`, `Recipe`, `RecipeImage`, `Batch`, `PantryStock`,
-`MealSlot`, `PlannedMeal`, `LoggedMeal`, `ShoppingOverlay`, `Settings`.
+`MealSlot`, `PlannedMeal`, `LoggedMeal`, `ShoppingOverlay`, `Settings`, and in V2
+`MealTemplate`.
 
 Derived, never persisted: recipe nutrition, availability, plan requirements, shopping
 requirements, portions remaining, contributions, all insights (decisions 22–23).
@@ -112,10 +120,47 @@ type Ingredient = {
   nutrition: Nutrition;          // per 100 g / 100 ml / 1 item (decision 3)
   notes: string | null;
   archivedAt: IsoDateTime | null;
+
+  // V2 — ADR-002
+  source: IngredientSource;      // never null; where these figures came from
+  imageId: Id | null;            // optional user photo; category icon when absent
 };
 
-type IngredientCategory = { id: Id; name: string; sortOrder: number };
+type IngredientCategory = {
+  id: Id;
+  name: string;
+  sortOrder: number;
+  icon: string;                  // V2 — Lucide icon name; the default visual identity
+  accent: string;                // V2 — token name, for category-coded chips
+};
 ```
+
+### V2 — provenance ([ADR-002](../adr/002-reference-ingredient-data-and-provenance.md))
+
+```ts
+type IngredientSource = {
+  kind: "reference" | "packaging" | "userEntered" | "estimated";
+  datasetId:   string | null;    // "cofid-2021"
+  datasetName: string | null;    // full citation, rendered verbatim
+  entryCode:   string | null;    // the source's own identifier
+  entryName:   string | null;    // the name in the source, verbatim
+  licence:     string | null;
+  url:         string | null;    // where a human can check
+  retrievedAt: IsoDate | null;
+  note:        string | null;
+};
+```
+
+Three invariants, added to the list below:
+
+6. **`source` is metadata only.** No calculation, derivation, filter or sort may read it.
+   Every nutrition path behaves identically for every `kind`. Guarded by property test.
+7. **The origin fields are write-once**, in the same spirit as `BatchSnapshot`. Once an
+   ingredient arrives from a dataset, that is permanent history.
+8. **Editing the nutrition of a `reference` ingredient flips `kind` to `"userEntered"`** and
+   preserves the origin fields, so the product can say "originally CoFID 17-123, since edited
+   by you". Keeping the reference badge on an edited number is the one dishonest state this
+   field could reach.
 
 **Invariants**
 
@@ -134,6 +179,9 @@ type IngredientCategory = { id: Id; name: string; sortOrder: number };
 [UNIT_MODEL.md](./UNIT_MODEL.md)); a staple/pantry-basic flag (deferred, see Availability
 below); external-database provenance (decision 24, but the shape is ready for it — adding a
 `source` field changes no calculation).
+
+**Resolved in V2:** provenance arrived exactly as predicted — a `source` field, changing no
+calculation. Density, per-item weight and the staple flag remain deferred.
 
 ## Recipe
 
@@ -421,8 +469,33 @@ type PlannedMeal = {
   entry: MealEntry;            // customFood is rejected here
   position: number;            // ordering within a slot (drag and drop)
   note: string | null;
+  group: PlanGroup | null;     // V2 — ADR-004; display and bulk actions only
 };
 ```
+
+### V2 — meal groups ([ADR-004](../adr/004-meal-templates-by-expansion.md))
+
+```ts
+type PlanGroup = {
+  id: Id;                // shared by every row applied together
+  name: string;          // the template's name at the moment it was applied
+  templateId: Id | null; // provenance; may dangle
+};
+```
+
+`LoggedMeal` carries the same nullable field, copied when logging from a grouped plan.
+`name` is stored rather than resolved for the same reason as `BatchSnapshot.recipeName`: a
+plan made in March must still read correctly after the template is renamed or deleted.
+
+Added to the invariants below:
+
+6. **No derivation may read `group`.** `requirements()`, `expand()`, shopping aggregation,
+   availability, nutrition and every insight must produce byte-identical output whether
+   `group` is populated or null. This is the property that makes meal templates incapable of
+   breaking anything derived, and it is a test rather than a convention.
+7. Grouped rows are **ordinary planned meals** — individually editable, movable and
+   deletable. Deleting one leaves the others intact.
+8. `group.id` carries no referential integrity. It is a correlation tag, not a foreign key.
 
 **Invariants**
 
@@ -453,6 +526,48 @@ contributes three times before pantry stock is subtracted (decisions 14, 18).
 
 The `batchPortions` rule is the crux of the meal-prep loop: planning to eat Sunday's curry on
 Wednesday must not put chicken back on the shopping list.
+
+## Meal Template (V2)
+
+A saved combination you eat often — "chicken thighs + hashbrowns + peas + BBQ sauce". Called
+a **Meal** in the UI ([ADR-003](../adr/003-food-nomenclature-and-promotion-rule.md) §4).
+
+```ts
+type MealTemplate = {
+  id: Id;
+  name: string;
+  components: MealTemplateComponent[];
+  defaultSlotId: Id | null;         // usually Dinner; null means "ask"
+  createdAt: IsoDateTime;
+  updatedAt: IsoDateTime;
+  archivedAt: IsoDateTime | null;
+};
+
+type MealTemplateComponent = {
+  id: Id;
+  entry: RecipeServingsEntry | IngredientEntry;   // no batchPortions, no customFood
+  note: string | null;
+};
+```
+
+**A template expands; it does not nest.** Applying one to a day and slot creates one ordinary
+`PlannedMeal` per component, sharing a `PlanGroup`. There is no `{ kind: "meal" }` variant of
+`MealEntry`, because adding one would put a new branch in every derivation — recipe nesting
+arriving through a different door, and a reversal of decision 4. Expansion gets the same
+result with no derived path changed at all. The reasoning, and the two options rejected, are
+in [ADR-004](../adr/004-meal-templates-by-expansion.md).
+
+**Invariants**
+
+1. A component's entry is `recipeServings` or `ingredient` only. **A template may not
+   reference a batch**: a template is timeless, a batch is a specific past event with a finite
+   number of portions, so the reference would break the moment that batch is eaten. Eating a
+   portion is already a one-tap action and needs no saved shape.
+2. Templates are archived, never deleted — `PlanGroup.templateId` points at them.
+3. **Editing a template never rewrites plans already made from it.** Intent already expressed
+   is a record, consistent with decisions 15 and A.
+4. A template stores no nutrition and no requirements. Both are derived from the expanded
+   rows, exactly as for any other planned meal.
 
 ## Meal Log
 
@@ -645,8 +760,23 @@ Where each agreed decision landed, so later tickets can trace a rule to its sour
 | D Shopping window: user range, default 7 days | The shopping window |
 | E JSON export/import with base64 images | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 
+## V2 decision map
+
+| ADR | Where it lands in this document |
+| --- | --- |
+| [001](../adr/001-page-geometry-and-density.md) Page geometry and density | Nothing here — presentation only, see [DESIGN.md](./DESIGN.md) §5 |
+| [002](../adr/002-reference-ingredient-data-and-provenance.md) Reference data and provenance | `Ingredient.source`, `Ingredient.imageId`, `IngredientCategory.icon`/`accent` |
+| [003](../adr/003-food-nomenclature-and-promotion-rule.md) Nomenclature and the promotion rule | Nothing here — the entities were already right; the words were not |
+| [004](../adr/004-meal-templates-by-expansion.md) Meal templates by expansion | `MealTemplate`, `PlanGroup`, `PlannedMeal.group`, `LoggedMeal.group` |
+| [005](../adr/005-choice-controls-by-cardinality.md) Choice controls by cardinality | `Settings.controlStyle` |
+
+Note what is **not** in that table. Two of the five V2 decisions change no entity at all, and
+the two that do add fields no calculation is permitted to read. That is the intended shape of
+a V2 on a model that was designed correctly the first time.
+
 ## Deliberately not modelled in V1
 
+Three entries below were revisited in V2 and are marked inline. Everything else stands.
 Per decision 24 and the sections above: barcode scanning · external food databases ·
 automatic calorie-target calculation (BMR/TDEE/activity) · expiry dates · stock lots and FIFO
 · food-waste tracking as a quantity · packaging, pricing and supermarket product identity ·
@@ -660,3 +790,17 @@ rows, `Settings` gains macro targets, `CustomFood` becomes a stored entity, `Mea
 already data. None requires reshaping the five core distinctions, which is the point of keeping
 the model this
 small.
+
+**Revisited in V2:**
+
+- *External food databases* — now in scope as a **one-time seeded import** with per-ingredient
+  provenance ([ADR-002](../adr/002-reference-ingredient-data-and-provenance.md)). Live lookup
+  and barcode scanning remain out.
+- *Recipe-to-recipe nesting* — still out, and now with a stated alternative for the need it
+  was standing in for ([ADR-004](../adr/004-meal-templates-by-expansion.md)).
+- *Per-ingredient images* — now supported as an optional user photo, on exactly the same terms
+  as recipe images: no layout may depend on one.
+
+The prediction in the paragraph above held. Provenance was a field on `Ingredient`, and the
+combined-meal requirement was met without touching a single one of the five core distinctions
+— which is the evidence that the V1 model was the right size.

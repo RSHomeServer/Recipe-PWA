@@ -8,6 +8,13 @@ Companions: [DOMAIN_MODEL.md](./DOMAIN_MODEL.md), [NUTRITION_MODEL.md](./NUTRITI
 [UNIT_MODEL.md](./UNIT_MODEL.md), [DESIGN.md](./DESIGN.md),
 [OPEN_QUESTIONS.md](./OPEN_QUESTIONS.md).
 
+> **V2.** The architecture below is unchanged — same layering, same persistence, same reactive
+> model, same UI stack. V2 adds one table, three fields and a Dexie schema version; see
+> [Schema version 2](#schema-version-2-v2) and [V2_SCOPE.md](./V2_SCOPE.md) for the ticket
+> sequence. That nothing structural moves is the intended outcome, not a coincidence: the
+> layering exists so that a feature like meal templates is a table and a component, not a
+> refactor.
+
 ## Repo inspection findings
 
 Inspected at planning time: `Recipe-PWA/` (branch `feature/recipe-pwa-orchnestr-jv8`, single
@@ -199,6 +206,39 @@ Three shape notes:
 Schema evolution uses `applySchemaVersions`; each version is append-only and never edited
 after release. Because reads `parse()` through Zod, a migration that produces a shape the
 current code cannot handle fails loudly at the boundary instead of corrupting a calculation.
+
+### Schema version 2 (V2)
+
+Per [ADR-002](../adr/002-reference-ingredient-data-and-provenance.md) and
+[ADR-004](../adr/004-meal-templates-by-expansion.md). Version 1 is never edited.
+
+| Table | Change | Migration |
+| --- | --- | --- |
+| `mealTemplates` | **New.** PK `id`, indexes `name`, `archivedAt` | Empty |
+| `ingredients` | `+ source` (non-null), `+ imageId` | `source = { kind: "userEntered", origin fields null }`, `imageId = null` |
+| `ingredientCategories` | `+ icon`, `+ accent` | Seeded categories get documented values; user-created get a neutral default |
+| `plannedMeals` | `+ group`, new index `group.id` | `group = null` |
+| `loggedMeals` | `+ group`, new index `group.id` | `group = null` |
+| `settings` | `+ controlStyle`, `+ howItWorksDismissed`, `+ starterPackVersion` | Via the existing `normalizeSettingsRow` pattern |
+
+Three implementation notes.
+
+**Dexie indexes nested key paths**, so `group.id` is a valid index string and needs no
+denormalised column.
+
+**Ingredient photos reuse the existing `recipeImages` table.** The name is now historical.
+Renaming it would mean copying Blob rows in an `upgrade()` for no functional gain, and
+migrating binary data is a worse trade than a slightly stale table name. Record that
+reasoning in the schema file so a later tidy-up does not undo the judgement.
+
+**`Backup.formatVersion` stays 1** — the envelope shape is unchanged — while
+`Backup.schemaVersion` becomes 2. Export must include `mealTemplates`; import must accept a
+v1 payload and run the normal migrations, and must still refuse a payload from a newer
+version. The existing round-trip test extends rather than changes.
+
+Two repository rules extend the existing write-once enforcement on `Batch.snapshot`:
+`IngredientSource`'s origin fields may not be mutated once set, and the starter-pack seed is
+additive-only, matched by `source.entryCode`, never overwriting an edited row.
 
 ### Backup: JSON export and import (V1)
 
@@ -514,6 +554,9 @@ Each step is an Executor-sized ticket, ordered so nothing is built on an unsettl
 | 10 | **Logging** | Fast log-from-plan, log recipe / batch portion / bare ingredient / custom food, diary by day. | 7 |
 | 11 | **Insights & target** | `expand()` folds, Recharts views, attribution by meal/recipe/ingredient, optional calorie target. | 10 |
 | 12 | **UX and visual critique** | Against DESIGN.md, with the accessibility checklist. | 11 |
+
+**Steps 1–12 are complete** (PRs #1–#12). The V2 sequence continues from here and is
+specified in [V2_SCOPE.md](./V2_SCOPE.md) §Ticket sequence.
 
 Ordering rationale for the two non-obvious choices. **Batches precede the meal plan**, because
 decision 12 makes cooking the pantry-consuming event and decision 8's portions are what the

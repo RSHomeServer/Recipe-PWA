@@ -2,6 +2,21 @@
 
 **No blocking questions remain. V1 is fully specified.**
 
+> **V2 decisions are not recorded here.** From V2 onward, any decision that changes,
+> constrains or reinterprets a rule gets an ADR in [`docs/adr`](../adr/README.md), because a
+> flat list with no status field and no supersession mechanism cannot express "decision 4
+> still holds, but here is the boundary case it did not anticipate". This document remains
+> authoritative for V1 and is not edited. See
+> [`docs/adr/README.md`](../adr/README.md#relationship-to-the-v1-decision-list) for how each
+> V1 decision stands after V2.
+>
+> Two V2 choices are recorded with lower confidence than the rest and are the ones to revisit
+> first if they prove wrong: the choice of CoFID over USDA as the seed dataset
+> ([ADR-002](../adr/002-reference-ingredient-data-and-provenance.md)), and the decision to
+> make control style a cardinality rule rather than the user-facing toggle originally asked
+> for ([ADR-005](../adr/005-choice-controls-by-cardinality.md), which keeps a narrow escape
+> hatch precisely because of that).
+
 This document is now a record rather than a queue. It exists so that later tickets can see
 what was asked, what was decided, and why — and so nothing settled here is quietly reopened.
 
