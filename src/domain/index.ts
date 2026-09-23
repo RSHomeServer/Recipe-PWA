@@ -12,7 +12,7 @@ export * from "./batches";
 export * from "./pantry/schemas";
 export * from "./pantry/stock";
 export * from "./pantry/availability";
-export * from "./planning/schemas";
+export * from "./planning";
 export * from "./logging/schemas";
 export * from "./shopping/schemas";
 export * from "./settings/schemas";
