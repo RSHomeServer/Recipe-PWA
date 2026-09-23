@@ -384,32 +384,60 @@ export function AttributionList({ items, className }: AttributionListProps) {
 }
 
 export type TargetReadoutProps = {
-  target?: number;
+  /** When null/undefined, renders nothing — no nag. */
+  target?: number | null;
   consumed: number;
+  /** Slim horizontal meter (4–6px). Default true. */
+  showMeter?: boolean;
   className?: string;
 };
 
-export function TargetReadout({ target, consumed, className }: TargetReadoutProps) {
-  if (target == null) return null;
+export function TargetReadout({
+  target,
+  consumed,
+  showMeter = true,
+  className,
+}: TargetReadoutProps) {
+  if (target == null || !Number.isFinite(target) || target <= 0) return null;
 
-  const remaining = target - consumed;
+  const remainingKcal = target - consumed;
   const remainingLabel =
-    remaining >= 0 ? `${remaining} kcal remaining` : `${Math.abs(remaining)} kcal over`;
+    remainingKcal >= 0
+      ? `Remaining ${Math.round(remainingKcal)}`
+      : `${Math.round(Math.abs(remainingKcal))} over`;
+  const fillRatio = Math.min(1, Math.max(0, consumed / target));
 
   return (
-    <div
-      data-slot="target-readout"
-      className={cn("num flex flex-wrap items-center gap-3 text-base", className)}
-    >
-      <span>
-        Target <strong>{target}</strong>
-      </span>
-      <span aria-hidden="true">·</span>
-      <span>
-        Consumed <strong>{consumed}</strong>
-      </span>
-      <span aria-hidden="true">·</span>
-      <span>{remainingLabel}</span>
+    <div data-slot="target-readout" className={cn("space-y-2", className)}>
+      <p className="num flex flex-wrap items-baseline gap-x-3 gap-y-1 text-base text-foreground">
+        <span>
+          Target <strong className="font-semibold">{Math.round(target)}</strong>
+        </span>
+        <span aria-hidden="true" className="text-muted-foreground">
+          ·
+        </span>
+        <span>
+          Consumed <strong className="font-semibold">{Math.round(consumed)}</strong>
+        </span>
+        <span aria-hidden="true" className="text-muted-foreground">
+          ·
+        </span>
+        <span>
+          {remainingLabel} <span className="text-muted-foreground">kcal</span>
+        </span>
+      </p>
+      {showMeter ? (
+        <div
+          className="h-1.5 w-full overflow-hidden rounded-sm bg-muted"
+          role="img"
+          aria-label={`Consumed ${Math.round(consumed)} of ${Math.round(target)} kcal`}
+        >
+          <div
+            className="h-full rounded-sm bg-[var(--color-accent)]"
+            style={{ width: `${fillRatio * 100}%` }}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -15,4 +15,5 @@ export * from "./pantry/availability";
 export * from "./planning";
 export * from "./logging";
 export * from "./shopping";
+export * from "./insights";
 export * from "./settings/schemas";
