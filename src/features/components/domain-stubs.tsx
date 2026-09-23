@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
-import { ChefHat, Utensils, Leaf } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  ChefHat,
+  CircleDashed,
+  Leaf,
+  Utensils,
+} from "lucide-react";
 import { cn } from "@/ui/lib/utils";
 
 export type QuantityProps = {
@@ -146,10 +153,25 @@ export type AvailabilityIndicatorProps = {
   className?: string;
 };
 
-const availabilityCopy: Record<AvailabilityState, { label: string; token: string }> = {
-  canMake: { label: "Ready to cook", token: "var(--color-success)" },
-  almostCanMake: { label: "Almost ready", token: "var(--color-warning)" },
-  missingSignificant: { label: "Missing items", token: "var(--color-muted)" },
+const availabilityCopy: Record<
+  AvailabilityState,
+  { label: string; token: string; Icon: typeof Check }
+> = {
+  canMake: {
+    label: "Ready to cook",
+    token: "var(--color-success)",
+    Icon: Check,
+  },
+  almostCanMake: {
+    label: "Almost ready",
+    token: "var(--color-warning)",
+    Icon: AlertTriangle,
+  },
+  missingSignificant: {
+    label: "Missing items",
+    token: "var(--color-muted)",
+    Icon: CircleDashed,
+  },
 };
 
 export function AvailabilityIndicator({
@@ -157,16 +179,12 @@ export function AvailabilityIndicator({
   shortfalls = [],
   className,
 }: AvailabilityIndicatorProps) {
-  const { label, token } = availabilityCopy[state];
+  const { label, token, Icon } = availabilityCopy[state];
 
   return (
     <div data-slot="availability-indicator" className={cn("space-y-1 text-sm", className)}>
       <div className="flex items-center gap-2 font-medium" style={{ color: token }}>
-        <span
-          className="size-2.5 rounded-full"
-          style={{ backgroundColor: token }}
-          aria-hidden="true"
-        />
+        <Icon className="size-4 shrink-0" aria-hidden="true" />
         <span>{label}</span>
       </div>
       {shortfalls.length > 0 ? (

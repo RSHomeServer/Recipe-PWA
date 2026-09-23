@@ -75,21 +75,21 @@ export function LogEntryRow({
             type="button"
             variant="ghost"
             size="icon"
-            className="size-8"
+            className="size-11"
             aria-label={`Edit ${label.title}`}
             onClick={onEdit}
           >
-            <Pencil className="size-3.5" />
+            <Pencil className="size-4" />
           </Button>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="size-8"
+            className="size-11"
             aria-label={`Delete ${label.title}`}
             onClick={onDelete}
           >
-            <Trash2 className="size-3.5" />
+            <Trash2 className="size-4" />
           </Button>
         </div>
       </div>

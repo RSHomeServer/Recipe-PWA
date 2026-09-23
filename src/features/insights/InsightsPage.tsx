@@ -13,6 +13,7 @@ import {
   formatMacroG,
   formatPct,
   formatWeekRangeLabel,
+  macroEnergyShare,
   todayIso,
   type FoldBucket,
   type Nutrition,
@@ -38,9 +39,21 @@ const insightsStateConfig = {
 
 function macroSegments(n: Nutrition) {
   return [
-    { key: "protein" as const, value: n.proteinG, label: "Protein" },
-    { key: "carbs" as const, value: n.carbsG, label: "Carbs" },
-    { key: "fat" as const, value: n.fatG, label: "Fat" },
+    {
+      key: "protein" as const,
+      value: Math.round(macroEnergyShare(n, "proteinG") * 100),
+      label: "Protein",
+    },
+    {
+      key: "carbs" as const,
+      value: Math.round(macroEnergyShare(n, "carbsG") * 100),
+      label: "Carbs",
+    },
+    {
+      key: "fat" as const,
+      value: Math.round(macroEnergyShare(n, "fatG") * 100),
+      label: "Fat",
+    },
   ];
 }
 
