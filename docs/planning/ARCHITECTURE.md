@@ -221,7 +221,19 @@ Per [ADR-002](../adr/002-reference-ingredient-data-and-provenance.md) and
 | `loggedMeals` | `+ group`, new index `group.id` | `group = null` |
 | `settings` | `+ controlStyle`, `+ howItWorksDismissed`, `+ starterPackVersion` | Via the existing `normalizeSettingsRow` pattern |
 
-Three implementation notes.
+**Version 2 is declared once, in full, by the first ticket that needs any of it.** The
+ingredient work (V2_SCOPE ticket 4) and the meal-template work (ticket 7) are separated by
+several deploys, but they share one schema version, so ticket 4 creates the `mealTemplates`
+table and both `group.id` indexes too and leaves them empty.
+
+The rule above is why. `applySchemaVersions` runs a version once per browser and a released
+version is never edited, so a partial v2 would mark every user who opened the app in between
+as already migrated — and the later half of v2 would never run for them. Declaring an empty
+table costs nothing; finding this out after a deploy costs a v3 and a repair path. Splitting
+into v2 and v3 is defensible only if the later shape is genuinely unsettled when the first
+ticket lands, and the split should then follow the data, not the ticket order.
+
+Three further implementation notes.
 
 **Dexie indexes nested key paths**, so `group.id` is a valid index string and needs no
 denormalised column.

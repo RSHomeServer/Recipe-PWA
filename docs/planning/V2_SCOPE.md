@@ -127,6 +127,22 @@ plannedMeals     id, date, [date+slotId], group.id         (+ nested keypath ind
 loggedMeals      id, date, [date+slotId], plannedMealId, group.id
 ```
 
+**Ticket 4 declares the whole of version 2 in one migration, including the parts it does not
+use.** That means the `mealTemplates` table and both `group.id` indexes are created by ticket
+4, sitting empty until ticket 7 gives them behaviour.
+
+This matters because the two are separated by several deploys. `applySchemaVersions` runs a
+version once per browser, and the append-only rule means a released version is never edited.
+If ticket 4 shipped a partial v2, every user who opened the app between ticket 4 and ticket 7
+would be recorded at v2 — and ticket 7 extending v2 would then never run for them, leaving a
+missing table and missing indexes on exactly the installs that had been most active. Declaring
+a table and an index costs nothing at runtime while it is empty; discovering this after a
+deploy costs a v3 and a repair path.
+
+The alternative — ticket 7 opening version 3 — is also correct, but it splits one logical
+schema change across two migrations along a boundary drawn by ticket ordering rather than by
+data shape. Take it only if ticket 7's shape is still genuinely unsettled when ticket 4 lands.
+
 Notes for the implementer:
 
 - Dexie indexes nested key paths directly, so `group.id` is a valid index string.
@@ -149,10 +165,10 @@ can run in parallel.
 | 1 | **Layout and density foundation** | R1.1–R1.8. CSS fix, width roles, plan grid breakpoints and scroll track, `PlanSlotTile` density, overflow menu, spacing audit. | — | 001 |
 | 2 | **Choice control primitives** | R5.1–R5.10. `SegmentedGroup` and `CommandPicker` in `src/ui/`, `Settings.controlStyle`, migrate existing call sites. | — | 005 |
 | 3 | **Copy and explanation pass** | R3.1–R3.7. Lexicon applied repo-wide, composer question and helper text, info popovers, "How this works" panel, single-ingredient warning. | 2 | 003 |
-| 4 | **Ingredient provenance model** | R2.1–R2.4, R2.10, and the Dexie v2 migration for `ingredients`, `ingredientCategories` and `settings`. Schema, repository write-once enforcement, backup round-trip. | — | 002 |
+| 4 | **Ingredient provenance model** | R2.1–R2.4, R2.10. **Declares the complete Dexie v2 schema** — the ingredient, category and settings changes it uses, *plus* the `mealTemplates` table and both `group.id` indexes, left empty for ticket 7 (see the note above; do not ship a partial v2). Repository write-once enforcement, backup round-trip. | — | 002, 004 |
 | 5 | **Starter ingredient pack** | R2.5–R2.9, R2.12. The curated data asset, build-time validation, first-run seed, Settings top-up, attribution. | 4 | 002 |
 | 6 | **Ingredient identity in the UI** | R2.11. Category icons throughout, optional user photo in the ingredient editor, list and detail rendering. | 4, 5 | 002 |
-| 7 | **Meal templates** | R4.1–R4.9. Entity and schema, Dexie v2 table and `group` fields, template editor, apply flow with multi-day selection, grouped tile, *Log all*. | 1, 2, 4 | 004 |
+| 7 | **Meal templates** | R4.1–R4.9. Zod schemas, repository, template editor, apply flow with multi-day selection, grouped tile, *Log all*. **Opens no new schema version** — ticket 4 already declared the table and indexes. | 1, 2, 4 | 004 |
 | 8 | **Recents and save-as-meal** | R4.10–R4.11. Recents derivation and rail in the composer, *Save these as a meal*. | 7 | 004 |
 | 9 | **Today as the fast path** | Make `/` do the job the acceptance scenario needs: today's plan, one-tap log, apply-a-meal, recents. Addresses the "Today page is thin" finding in [UX_CRITIQUE.md](./UX_CRITIQUE.md). | 7, 8 | 001, 004 |
 | 10 | **V2 UX and accessibility critique** | Full pass against DESIGN.md and §9, including the macro-colour AA verification still deferred from V1, and the headline acceptance scenario measured end to end. | 1–9 | all |
@@ -192,6 +208,10 @@ that must not be skipped.
    effects identical to logging individually.
 9. **Migration** — a V1 database opens at schema v2 with every ingredient at
    `kind: "userEntered"`, every `group` null, and **no nutrition figure changed**.
+9a. **Version 2 is complete when ticket 4 ships.** After ticket 4's migration alone, assert
+   that `mealTemplates` exists and is empty and that both `group.id` indexes are present.
+   This is the test that catches a partial v2 before it reaches a browser, and it belongs in
+   ticket 4 rather than ticket 7 — by the time ticket 7 runs, the damage is already deployed.
 10. **Backup round-trip at v2** — export, wipe, import, assert equivalence including
     `mealTemplates` and image Blobs; a v3 payload is refused.
 11. **Control accessibility** — segmented group is a `radiogroup` with one tab stop and
