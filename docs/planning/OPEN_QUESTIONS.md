@@ -10,12 +10,13 @@
 > [`docs/adr/README.md`](../adr/README.md#relationship-to-the-v1-decision-list) for how each
 > V1 decision stands after V2.
 >
-> Two V2 choices are recorded with lower confidence than the rest and are the ones to revisit
-> first if they prove wrong: the choice of CoFID over USDA as the seed dataset
-> ([ADR-002](../adr/002-reference-ingredient-data-and-provenance.md)), and the decision to
-> make control style a cardinality rule rather than the user-facing toggle originally asked
-> for ([ADR-005](../adr/005-choice-controls-by-cardinality.md), which keeps a narrow escape
-> hatch precisely because of that).
+> **No V2 questions remain open.** The four calls drafted ahead of confirmation have all been
+> settled by the product owner; two changed the draft, and the outcomes are recorded in
+> [`docs/adr/README.md`](../adr/README.md#product-owner-confirmations). In short: CoFID with
+> USDA as an equally acceptable fallback; category icons plus optional user photos, with
+> breadth of accurate data explicitly preferred over pictures; meal templates by expansion;
+> and the cardinality rule **with no setting behind it**, which removed the escape hatch the
+> draft had kept.
 
 This document is now a record rather than a queue. It exists so that later tickets can see
 what was asked, what was decided, and why — and so nothing settled here is quietly reopened.

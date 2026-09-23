@@ -425,9 +425,11 @@ targets. This is a design-system rule, not a per-screen judgement:
 A disabled option stays visible with its reason in its accessible name. A capability that
 silently does not appear is a capability the user never learns exists.
 
-`Settings.controlStyle: "adaptive" | "compact"` forces native selects back for the 2–6 case,
-for very small screens and for preference. It defaults to `"adaptive"` and does not affect
-palettes, because no native control does that job.
+**There is no setting behind this.** The rule applies everywhere, with no compact mode and no
+way back to native selects. The obligation that creates falls on the segmented group: it must
+be genuinely good at 320px, wrapping rather than scrolling, never truncating a label, never
+dropping below 44px. Those are release gates, not aspirations, because nothing catches it if
+they slip.
 
 #### 6.3 Explanation is progressive and never depends on hover
 
@@ -668,8 +670,8 @@ photograph exists for a generic food like "chicken thigh, raw", and buying one w
 decorative gain at real cost.
 
 - **Every `IngredientCategory` carries an `icon` and an `accent`.** That is the default
-  identity, it is always present, and it makes a 150-row library scannable by category at a
-  glance — which is the job photos were being asked to do.
+  identity, it is always present, and it makes a library of several hundred entries scannable
+  by category at a glance — which is the job photos were being asked to do.
 - `Ingredient.imageId` allows an optional user photo on exactly the terms recipe images
   already have. The icon occupies the slot when no photo exists, so **the slot is never
   empty, the layout never shifts, and a list is never ragged.** The "do not mix present and

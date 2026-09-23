@@ -22,10 +22,25 @@ and remains authoritative for everything an ADR does not touch.
 | ADR | Title | Status |
 | --- | --- | --- |
 | [001](./001-page-geometry-and-density.md) | Page geometry, width roles and information density | Accepted |
-| [002](./002-reference-ingredient-data-and-provenance.md) | Reference ingredient data and per-ingredient provenance | Accepted |
+| [002](./002-reference-ingredient-data-and-provenance.md) | Reference ingredient data and per-ingredient provenance | Accepted, confirmed by product owner |
 | [003](./003-food-nomenclature-and-promotion-rule.md) | Food nomenclature and the ingredient→recipe promotion rule | Accepted |
-| [004](./004-meal-templates-by-expansion.md) | Meal templates by expansion, not by nesting | Accepted |
-| [005](./005-choice-controls-by-cardinality.md) | Choice controls selected by option cardinality | Accepted |
+| [004](./004-meal-templates-by-expansion.md) | Meal templates by expansion, not by nesting | Accepted, confirmed by product owner |
+| [005](./005-choice-controls-by-cardinality.md) | Choice controls selected by option cardinality | Accepted, amended by product owner |
+
+### Product-owner confirmations
+
+Four calls in ADR-002, ADR-004 and ADR-005 were drafted ahead of confirmation and have since
+been settled. Recorded here because two of them changed the draft:
+
+| Question | Outcome |
+| --- | --- |
+| Seed dataset | **CoFID, with USDA as a sanctioned fallback** — both were accepted, so ADR-002 no longer treats this as an escalation. Priority is "a wide base of accurate ingredients at MVP pace", which is why the pack is now script-transcoded rather than hand-curated, and why it seeds several hundred entries behind a curated `common` tier rather than 150 flat. |
+| Ingredient photos | **Category icon default plus optional user photo** — as drafted. Sourced photography stays out; breadth of accurate data was explicitly preferred over pictures. |
+| Saved meals | **Expansion**, as drafted. No first-class `Meal` entity, no recipe nesting. |
+| Control style | **The cardinality rule, with no setting.** The draft's `Settings.controlStyle` escape hatch was removed. See ADR-005 §"No setting" for what that obliges of the segmented group. |
+
+Brand-specific products are the user's job in V2 (`source.kind: "packaging"`). Automated
+brand onboarding is a considered follow-up, not MVP scope.
 
 ## Relationship to the V1 decision list
 

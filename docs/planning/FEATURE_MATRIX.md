@@ -13,7 +13,8 @@ MFP = MyFitnessPal · SF = Samsung Food · SC = SuperCook · ETM = Eat This Much
 | Capability | MFP | SF | SC | ETM | Recipe PWA | Note |
 | --- | :-: | :-: | :-: | :-: | :-: | --- |
 | Personal ingredient library (user-authored) | Y | Y | — | Y | **V1** | The only source of ingredients in v1. |
-| Seeded reference ingredient library with citations | P | P | — | P | **V2** | ~150 curated CoFID generics, per-ingredient `source` with dataset, entry code and URL ([ADR-002](../adr/002-reference-ingredient-data-and-provenance.md)). No reference product cites its figures per item. |
+| Seeded reference ingredient library with citations | P | P | — | P | **V2** | Several hundred CoFID generics, script-transcoded, each with a `source` carrying dataset, entry code and URL ([ADR-002](../adr/002-reference-ingredient-data-and-provenance.md)). No reference product cites its figures per item. |
+| Curated "common" tier over a wide reference base | — | — | — | — | **V2** | ~150 flagged entries answer the ordinary case; the long tail stays searchable behind "show all". Keeps a composition table usable as a picker. |
 | Per-ingredient provenance visible to the user | — | — | — | — | **V2** | `reference` / `packaging` / `userEntered` / `estimated`, and editing a reference figure says so. |
 | Ingredient photo | P | Y | Y | — | **V2** | Optional and user-supplied; a category icon is the always-present default ([ADR-002](../adr/002-reference-ingredient-data-and-provenance.md) §3). |
 | Nutrition per ingredient (kcal + P/C/F) | Y | Y | — | Y | **V1** | Per 100 g / 100 ml / 1 item. |
@@ -189,8 +190,9 @@ specified in [V2_SCOPE.md](./V2_SCOPE.md) against five ADRs in [`docs/adr`](../a
 
 Centre every page and give width a role, so the dead band down the right of every route
 disappears and forms stop stretching to 1400px ([ADR-001](../adr/001-page-geometry-and-density.md))
-· seed ~150 cited reference ingredients so the first session is productive, with
-per-ingredient provenance and category icons ([ADR-002](../adr/002-reference-ingredient-data-and-provenance.md))
+· script-transcode several hundred cited reference ingredients so the first session is
+productive, with per-ingredient provenance, a curated common tier, and category icons
+([ADR-002](../adr/002-reference-ingredient-data-and-provenance.md))
 · replace tense-based labels with source-based ones, write down when something should be a
 recipe rather than an ingredient, and explain the loop where the choice is made
 ([ADR-003](../adr/003-food-nomenclature-and-promotion-rule.md)) · add saved meals that expand

@@ -215,11 +215,11 @@ Per [ADR-002](../adr/002-reference-ingredient-data-and-provenance.md) and
 | Table | Change | Migration |
 | --- | --- | --- |
 | `mealTemplates` | **New.** PK `id`, indexes `name`, `archivedAt` | Empty |
-| `ingredients` | `+ source` (non-null), `+ imageId` | `source = { kind: "userEntered", origin fields null }`, `imageId = null` |
+| `ingredients` | `+ source` (non-null), `+ imageId`, `+ common` | `source = { kind: "userEntered", origin fields null }`, `imageId = null`, `common = true` |
 | `ingredientCategories` | `+ icon`, `+ accent` | Seeded categories get documented values; user-created get a neutral default |
 | `plannedMeals` | `+ group`, new index `group.id` | `group = null` |
 | `loggedMeals` | `+ group`, new index `group.id` | `group = null` |
-| `settings` | `+ controlStyle`, `+ howItWorksDismissed`, `+ starterPackVersion` | Via the existing `normalizeSettingsRow` pattern |
+| `settings` | `+ howItWorksDismissed`, `+ starterPackVersion` | Via the existing `normalizeSettingsRow` pattern |
 
 **Version 2 is declared once, in full, by the first ticket that needs any of it.** The
 ingredient work (V2_SCOPE ticket 4) and the meal-template work (ticket 7) are separated by

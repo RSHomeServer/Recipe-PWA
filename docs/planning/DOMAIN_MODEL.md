@@ -124,6 +124,7 @@ type Ingredient = {
   // V2 — ADR-002
   source: IngredientSource;      // never null; where these figures came from
   imageId: Id | null;            // optional user photo; category icon when absent
+  common: boolean;               // surfaced by default in pickers; long tail behind "show all"
 };
 
 type IngredientCategory = {
@@ -153,8 +154,11 @@ type IngredientSource = {
 
 Three invariants, added to the list below:
 
-6. **`source` is metadata only.** No calculation, derivation, filter or sort may read it.
-   Every nutrition path behaves identically for every `kind`. Guarded by property test.
+6. **`source` and `common` are metadata only.** No calculation or derivation may read either.
+   Every nutrition path behaves identically for every `kind` and either `common` value.
+   Guarded by property test. `common` governs which ingredients a picker offers first, because
+   the seeded library runs to several hundred entries and a raw composition table is not a
+   usable picker; it defaults to `true` for anything the user creates.
 7. **The origin fields are write-once**, in the same spirit as `BatchSnapshot`. Once an
    ingredient arrives from a dataset, that is permanent history.
 8. **Editing the nutrition of a `reference` ingredient flips `kind` to `"userEntered"`** and
@@ -765,14 +769,14 @@ Where each agreed decision landed, so later tickets can trace a rule to its sour
 | ADR | Where it lands in this document |
 | --- | --- |
 | [001](../adr/001-page-geometry-and-density.md) Page geometry and density | Nothing here — presentation only, see [DESIGN.md](./DESIGN.md) §5 |
-| [002](../adr/002-reference-ingredient-data-and-provenance.md) Reference data and provenance | `Ingredient.source`, `Ingredient.imageId`, `IngredientCategory.icon`/`accent` |
+| [002](../adr/002-reference-ingredient-data-and-provenance.md) Reference data and provenance | `Ingredient.source`/`imageId`/`common`, `IngredientCategory.icon`/`accent` |
 | [003](../adr/003-food-nomenclature-and-promotion-rule.md) Nomenclature and the promotion rule | Nothing here — the entities were already right; the words were not |
 | [004](../adr/004-meal-templates-by-expansion.md) Meal templates by expansion | `MealTemplate`, `PlanGroup`, `PlannedMeal.group`, `LoggedMeal.group` |
-| [005](../adr/005-choice-controls-by-cardinality.md) Choice controls by cardinality | `Settings.controlStyle` |
+| [005](../adr/005-choice-controls-by-cardinality.md) Choice controls by cardinality | Nothing — the rule is the whole decision, with no setting behind it |
 
-Note what is **not** in that table. Two of the five V2 decisions change no entity at all, and
-the two that do add fields no calculation is permitted to read. That is the intended shape of
-a V2 on a model that was designed correctly the first time.
+Note what is **not** in that table. Three of the five V2 decisions change no entity at all,
+and the two that do add fields no calculation is permitted to read. That is the intended shape
+of a V2 on a model that was designed correctly the first time.
 
 ## Deliberately not modelled in V1
 

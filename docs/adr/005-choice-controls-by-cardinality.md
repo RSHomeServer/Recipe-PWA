@@ -66,21 +66,21 @@ shadcn `Command` inside a `Dialog` — a bottom sheet under `md`, a centred dial
 - Never used for fewer than seven options. A search box in front of four choices is worse
   than the four choices.
 
-### The escape hatch
+### No setting
 
-`Settings` gains:
+An earlier draft paired the rule with a `Settings.controlStyle` switch that would force native
+selects back. **Confirmed against that draft: there is no setting.** The rule is the whole
+decision.
 
-```ts
-controlStyle: "adaptive" | "compact";   // default "adaptive"
-```
+A preference that most users never open is not a design, it is a way of avoiding one — and
+keeping it would have meant every new control carrying two code paths, two sets of
+accessibility behaviour and two states to test, forever, to serve a case nobody had yet hit.
+If the segmented group turns out to be wrong at some viewport, that is a bug in the rule, and
+the fix belongs in the rule where it applies to everyone.
 
-`"compact"` forces native `<select>` everywhere the table above would use a segmented group,
-for very small screens and for preference. It does **not** affect the command palette, because
-no native control does that job.
-
-The rule is the default rather than the setting because a preference that most users never
-open is not a design; it is a way of avoiding one. The setting exists so that the choice is
-recoverable, not so that it is load-bearing.
+The obligation this creates is on the segmented group itself: it must be genuinely good at
+320px. It wraps rather than scrolls, keeps 44px targets, and never truncates a label. Those
+are requirements rather than aspirations precisely because there is no fallback behind them.
 
 ### What does not change
 
@@ -102,14 +102,17 @@ Negative: segmented groups consume more vertical space than a collapsed select. 
 accepted — it is the composer's central question, and seeing all three options is how the
 user learns the model ([ADR-003](./003-food-nomenclature-and-promotion-rule.md) §3).
 
+Negative: with no setting, a user who dislikes the segmented group has no recourse. Accepted
+deliberately. The alternative was two permanent code paths for every control in the product,
+and the honest response to a bad control is to fix it rather than to offer the old one back.
+
 Risk: the command palette is the one component here that can regress accessibility if built
 carelessly. It must have an accessible name, a full keyboard path, and focus returned to the
 trigger on close. This is covered by an explicit test rather than review.
 
 ## Verification
 
-1. No `<select>` remains in `src/features/` for a choice of six or fewer options while
-   `controlStyle` is `"adaptive"`.
+1. No `<select>` remains in `src/features/` for a choice of six or fewer options.
 2. The segmented group exposes `role="radiogroup"`, moves selection with arrow keys, and
    places exactly one tab stop in the tab order.
 3. Every segmented option meets 44 × 44px at 320px viewport width and wraps rather than
@@ -118,7 +121,8 @@ trigger on close. This is covered by an explicit test rather than review.
    focus returned to the trigger.
 5. Recipe, ingredient and batch pickers show recents before any query, and each row renders
    its documented secondary facts.
-6. Setting `controlStyle` to `"compact"` restores native selects for the 2–6 case and leaves
-   palettes unchanged.
+6. At a 320px viewport, every segmented group in the product wraps without truncating a
+   label, overflowing horizontally, or dropping below 44px. There is no fallback, so this is
+   a release gate rather than a nice-to-have.
 7. Disabled options remain in the accessibility tree with their reason as part of the
    accessible name.
