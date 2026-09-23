@@ -176,9 +176,15 @@ export function AddPlannedMealForm({
           value={kind}
           onChange={(e) => setKind(e.target.value as EntryKind)}
         >
-          <option value="recipeServings">Recipe to cook</option>
-          <option value="batchPortions">Batch portion</option>
-          <option value="ingredient">Ingredient</option>
+          <option value="recipeServings">
+            Still to cook (recipe — adds to shopping)
+          </option>
+          <option value="batchPortions">
+            Already cooked (batch portion — nothing to buy)
+          </option>
+          <option value="ingredient">
+            Eat as-is (ingredient — adds to shopping)
+          </option>
         </NativeSelect>
       </div>
 

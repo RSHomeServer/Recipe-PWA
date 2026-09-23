@@ -20,5 +20,6 @@ export {
   eachDateInRange,
   shiftWeek,
   formatDayHeading,
+  formatDayCompact,
   formatWeekRangeLabel,
 } from "./dates";

@@ -64,6 +64,14 @@ export function formatDayHeading(iso: IsoDate): string {
   });
 }
 
+/** Compact label for move-to menus (e.g. "Mon 23"). */
+export function formatDayCompact(iso: IsoDate): string {
+  return parseIsoDate(iso).toLocaleDateString(undefined, {
+    weekday: "short",
+    day: "numeric",
+  });
+}
+
 export function formatWeekRangeLabel(range: DateRange): string {
   const from = parseIsoDate(range.from);
   const to = parseIsoDate(range.to);

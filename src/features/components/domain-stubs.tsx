@@ -263,27 +263,31 @@ const PLAN_TILE_META: Record<
   PlanSlotTileVariant,
   {
     label: string;
+    hint: string;
     surface: string;
     iconWrap: string;
     Icon: typeof ChefHat;
   }
 > = {
   cook: {
-    label: "Recipe to cook",
+    label: "Still to cook",
+    hint: "Needs cooking — ingredients go on the shopping list",
     surface:
       "border-2 border-[var(--color-accent)] bg-[var(--color-surface-raised)]",
     iconWrap: "bg-accent text-primary-foreground",
     Icon: ChefHat,
   },
   portion: {
-    label: "Batch portion",
+    label: "Already cooked",
+    hint: "From a batch you already made — nothing to buy",
     surface:
       "border border-[var(--color-border-subtle)] bg-[var(--color-surface-sunken)]",
     iconWrap: "bg-muted text-muted-foreground",
     Icon: Utensils,
   },
   ingredient: {
-    label: "Ingredient",
+    label: "Eat as-is",
+    hint: "A raw ingredient — quantity goes on the shopping list",
     surface: "border border-dashed border-border bg-background",
     iconWrap: "bg-[var(--color-surface-raised)] text-foreground",
     Icon: Leaf,
@@ -304,24 +308,33 @@ export function PlanSlotTile({
     <article
       data-slot="plan-slot-tile"
       data-variant={variant}
-      className={cn("rounded-lg p-4", meta.surface, className)}
+      className={cn(
+        "min-w-0 max-w-full overflow-hidden rounded-lg p-3",
+        meta.surface,
+        className,
+      )}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5">
         <span
           className={cn(
-            "inline-flex size-10 shrink-0 items-center justify-center rounded-md",
+            "inline-flex size-8 shrink-0 items-center justify-center rounded-md",
             meta.iconWrap,
           )}
           aria-hidden="true"
         >
-          <Icon className="size-5" />
+          <Icon className="size-4" />
         </span>
         <div className="min-w-0 flex-1 space-y-1">
-          <p className="font-display text-lg font-semibold">{title}</p>
-          {subtitle ? <p className="text-sm text-muted-foreground">{subtitle}</p> : null}
+          <p className="truncate font-display text-base font-semibold leading-snug">
+            {title}
+          </p>
+          {subtitle ? (
+            <p className="truncate text-sm text-muted-foreground">{subtitle}</p>
+          ) : null}
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {meta.label}
           </p>
+          <p className="text-xs leading-snug text-muted-foreground">{meta.hint}</p>
           {children}
         </div>
       </div>
@@ -337,9 +350,12 @@ export type MealSlotSectionProps = {
 
 export function MealSlotSection({ slotLabel, children, className }: MealSlotSectionProps) {
   return (
-    <section data-slot="meal-slot-section" className={cn("space-y-3", className)}>
-      <h3 className="text-lg font-semibold">{slotLabel}</h3>
-      <div className="space-y-2">{children}</div>
+    <section
+      data-slot="meal-slot-section"
+      className={cn("min-w-0 space-y-2", className)}
+    >
+      <h3 className="text-sm font-semibold text-muted-foreground">{slotLabel}</h3>
+      <div className="min-w-0 space-y-2">{children}</div>
     </section>
   );
 }

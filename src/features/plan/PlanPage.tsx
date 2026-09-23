@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { useRecipeData, useRepos } from "@/data";
 import {
   eachDateInRange,
+  formatDayCompact,
   formatDayHeading,
   formatWeekRangeLabel,
   shiftWeek,
@@ -114,29 +115,41 @@ function SortableMealCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={cn(isDragging && "opacity-40")}
+      className={cn("min-w-0 max-w-full", isDragging && "opacity-40")}
     >
       <PlanSlotTile
         variant={label.variant}
         title={label.title}
         subtitle={label.subtitle}
       >
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:bg-muted"
-            aria-label={`Drag ${label.title}`}
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="size-4" />
-          </button>
+        <div className="mt-2 space-y-2">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:bg-muted"
+              aria-label={`Drag ${label.title}`}
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="size-3.5" />
+            </button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0"
+              aria-label={`Remove ${label.title}`}
+              onClick={onDelete}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </div>
           <label className="sr-only" htmlFor={`move-${meal.id}`}>
             Move {label.title} to
           </label>
           <NativeSelect
             id={`move-${meal.id}`}
-            className="h-9 w-auto min-w-[10rem] flex-1"
+            className="h-8 w-full min-w-0 max-w-full text-sm"
             value=""
             onChange={(e) => {
               const next = e.target.value;
@@ -154,18 +167,9 @@ function SortableMealCard({
                 </option>
               ))}
           </NativeSelect>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={`Remove ${label.title}`}
-            onClick={onDelete}
-          >
-            <Trash2 className="size-4" />
-          </Button>
         </div>
         {meal.note ? (
-          <p className="mt-2 text-sm text-muted-foreground">{meal.note}</p>
+          <p className="mt-2 truncate text-sm text-muted-foreground">{meal.note}</p>
         ) : null}
       </PlanSlotTile>
     </div>
@@ -203,7 +207,7 @@ function SlotDropZone({
       <div
         ref={setNodeRef}
         className={cn(
-          "min-h-12 space-y-2 rounded-md p-1 transition-colors",
+          "min-h-12 min-w-0 space-y-2 rounded-md p-0.5 transition-colors",
           isOver && "bg-[var(--color-accent-muted)]/40",
         )}
       >
@@ -287,7 +291,7 @@ export default function PlanPage() {
   }, [batchRows]);
 
   const moveOptions = useMemo(
-    () => moveTargetOptions(days, slots ?? [], formatDayHeading),
+    () => moveTargetOptions(days, slots ?? [], formatDayCompact),
     [days, slots],
   );
 
@@ -463,7 +467,7 @@ export default function PlanPage() {
     <div className="app-page space-y-8">
       <PageHeader
         title="Meal plan"
-        description="Plan recipes to cook, batch portions, and ingredients. Planning changes nothing in the pantry."
+        description="Plan what you will cook, eat from batches you already made, or have raw. Planning never touches the pantry."
         actions={
           <Button type="button" onClick={() => openComposer(dayInWeek)}>
             <Plus className="size-4" aria-hidden="true" />
@@ -602,10 +606,10 @@ export default function PlanPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-7 gap-4 overflow-x-auto">
+            <div className="grid grid-cols-7 gap-2">
               {days.map((date) => (
-                <div key={date} className="min-w-[10rem] space-y-4">
-                  <h2 className="font-display text-base font-semibold">
+                <div key={date} className="min-w-0 space-y-3 overflow-hidden">
+                  <h2 className="truncate font-display text-sm font-semibold">
                     {formatDayHeading(date)}
                   </h2>
                   {slots.map((slot) => {
