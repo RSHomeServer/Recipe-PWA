@@ -126,22 +126,22 @@ function SortableMealCard({
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:bg-muted"
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={`Drag ${label.title}`}
               {...attributes}
               {...listeners}
             >
-              <GripVertical className="size-3.5" />
+              <GripVertical className="size-4" />
             </button>
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="size-8 shrink-0"
+              className="size-11 shrink-0"
               aria-label={`Remove ${label.title}`}
               onClick={onDelete}
             >
-              <Trash2 className="size-3.5" />
+              <Trash2 className="size-4" />
             </Button>
           </div>
           <label className="sr-only" htmlFor={`move-${meal.id}`}>
@@ -149,7 +149,7 @@ function SortableMealCard({
           </label>
           <NativeSelect
             id={`move-${meal.id}`}
-            className="h-8 w-full min-w-0 max-w-full text-sm"
+            className="w-full min-w-0 max-w-full"
             value=""
             onChange={(e) => {
               const next = e.target.value;

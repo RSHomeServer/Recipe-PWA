@@ -106,6 +106,11 @@ export default function ShoppingPage() {
       : groupByRecipe(lineViews, recipeNames);
   }, [lineViews, groupMode, recipeNames]);
 
+  const remainingCount = useMemo(() => {
+    if (!lineViews) return null;
+    return lineViews.filter((line) => !line.checked).length;
+  }, [lineViews]);
+
   const persistWindow = useCallback(
     async (next: ShoppingWindow) => {
       if (!repos || !settings) return;
@@ -301,7 +306,7 @@ export default function ShoppingPage() {
               key={mode}
               type="button"
               className={cn(
-                "rounded-sm px-3 py-2 text-sm font-medium",
+                "min-h-11 rounded-sm px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 groupMode === mode
                   ? "bg-accent text-accent-foreground"
                   : "text-muted-foreground",
@@ -313,6 +318,19 @@ export default function ShoppingPage() {
             </button>
           ))}
         </div>
+
+        {remainingCount != null && lineViews.length > 0 ? (
+          <p
+            className="text-base text-muted-foreground"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <span className="num text-foreground font-medium">
+              {remainingCount}
+            </span>{" "}
+            item{remainingCount === 1 ? "" : "s"} left to buy
+          </p>
+        ) : null}
 
         {showManual && ingredients && ingredients.length > 0 ? (
           <ManualAddForm

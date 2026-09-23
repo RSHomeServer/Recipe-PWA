@@ -18,7 +18,10 @@ import {
 import { PageHeader } from "@/features/shared/RoutePlaceholder";
 import { RouteStatePanel } from "@/features/shared/RouteStatePanel";
 import {
+  entryNutrition,
   formatDayHeading,
+  formatKcal,
+  sum,
   todayIso,
   toIsoDate,
   type Batch,
@@ -253,6 +256,21 @@ export default function LogPage() {
       );
   }, [planned, date]);
 
+  const dayKcal = useMemo(() => {
+    if (!logs) return null;
+    const parts = logs.map((meal) => {
+      const result = entryNutrition(meal.entry, {
+        recipesById,
+        batchesById,
+        ingredientsById,
+      });
+      return result.ok ? result.nutrition : null;
+    });
+    const known = parts.filter((n): n is NonNullable<typeof n> => n != null);
+    if (known.length === 0) return logs.length === 0 ? 0 : null;
+    return Math.round(sum(known).kcal);
+  }, [logs, recipesById, batchesById, ingredientsById]);
+
   const loading =
     !ready ||
     slots === undefined ||
@@ -345,6 +363,17 @@ export default function LogPage() {
             Today
           </Button>
         </DateRangeControl>
+        {!loading && dayKcal != null ? (
+          <p
+            className="mt-3 num text-base text-foreground"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            Day total{" "}
+            <strong className="font-semibold">{formatKcal(dayKcal)}</strong>{" "}
+            <span className="text-muted-foreground">kcal</span>
+          </p>
+        ) : null}
       </div>
 
       {loading ? (

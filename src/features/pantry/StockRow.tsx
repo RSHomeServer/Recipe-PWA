@@ -145,7 +145,8 @@ export function StockRow({ ingredient, stock }: StockRowProps) {
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="icon"
+            className="size-12 text-lg"
             disabled={busy}
             onClick={() => void apply({ op: "remove", quantity: quickStep })}
             aria-label={`Remove ${quickStep.value}${quickStep.unit === "item" ? "" : ` ${quickStep.unit}`}`}
@@ -155,7 +156,8 @@ export function StockRow({ ingredient, stock }: StockRowProps) {
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="icon"
+            className="size-12 text-lg"
             disabled={busy}
             onClick={() => void apply({ op: "add", quantity: quickStep })}
             aria-label={`Add ${quickStep.value}${quickStep.unit === "item" ? "" : ` ${quickStep.unit}`}`}
