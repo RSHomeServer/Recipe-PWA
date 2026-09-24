@@ -4,10 +4,13 @@ import { Plus } from "lucide-react";
 import { NutritionSummary } from "@/features/components/domain-stubs";
 import { PageHeader } from "@/features/shared/RoutePlaceholder";
 import { RouteStatePanel } from "@/features/shared/RouteStatePanel";
+import { IngredientIdentity } from "@/features/ingredients/IngredientIdentity";
 import {
   useIngredientCategories,
   useIngredients,
 } from "@/features/ingredients/hooks";
+import { useRecipeThumbnailUrls } from "@/features/recipes/hooks";
+import type { IngredientCategory } from "@/domain";
 import { useRecipeData } from "@/data";
 import { nutritionBasisLabel } from "@/domain";
 import { Button } from "@/ui/button";
@@ -44,6 +47,14 @@ export default function IngredientsPage() {
     return map;
   }, [categories]);
 
+  const categoriesById = useMemo(() => {
+    const map = new Map<string, IngredientCategory>();
+    for (const cat of categories ?? []) {
+      map.set(cat.id, cat);
+    }
+    return map;
+  }, [categories]);
+
   const filtered = useMemo(() => {
     if (!ingredients) return undefined;
     const needle = query.trim().toLowerCase();
@@ -62,6 +73,12 @@ export default function IngredientsPage() {
       return true;
     });
   }, [ingredients, query, categoryFilter, showArchived]);
+
+  const imageIds = useMemo(
+    () => (filtered ?? []).map((ingredient) => ingredient.imageId),
+    [filtered],
+  );
+  const thumbUrls = useRecipeThumbnailUrls(imageIds);
 
   const goCreate = () => {
     void navigate("/ingredients/new");
@@ -171,8 +188,21 @@ export default function IngredientsPage() {
                   <li key={ingredient.id}>
                     <Link
                       to={`/ingredients/${ingredient.id}`}
-                      className="app-list-row py-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="app-list-row gap-4 py-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
+                      <IngredientIdentity
+                        category={
+                          ingredient.categoryId == null
+                            ? undefined
+                            : categoriesById.get(ingredient.categoryId)
+                        }
+                        imageUrl={
+                          ingredient.imageId != null
+                            ? thumbUrls.get(ingredient.imageId)
+                            : undefined
+                        }
+                        name={ingredient.name}
+                      />
                       <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium text-foreground">

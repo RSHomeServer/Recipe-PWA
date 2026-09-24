@@ -5,6 +5,7 @@ import {
   createId,
   type Ingredient,
   type IngredientFormParsed,
+  type RecipeImage,
 } from "@/domain";
 import { IngredientForm } from "@/features/ingredients/IngredientForm";
 import {
@@ -12,6 +13,7 @@ import {
   useIngredientCategories,
   useIngredientMeasureKindLocked,
 } from "@/features/ingredients/hooks";
+import { useRecipeImageUrl } from "@/features/recipes/hooks";
 import { PageHeader } from "@/features/shared/RoutePlaceholder";
 import { RouteStatePanel } from "@/features/shared/RouteStatePanel";
 
@@ -38,6 +40,9 @@ export default function IngredientDetailPage() {
   const ingredient = useIngredient(isCreate ? undefined : id);
   const measureKindLocked =
     useIngredientMeasureKindLocked(isCreate ? undefined : id) ?? false;
+  const { url: existingImageUrl } = useRecipeImageUrl(
+    isCreate ? null : (ingredient?.imageId ?? null),
+  );
 
   const goList = () => {
     void navigate("/ingredients");
@@ -79,10 +84,20 @@ export default function IngredientDetailPage() {
     ? "New ingredient"
     : (ingredient?.name ?? "Ingredient");
 
-  const save = async (parsed: IngredientFormParsed) => {
+  const save = async (payload: {
+    values: IngredientFormParsed;
+    image: RecipeImage | null;
+    removeImage: boolean;
+  }) => {
     if (!repos) throw new Error("Database is not ready");
+    const { values: parsed, image, removeImage } = payload;
 
     if (isCreate) {
+      let imageId: string | null = null;
+      if (image) {
+        await repos.recipeImages.put(image);
+        imageId = image.id;
+      }
       const row: Ingredient = {
         id: createId(),
         ...parsed,
@@ -97,7 +112,7 @@ export default function IngredientDetailPage() {
           retrievedAt: null,
           note: null,
         },
-        imageId: null,
+        imageId,
         common: true,
         archivedAt: null,
       };
@@ -115,12 +130,26 @@ export default function IngredientDetailPage() {
       );
     }
 
+    let imageId = ingredient.imageId;
+    if (removeImage && ingredient.imageId) {
+      await repos.recipeImages.delete(ingredient.imageId);
+      imageId = null;
+    }
+    if (image) {
+      if (ingredient.imageId && ingredient.imageId !== image.id) {
+        await repos.recipeImages.delete(ingredient.imageId);
+      }
+      await repos.recipeImages.put(image);
+      imageId = image.id;
+    }
+
     const row: Ingredient = {
       ...ingredient,
       ...parsed,
       measureKind: measureKindLocked
         ? ingredient.measureKind
         : parsed.measureKind,
+      imageId,
     };
     await repos.ingredients.put(row);
     toast.success("Ingredient saved");
@@ -154,6 +183,7 @@ export default function IngredientDetailPage() {
       <IngredientForm
         categories={categories}
         initial={isCreate ? undefined : (ingredient ?? undefined)}
+        existingImageUrl={existingImageUrl}
         measureKindLocked={!isCreate && measureKindLocked}
         onSubmit={save}
         onArchive={isCreate ? undefined : archive}
