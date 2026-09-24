@@ -16,7 +16,8 @@ import { Quantity as QuantityDisplay } from "@/features/components/domain-stubs"
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
-import { NativeSelect } from "@/ui/native-select";
+import { SegmentedGroup } from "@/ui/segmented-group";
+import { UnitChoice } from "@/ui/unit-choice";
 import { cn } from "@/ui/lib/utils";
 
 function parseAmount(raw: string): number | null {
@@ -185,16 +186,18 @@ export function StockRow({ ingredient, stock }: StockRowProps) {
           onSubmit={(event) => void onSubmitAdjust(event)}
         >
           <div className="space-y-2">
-            <Label htmlFor={`stock-mode-${ingredient.id}`}>Action</Label>
-            <NativeSelect
+            <Label id={`stock-mode-${ingredient.id}-label`}>Action</Label>
+            <SegmentedGroup
               id={`stock-mode-${ingredient.id}`}
+              aria-labelledby={`stock-mode-${ingredient.id}-label`}
               value={mode}
-              onChange={(event) => setMode(event.target.value as AdjustMode)}
-            >
-              <option value="add">Add</option>
-              <option value="remove">Remove</option>
-              <option value="set">Set to</option>
-            </NativeSelect>
+              onValueChange={(next) => setMode(next as AdjustMode)}
+              options={[
+                { value: "add", label: "Add" },
+                { value: "remove", label: "Remove" },
+                { value: "set", label: "Set to" },
+              ]}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor={`stock-amount-${ingredient.id}`}>Amount</Label>
@@ -208,18 +211,14 @@ export function StockRow({ ingredient, stock }: StockRowProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`stock-unit-${ingredient.id}`}>Unit</Label>
-            <NativeSelect
+            <Label id={`stock-unit-${ingredient.id}-label`}>Unit</Label>
+            <UnitChoice
               id={`stock-unit-${ingredient.id}`}
+              aria-labelledby={`stock-unit-${ingredient.id}-label`}
+              units={units}
               value={unit}
-              onChange={(event) => setUnit(event.target.value as Unit)}
-            >
-              {units.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </NativeSelect>
+              onValueChange={setUnit}
+            />
           </div>
           <div className="flex items-end">
             <Button type="submit" disabled={busy}>

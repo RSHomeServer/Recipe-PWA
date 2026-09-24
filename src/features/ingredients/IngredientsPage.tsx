@@ -11,9 +11,9 @@ import {
 import { useRecipeData } from "@/data";
 import { nutritionBasisLabel } from "@/domain";
 import { Button } from "@/ui/button";
+import { Choice } from "@/ui/choice";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
-import { NativeSelect } from "@/ui/native-select";
 
 const listStateConfig = {
   empty: {
@@ -127,21 +127,22 @@ export default function IngredientsPage() {
                 autoComplete="off"
               />
             </div>
-            <div className="min-w-[10rem] space-y-2 sm:w-56">
-              <Label htmlFor="ingredient-category-filter">Category</Label>
-              <NativeSelect
+            <div className="min-w-0 flex-1 space-y-2 sm:max-w-xl">
+              <Label id="ingredient-category-filter-label">Category</Label>
+              <Choice
                 id="ingredient-category-filter"
+                aria-labelledby="ingredient-category-filter-label"
                 value={categoryFilter}
-                onChange={(event) => setCategoryFilter(event.target.value)}
-              >
-                <option value="all">All categories</option>
-                <option value="uncategorized">Uncategorized</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </NativeSelect>
+                onValueChange={setCategoryFilter}
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "uncategorized", label: "Uncategorized" },
+                  ...categories.map((category) => ({
+                    value: category.id,
+                    label: category.name,
+                  })),
+                ]}
+              />
             </div>
             <label className="flex min-h-11 items-center gap-2 text-sm">
               <input

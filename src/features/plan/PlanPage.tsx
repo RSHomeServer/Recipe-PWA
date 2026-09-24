@@ -42,7 +42,7 @@ import { useBatchListRows } from "@/features/cook/hooks";
 import { PageHeader } from "@/features/shared/RoutePlaceholder";
 import { RouteStatePanel } from "@/features/shared/RouteStatePanel";
 import { Button } from "@/ui/button";
-import { NativeSelect } from "@/ui/native-select";
+import { CommandPicker } from "@/ui/command-picker";
 import { cn } from "@/ui/lib/utils";
 import { AddPlannedMealForm } from "./AddPlannedMealForm";
 import {
@@ -144,29 +144,26 @@ function SortableMealCard({
               <Trash2 className="size-4" />
             </Button>
           </div>
-          <label className="sr-only" htmlFor={`move-${meal.id}`}>
+          <label className="sr-only" id={`move-${meal.id}-label`}>
             Move {label.title} to
           </label>
-          <NativeSelect
+          <CommandPicker
             id={`move-${meal.id}`}
-            className="w-full min-w-0 max-w-full"
+            aria-labelledby={`move-${meal.id}-label`}
+            title="Move to…"
+            placeholder="Move to…"
+            searchPlaceholder="Search day and slot…"
             value=""
-            onChange={(e) => {
-              const next = e.target.value;
+            onValueChange={(next) => {
               if (next) onMoveTo(next);
-              e.target.value = "";
             }}
-            aria-label={`Move ${label.title} to`}
-          >
-            <option value="">Move to…</option>
-            {moveOptions
+            items={moveOptions
               .filter((opt) => opt.value !== currentTarget)
-              .map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-          </NativeSelect>
+              .map((opt) => ({
+                value: opt.value,
+                label: opt.label,
+              }))}
+          />
         </div>
         {meal.note ? (
           <p className="mt-2 truncate text-sm text-muted-foreground">{meal.note}</p>
