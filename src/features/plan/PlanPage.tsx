@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -18,7 +18,14 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronLeft, ChevronRight, GripVertical, Plus, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  GripVertical,
+  MoreHorizontal,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useRecipeData, useRepos } from "@/data";
 import {
@@ -37,12 +44,22 @@ import {
 import {
   MealSlotSection,
   PlanSlotTile,
+  type PlanSlotTileDensity,
 } from "@/features/components/domain-stubs";
 import { useBatchListRows } from "@/features/cook/hooks";
 import { PageHeader } from "@/features/shared/RoutePlaceholder";
 import { RouteStatePanel } from "@/features/shared/RouteStatePanel";
 import { Button } from "@/ui/button";
-import { CommandPicker } from "@/ui/command-picker";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/ui/dropdown-menu";
 import { cn } from "@/ui/lib/utils";
 import { AddPlannedMealForm } from "./AddPlannedMealForm";
 import {
@@ -85,6 +102,7 @@ function parseDropId(id: string): { date: string; slotId: string } | null {
 function SortableMealCard({
   meal,
   label,
+  density,
   moveOptions,
   currentTarget,
   onMoveTo,
@@ -92,6 +110,7 @@ function SortableMealCard({
 }: {
   meal: PlannedMeal;
   label: ReturnType<typeof plannedMealLabel>;
+  density: PlanSlotTileDensity;
   moveOptions: { value: string; label: string }[];
   currentTarget: string;
   onMoveTo: (target: string) => void;
@@ -111,6 +130,8 @@ function SortableMealCard({
     transition,
   };
 
+  const destinations = moveOptions.filter((opt) => opt.value !== currentTarget);
+
   return (
     <div
       ref={setNodeRef}
@@ -121,51 +142,61 @@ function SortableMealCard({
         variant={label.variant}
         title={label.title}
         subtitle={label.subtitle}
+        density={density}
       >
-        <div className="mt-2 space-y-2">
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={`Drag ${label.title}`}
-              {...attributes}
-              {...listeners}
-            >
-              <GripVertical className="size-4" />
-            </button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-11 shrink-0"
-              aria-label={`Remove ${label.title}`}
-              onClick={onDelete}
-            >
-              <Trash2 className="size-4" />
-            </Button>
-          </div>
-          <label className="sr-only" id={`move-${meal.id}-label`}>
-            Move {label.title} to
-          </label>
-          <CommandPicker
-            id={`move-${meal.id}`}
-            aria-labelledby={`move-${meal.id}-label`}
-            title="Move to…"
-            placeholder="Move to…"
-            searchPlaceholder="Search day and slot…"
-            value=""
-            onValueChange={(next) => {
-              if (next) onMoveTo(next);
-            }}
-            items={moveOptions
-              .filter((opt) => opt.value !== currentTarget)
-              .map((opt) => ({
-                value: opt.value,
-                label: opt.label,
-              }))}
-          />
+        <div
+          className={cn(
+            "mt-2 flex items-center gap-1.5",
+            density === "compact" && "mt-1.5",
+          )}
+        >
+          <button
+            type="button"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={`Drag ${label.title}`}
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="size-4" />
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-11 shrink-0"
+                aria-label={`Actions for ${label.title}`}
+              >
+                <MoreHorizontal className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[12rem]">
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>Move to…</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="max-h-[min(20rem,var(--radix-dropdown-menu-content-available-height))] overflow-y-auto">
+                  {destinations.map((opt) => (
+                    <DropdownMenuItem
+                      key={opt.value}
+                      onSelect={() => onMoveTo(opt.value)}
+                    >
+                      {opt.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-[var(--color-error)] focus:text-[var(--color-error)]"
+                onSelect={onDelete}
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+                Remove
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        {meal.note ? (
+        {meal.note && density !== "compact" ? (
           <p className="mt-2 truncate text-sm text-muted-foreground">{meal.note}</p>
         ) : null}
       </PlanSlotTile>
@@ -180,6 +211,7 @@ function SlotDropZone({
   recipesById,
   ingredientsById,
   batchNameById,
+  density,
   moveOptions,
   onMoveTo,
   onDelete,
@@ -191,6 +223,7 @@ function SlotDropZone({
   recipesById: ReadonlyMap<string, Recipe>;
   ingredientsById: ReadonlyMap<string, Ingredient>;
   batchNameById: ReadonlyMap<string, string>;
+  density: PlanSlotTileDensity;
   moveOptions: { value: string; label: string }[];
   onMoveTo: (mealId: string, target: string) => void;
   onDelete: (mealId: string) => void;
@@ -221,6 +254,7 @@ function SlotDropZone({
                 key={meal.id}
                 meal={meal}
                 label={label}
+                density={density}
                 moveOptions={moveOptions}
                 currentTarget={dropId}
                 onMoveTo={(target) => onMoveTo(meal.id, target)}
@@ -258,6 +292,7 @@ export default function PlanPage() {
   } | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const isMdUp = useIsMdUp();
+  const weekTrackRef = useRef<HTMLDivElement>(null);
 
   const days = useMemo(() => eachDateInRange(week), [week]);
   const weekMeals = useMemo(
@@ -303,6 +338,21 @@ export default function PlanPage() {
     () => (meals && activeId ? meals.find((m) => m.id === activeId) : null),
     [meals, activeId],
   );
+
+  useEffect(() => {
+    if (!isMdUp) return;
+    const today = todayIso();
+    const targetDate = days.includes(today) ? today : days[0];
+    if (!targetDate) return;
+    const column = weekTrackRef.current?.querySelector(
+      `[data-plan-day="${targetDate}"]`,
+    );
+    column?.scrollIntoView({
+      inline: "center",
+      block: "nearest",
+      behavior: "instant",
+    });
+  }, [isMdUp, week, days]);
 
   const persistUpdates = async (updates: PlannedMeal[]) => {
     if (!repos || updates.length === 0) return;
@@ -426,7 +476,7 @@ export default function PlanPage() {
 
   if (dataError) {
     return (
-      <div className="app-page">
+      <div className="app-page workspace">
         <PageHeader title="Meal plan" description="Plan meals by day and slot." />
         <RouteStatePanel state="error" config={listStateConfig} />
       </div>
@@ -444,7 +494,7 @@ export default function PlanPage() {
     requirementLines === undefined
   ) {
     return (
-      <div className="app-page">
+      <div className="app-page workspace">
         <PageHeader title="Meal plan" description="Plan meals by day and slot." />
         <RouteStatePanel state="loading" config={listStateConfig} />
       </div>
@@ -461,7 +511,7 @@ export default function PlanPage() {
     : null;
 
   return (
-    <div className="app-page space-y-8">
+    <div className="app-page workspace space-y-8">
       <PageHeader
         title="Meal plan"
         description="Plan what you will cook, eat from batches you already made, or have raw. Planning never touches the pantry."
@@ -591,6 +641,7 @@ export default function PlanPage() {
                       recipesById={recipesById}
                       ingredientsById={ingredientsById}
                       batchNameById={batchNameById}
+                      density="comfortable"
                       moveOptions={moveOptions}
                       onMoveTo={(mealId, target) =>
                         void handleMoveTo(mealId, target)
@@ -603,9 +654,13 @@ export default function PlanPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-7 gap-2">
+            <div ref={weekTrackRef} className="plan-week-track">
               {days.map((date) => (
-                <div key={date} className="min-w-0 space-y-3 overflow-hidden">
+                <div
+                  key={date}
+                  data-plan-day={date}
+                  className="plan-week-day min-w-0 space-y-3 overflow-hidden"
+                >
                   <h2 className="truncate font-display text-sm font-semibold">
                     {formatDayHeading(date)}
                   </h2>
@@ -620,6 +675,7 @@ export default function PlanPage() {
                         recipesById={recipesById}
                         ingredientsById={ingredientsById}
                         batchNameById={batchNameById}
+                        density="compact"
                         moveOptions={moveOptions}
                         onMoveTo={(mealId, target) =>
                           void handleMoveTo(mealId, target)
@@ -640,6 +696,7 @@ export default function PlanPage() {
                 variant={activeLabel.variant}
                 title={activeLabel.title}
                 subtitle={activeLabel.subtitle}
+                density={isMdUp ? "compact" : "comfortable"}
                 className="shadow-lg"
               />
             ) : null}
@@ -647,7 +704,7 @@ export default function PlanPage() {
         </DndContext>
       )}
 
-      <section className="space-y-3 border-t border-border pt-8">
+      <section className="space-y-4 border-t border-border pt-8">
         <h2 className="font-display text-xl font-semibold">
           Ingredient requirements
         </h2>

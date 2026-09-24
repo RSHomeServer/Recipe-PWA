@@ -69,7 +69,7 @@ export default function IngredientsPage() {
 
   if (dataError) {
     return (
-      <div className="app-page">
+      <div className="app-page content">
         <PageHeader
           title="Ingredients"
           description="Your ingredient library — everything else builds on these."
@@ -81,7 +81,7 @@ export default function IngredientsPage() {
 
   if (!ready || ingredients === undefined || categories === undefined) {
     return (
-      <div className="app-page">
+      <div className="app-page content">
         <PageHeader
           title="Ingredients"
           description="Your ingredient library — everything else builds on these."
@@ -95,7 +95,7 @@ export default function IngredientsPage() {
   const isFilteredEmpty = !isLibraryEmpty && (filtered?.length ?? 0) === 0;
 
   return (
-    <div className="app-page">
+    <div className="app-page content">
       <PageHeader
         title="Ingredients"
         description="Your ingredient library — everything else builds on these."
@@ -160,7 +160,7 @@ export default function IngredientsPage() {
               No ingredients match these filters.
             </p>
           ) : (
-            <ul className="divide-y divide-border border-t border-border">
+            <ul className="app-list-measure divide-y divide-border border-t border-border">
               {filtered?.map((ingredient) => {
                 const categoryLabel =
                   ingredient.categoryId == null
@@ -171,9 +171,9 @@ export default function IngredientsPage() {
                   <li key={ingredient.id}>
                     <Link
                       to={`/ingredients/${ingredient.id}`}
-                      className="flex flex-col gap-2 py-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-row sm:items-center sm:justify-between"
+                      className="app-list-row py-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      <div className="min-w-0 space-y-1">
+                      <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium text-foreground">
                             {ingredient.name}
@@ -190,14 +190,15 @@ export default function IngredientsPage() {
                           {nutritionBasisLabel(ingredient.measureKind)}
                         </p>
                       </div>
-                      <NutritionSummary
-                        kcal={Math.round(ingredient.nutrition.kcal)}
-                        protein={ingredient.nutrition.proteinG}
-                        carbs={ingredient.nutrition.carbsG}
-                        fat={ingredient.nutrition.fatG}
-                        variant="inline"
-                        className="shrink-0"
-                      />
+                      <div className="app-list-row-metrics">
+                        <NutritionSummary
+                          kcal={Math.round(ingredient.nutrition.kcal)}
+                          protein={ingredient.nutrition.proteinG}
+                          carbs={ingredient.nutrition.carbsG}
+                          fat={ingredient.nutrition.fatG}
+                          variant="inline"
+                        />
+                      </div>
                     </Link>
                   </li>
                 );

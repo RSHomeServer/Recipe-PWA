@@ -97,7 +97,7 @@ export default function RecipesPage() {
 
   if (dataError) {
     return (
-      <div className="app-page">
+      <div className="app-page content">
         <PageHeader
           title="Recipes"
           description="Recipes built from your ingredients, with derived nutrition."
@@ -114,7 +114,7 @@ export default function RecipesPage() {
     ingredientsById === undefined
   ) {
     return (
-      <div className="app-page">
+      <div className="app-page content">
         <PageHeader
           title="Recipes"
           description="Recipes built from your ingredients, with derived nutrition."
@@ -129,7 +129,7 @@ export default function RecipesPage() {
   const isFilteredEmpty = !isLibraryEmpty && (filtered?.length ?? 0) === 0;
 
   return (
-    <div className="app-page">
+    <div className="app-page content">
       <PageHeader
         title="Recipes"
         description="Recipes built from your ingredients, with derived nutrition."
@@ -179,7 +179,7 @@ export default function RecipesPage() {
               No recipes match these filters.
             </p>
           ) : (
-            <ul className="divide-y divide-border border-t border-border">
+            <ul className="app-list-measure divide-y divide-border border-t border-border">
               {filtered?.map((recipe) => {
                 const perServing = perServingSummary(recipe, ingredientsById);
                 const thumb =
@@ -190,7 +190,7 @@ export default function RecipesPage() {
                   <li key={recipe.id}>
                     <Link
                       to={`/recipes/${recipe.id}`}
-                      className="flex gap-4 py-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="app-list-row gap-4 py-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <div
                         className={cn(
@@ -208,26 +208,26 @@ export default function RecipesPage() {
                           <span>{monogram(recipe.name)}</span>
                         )}
                       </div>
-                      <div className="min-w-0 flex-1 space-y-2 sm:flex sm:items-center sm:justify-between sm:gap-4 sm:space-y-0">
-                        <div className="min-w-0 space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-display text-lg font-semibold text-foreground">
-                              {recipe.name}
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-display text-lg font-semibold text-foreground">
+                            {recipe.name}
+                          </span>
+                          {recipe.archivedAt != null ? (
+                            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                              Archived
                             </span>
-                            {recipe.archivedAt != null ? (
-                              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                Archived
-                              </span>
-                            ) : null}
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {recipe.servings} serving
-                            {recipe.servings === 1 ? "" : "s"}
-                            <span aria-hidden="true"> · </span>
-                            {recipe.lines.length} ingredient
-                            {recipe.lines.length === 1 ? "" : "s"}
-                          </p>
+                          ) : null}
                         </div>
+                        <p className="text-sm text-muted-foreground">
+                          {recipe.servings} serving
+                          {recipe.servings === 1 ? "" : "s"}
+                          <span aria-hidden="true"> · </span>
+                          {recipe.lines.length} ingredient
+                          {recipe.lines.length === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                      <div className="app-list-row-metrics">
                         {perServing ? (
                           <NutritionSummary
                             kcal={Math.round(perServing.kcal)}
@@ -235,7 +235,6 @@ export default function RecipesPage() {
                             carbs={perServing.carbsG}
                             fat={perServing.fatG}
                             variant="inline"
-                            className="shrink-0"
                           />
                         ) : (
                           <span className="text-sm text-muted-foreground">

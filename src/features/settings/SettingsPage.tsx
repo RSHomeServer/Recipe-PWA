@@ -54,7 +54,7 @@ export default function SettingsPage() {
 
   if (settings === undefined) {
     return (
-      <div className="app-page">
+      <div className="app-page prose">
         <PageHeader
           title="Settings"
           description="Theme, calorie target, and preferences."
@@ -75,7 +75,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="app-page">
+    <div className="app-page prose">
       <PageHeader
         title="Settings"
         description="Theme, calorie target, and preferences."

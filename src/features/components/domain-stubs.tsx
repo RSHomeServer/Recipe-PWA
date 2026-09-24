@@ -268,11 +268,14 @@ export function IngredientChip({ label, stocked = true, className }: IngredientC
 }
 
 export type PlanSlotTileVariant = "cook" | "portion" | "ingredient";
+export type PlanSlotTileDensity = "comfortable" | "compact";
 
 export type PlanSlotTileProps = {
   title: string;
   subtitle?: string;
   variant: PlanSlotTileVariant;
+  /** Week grid uses compact; composer / mobile day / log use comfortable (default). */
+  density?: PlanSlotTileDensity;
   className?: string;
   children?: ReactNode;
 };
@@ -316,43 +319,53 @@ export function PlanSlotTile({
   title,
   subtitle,
   variant,
+  density = "comfortable",
   className,
   children,
 }: PlanSlotTileProps) {
   const meta = PLAN_TILE_META[variant];
   const Icon = meta.Icon;
+  const compact = density === "compact";
 
   return (
     <article
       data-slot="plan-slot-tile"
       data-variant={variant}
+      data-density={density}
       className={cn(
-        "min-w-0 max-w-full overflow-hidden rounded-lg p-3",
+        "min-w-0 max-w-full overflow-hidden rounded-lg",
+        compact ? "p-2" : "p-3",
         meta.surface,
         className,
       )}
     >
-      <div className="flex items-start gap-2.5">
+      <div className={cn("flex items-start gap-2.5", compact && "gap-2")}>
         <span
           className={cn(
-            "inline-flex size-8 shrink-0 items-center justify-center rounded-md",
+            "inline-flex shrink-0 items-center justify-center rounded-md",
+            compact ? "size-7" : "size-8",
             meta.iconWrap,
           )}
           aria-hidden="true"
         >
-          <Icon className="size-4" />
+          <Icon className={compact ? "size-3.5" : "size-4"} />
         </span>
         <div className="min-w-0 flex-1 space-y-1">
-          <p className="truncate font-display text-base font-semibold leading-snug">
+          <p
+            className={cn(
+              "truncate font-display font-semibold leading-snug",
+              compact ? "text-sm" : "text-base",
+            )}
+          >
             {title}
           </p>
-          {subtitle ? (
+          {!compact && subtitle ? (
             <p className="truncate text-sm text-muted-foreground">{subtitle}</p>
           ) : null}
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {meta.label}
+          <p className="sr-only">
+            {meta.label}. {meta.hint}
+            {compact && subtitle ? ` ${subtitle}` : null}
           </p>
-          <p className="text-xs leading-snug text-muted-foreground">{meta.hint}</p>
           {children}
         </div>
       </div>

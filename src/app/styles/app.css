@@ -156,10 +156,76 @@
   }
 }
 
+/* Page geometry — ADR-001 / DESIGN.md §5 */
 .app-page {
   flex: 1;
+  width: 100%;
+  margin-inline: auto;
   padding: var(--space-8) var(--page-padding-inline);
   max-width: var(--workspace-max);
+}
+
+.app-page.prose {
+  max-width: 48rem;
+}
+
+.app-page.content {
+  max-width: var(--content-max);
+}
+
+.app-page.workspace {
+  max-width: var(--workspace-max);
+}
+
+/* List rows — cap measure; metrics in a fixed right column (R1.7) */
+.app-list-measure {
+  width: 100%;
+  max-width: var(--content-max);
+}
+
+.app-list-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: var(--content-max);
+}
+
+.app-list-row-metrics {
+  flex: 0 0 13rem;
+  width: 13rem;
+  max-width: 100%;
+  text-align: end;
+}
+
+/* Plan week track — md–xl scroll-snap; xl+ seven columns (R1.3–R1.4) */
+.plan-week-track {
+  display: grid;
+  gap: var(--space-3);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(11rem, 1fr);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  padding-bottom: var(--space-2);
+}
+
+.plan-week-day {
+  min-width: 11rem;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 80rem) {
+  .plan-week-track {
+    grid-template-columns: repeat(7, minmax(11rem, 1fr));
+    grid-auto-flow: unset;
+    grid-auto-columns: unset;
+    overflow-x: visible;
+    scroll-snap-type: none;
+    padding-bottom: 0;
+  }
 }
 
 .app-bottom-nav {

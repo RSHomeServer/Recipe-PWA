@@ -34,7 +34,7 @@ export function RoutePlaceholder({
   children,
 }: RoutePlaceholderProps) {
   return (
-    <div className="app-page">
+    <div className="app-page content">
       <PageHeader title={title} description={description} actions={actions} />
       {children}
     </div>

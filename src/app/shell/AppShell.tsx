@@ -22,7 +22,7 @@ const MorePage = lazy(() => import("@/features/more/MorePage"));
 
 function RouteFallback() {
   return (
-    <div className="app-page space-y-3" aria-busy="true">
+    <div className="app-page content space-y-3" aria-busy="true">
       <div className="h-8 w-48 rounded-md bg-muted" />
       <div className="h-4 w-80 max-w-full rounded-md bg-muted" />
       <div className="h-24 w-full rounded-md bg-muted" />

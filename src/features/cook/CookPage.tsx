@@ -48,7 +48,7 @@ export default function CookPage() {
 
   if (dataError) {
     return (
-      <div className="app-page">
+      <div className="app-page content">
         <PageHeader title="Batches" description="Cook recipes and track portions remaining." />
         <RouteStatePanel state="error" config={listStateConfig} />
       </div>
@@ -57,7 +57,7 @@ export default function CookPage() {
 
   if (!ready || rows === undefined) {
     return (
-      <div className="app-page">
+      <div className="app-page content">
         <PageHeader title="Batches" description="Cook recipes and track portions remaining." />
         <RouteStatePanel state="loading" config={listStateConfig} />
       </div>
@@ -66,7 +66,7 @@ export default function CookPage() {
 
   if (rows.length === 0) {
     return (
-      <div className="app-page">
+      <div className="app-page content">
         <PageHeader
           title="Batches"
           description="Cook recipes and track portions remaining."
@@ -89,7 +89,7 @@ export default function CookPage() {
   const list = visible ?? rows;
 
   return (
-    <div className="app-page">
+    <div className="app-page content">
       <PageHeader
         title="Batches"
         description="Cook recipes and track portions remaining."
@@ -124,8 +124,8 @@ export default function CookPage() {
                   !available && "opacity-70",
                 )}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-1">
+                <div className="app-list-row items-start gap-3">
+                  <div className="min-w-0 flex-1 space-y-1">
                     <p className="font-display text-lg font-semibold">
                       {batch.label?.trim() || batch.snapshot.recipeName}
                     </p>
@@ -140,13 +140,15 @@ export default function CookPage() {
                           : "No portions left"}
                     </p>
                   </div>
-                  <NutritionSummary
-                    kcal={Math.round(portion.kcal)}
-                    protein={portion.proteinG}
-                    carbs={portion.carbsG}
-                    fat={portion.fatG}
-                    className="text-sm"
-                  />
+                  <div className="app-list-row-metrics">
+                    <NutritionSummary
+                      kcal={Math.round(portion.kcal)}
+                      protein={portion.proteinG}
+                      carbs={portion.carbsG}
+                      fat={portion.fatG}
+                      className="text-sm"
+                    />
+                  </div>
                 </div>
               </Link>
             </li>

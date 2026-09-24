@@ -61,9 +61,13 @@ export function ShoppingLineRow({
       </button>
 
       <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="font-medium leading-snug">{line.ingredient.name}</p>
-          <p className="num text-base font-semibold">{buyLabel}</p>
+        <div className="app-list-row flex-wrap items-baseline gap-2">
+          <p className="min-w-0 flex-1 font-medium leading-snug">
+            {line.ingredient.name}
+          </p>
+          <p className="app-list-row-metrics num text-base font-semibold">
+            {buyLabel}
+          </p>
         </div>
         <p className="text-sm text-muted-foreground">
           Need {formatQuantity(line.required)}

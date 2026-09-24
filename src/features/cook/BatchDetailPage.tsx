@@ -52,7 +52,7 @@ export default function BatchDetailPage() {
 
   if (dataError) {
     return (
-      <div className="app-page">
+      <div className="app-page content">
         <PageHeader title="Batch" />
         <RouteStatePanel state="error" config={detailStateConfig} />
       </div>
@@ -61,7 +61,7 @@ export default function BatchDetailPage() {
 
   if (!ready || batch === undefined || logs === undefined) {
     return (
-      <div className="app-page">
+      <div className="app-page content">
         <PageHeader title="Batch" />
         <RouteStatePanel state="loading" config={detailStateConfig} />
       </div>
@@ -70,7 +70,7 @@ export default function BatchDetailPage() {
 
   if (batch === null) {
     return (
-      <div className="app-page">
+      <div className="app-page content">
         <PageHeader title="Batch" />
         <RouteStatePanel
           state="empty"
@@ -107,7 +107,7 @@ export default function BatchDetailPage() {
   };
 
   return (
-    <div className="app-page space-y-8">
+    <div className="app-page content space-y-8">
       <PageHeader
         title={batch.label?.trim() || batch.snapshot.recipeName}
         description={`${batch.snapshot.recipeName} · cooked ${formatCookedAt(batch.cookedAt)}`}
