@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useRecipeData, useRepos } from "@/data";
 import {
+  createId,
   eachDateInRange,
   todayIso,
   weekContaining,
@@ -11,6 +12,7 @@ import {
 import { ApplyMealDialog } from "@/features/meals/ApplyMealDialog";
 import { MealTemplateForm } from "@/features/meals/MealTemplateForm";
 import { useMealTemplate } from "@/features/meals/hooks";
+import type { SaveAsMealLocationState } from "@/features/meals/save-as-meal-state";
 import {
   useIngredientsForPlan,
   useMealSlots,
@@ -33,6 +35,9 @@ export default function MealTemplateDetailPage() {
   const { id } = useParams();
   const isNew = id === "new" || !id;
   const navigate = useNavigate();
+  const location = useLocation();
+  const saveAsMeal = (location.state as SaveAsMealLocationState | null)
+    ?.saveAsMeal;
   const { ready, error: dataError } = useRecipeData();
   const repos = useRepos();
   const existing = useMealTemplate(isNew ? undefined : id);
@@ -45,6 +50,20 @@ export default function MealTemplateDetailPage() {
     () => eachDateInRange(weekContaining(todayIso(), 1)),
     [],
   );
+
+  const prefillInitial = useMemo((): MealTemplate | undefined => {
+    if (!isNew || !saveAsMeal?.components.length) return undefined;
+    const now = new Date().toISOString();
+    return {
+      id: createId(),
+      name: "",
+      components: saveAsMeal.components,
+      defaultSlotId: saveAsMeal.defaultSlotId,
+      createdAt: now,
+      updatedAt: now,
+      archivedAt: null,
+    };
+  }, [isNew, saveAsMeal]);
 
   const loading =
     !ready ||
@@ -147,7 +166,7 @@ export default function MealTemplateDetailPage() {
         recipes={recipes}
         ingredients={ingredients}
         slots={slots}
-        initial={isNew ? undefined : existing!}
+        initial={isNew ? prefillInitial : existing!}
         submitting={busy}
         onSubmit={save}
         onArchive={!isNew && existing?.archivedAt == null ? archive : undefined}

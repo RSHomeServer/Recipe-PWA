@@ -23,3 +23,13 @@ export {
   ungroupMeals,
   type SlotRenderItem,
 } from "./groups";
+
+export {
+  RECENTS_LIMIT,
+  entryIdentityKey,
+  deriveRecents,
+  ungroupedMealsInSlot,
+  canSaveSlotAsMeal,
+  mealTemplatePrefillFromSlot,
+  type RecentEntry,
+} from "./recents";

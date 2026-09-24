@@ -5,13 +5,12 @@ import type {
   Recipe,
 } from "@/domain";
 
-export function plannedMealLabel(
-  meal: PlannedMeal,
+export function planEntryLabel(
+  entry: PlannedMeal["entry"],
   recipesById: ReadonlyMap<string, Recipe>,
   ingredientsById: ReadonlyMap<string, Ingredient>,
   batchNameById: ReadonlyMap<string, string>,
 ): { title: string; subtitle: string; variant: "cook" | "portion" | "ingredient" } {
-  const { entry } = meal;
   if (entry.kind === "recipeServings") {
     const recipe = recipesById.get(entry.recipeId);
     return {
@@ -33,6 +32,20 @@ export function plannedMealLabel(
     title: ingredient?.name ?? "Ingredient",
     subtitle: `${entry.quantity.value} ${entry.quantity.unit}`,
   };
+}
+
+export function plannedMealLabel(
+  meal: PlannedMeal,
+  recipesById: ReadonlyMap<string, Recipe>,
+  ingredientsById: ReadonlyMap<string, Ingredient>,
+  batchNameById: ReadonlyMap<string, string>,
+): { title: string; subtitle: string; variant: "cook" | "portion" | "ingredient" } {
+  return planEntryLabel(
+    meal.entry,
+    recipesById,
+    ingredientsById,
+    batchNameById,
+  );
 }
 
 export function moveTargetOptions(

@@ -27,14 +27,16 @@ import {
   Trash2,
   UtensilsCrossed,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useRecipeData, useRepos } from "@/data";
 import {
+  canSaveSlotAsMeal,
   eachDateInRange,
   formatDayCompact,
   formatDayHeading,
   formatWeekRangeLabel,
+  mealTemplatePrefillFromSlot,
   partitionSlotMeals,
   shiftWeek,
   todayIso,
@@ -242,6 +244,7 @@ function SlotDropZone({
   onLogAll,
   onUngroup,
   onAdd,
+  onSaveAsMeal,
 }: {
   dropId: DropId;
   slot: MealSlot;
@@ -258,12 +261,14 @@ function SlotDropZone({
   onLogAll: (groupId: string) => void;
   onUngroup: (groupId: string) => void;
   onAdd: () => void;
+  onSaveAsMeal: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: dropId });
   const items = partitionSlotMeals(meals);
   const sortableIds = items.map((item) =>
     item.kind === "group" ? groupSortableId(item.groupId) : item.meal.id,
   );
+  const showSaveAsMeal = canSaveSlotAsMeal(meals);
 
   return (
     <MealSlotSection slotLabel={slot.name}>
@@ -326,16 +331,29 @@ function SlotDropZone({
         {meals.length === 0 ? (
           <p className="px-1 text-sm text-muted-foreground">Nothing planned</p>
         ) : null}
-        <Button type="button" variant="ghost" size="sm" onClick={onAdd}>
-          <Plus className="size-4" aria-hidden="true" />
-          Add
-        </Button>
+        <div className="flex flex-wrap gap-1">
+          <Button type="button" variant="ghost" size="sm" onClick={onAdd}>
+            <Plus className="size-4" aria-hidden="true" />
+            Add
+          </Button>
+          {showSaveAsMeal ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onSaveAsMeal}
+            >
+              Save these as a meal
+            </Button>
+          ) : null}
+        </div>
       </div>
     </MealSlotSection>
   );
 }
 
 export default function PlanPage() {
+  const navigate = useNavigate();
   const { ready, error: dataError } = useRecipeData();
   const repos = useRepos();
   const slots = useMealSlots();
@@ -617,6 +635,23 @@ export default function PlanPage() {
     });
   };
 
+  const openSaveAsMeal = (date: string, slot: MealSlot) => {
+    const slotMeals = mealsForSlot(weekMeals ?? [], date, slot.id);
+    const prefill = mealTemplatePrefillFromSlot(slotMeals, slot.id);
+    if (!prefill) {
+      toast.error("Need at least two ungrouped recipes or ingredients");
+      return;
+    }
+    void navigate("/meals/new", {
+      state: {
+        saveAsMeal: {
+          components: prefill.components,
+          defaultSlotId: prefill.defaultSlotId,
+        },
+      },
+    });
+  };
+
   const shiftSelectedDay = (delta: number) => {
     const idx = days.indexOf(selectedDay);
     if (idx < 0) {
@@ -855,6 +890,7 @@ export default function PlanPage() {
                       onLogAll={(groupId) => void handleLogAll(groupId)}
                       onUngroup={(groupId) => void handleUngroup(groupId)}
                       onAdd={() => openComposer(dayInWeek, slot.id)}
+                      onSaveAsMeal={() => openSaveAsMeal(dayInWeek, slot)}
                     />
                   );
                 })}
@@ -895,6 +931,7 @@ export default function PlanPage() {
                         onLogAll={(groupId) => void handleLogAll(groupId)}
                         onUngroup={(groupId) => void handleUngroup(groupId)}
                         onAdd={() => openComposer(date, slot.id)}
+                        onSaveAsMeal={() => openSaveAsMeal(date, slot)}
                       />
                     );
                   })}
