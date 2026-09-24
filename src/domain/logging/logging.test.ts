@@ -22,6 +22,19 @@ const chicken: Ingredient = {
   measureKind: "mass",
   nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6 },
   notes: null,
+  source: {
+    kind: "userEntered",
+    datasetId: null,
+    datasetName: null,
+    entryCode: null,
+    entryName: null,
+    licence: null,
+    url: null,
+    retrievedAt: null,
+    note: null,
+  },
+  imageId: null,
+  common: true,
   archivedAt: null,
 };
 
@@ -140,6 +153,7 @@ describe("logFromPlan", () => {
       entry: { kind: "recipeServings", recipeId: recipe.id, servings: 1 },
       position: 0,
       note: "lunch",
+      group: null,
     };
     const logged = logFromPlan(planned, {
       id: "33333333-3333-4333-8333-333333333333",
@@ -214,6 +228,7 @@ describe("pantry side effects", () => {
       plannedMealId: null,
       loggedAt: now,
       note: null,
+      group: null,
     };
     expect(portionsRemaining(batch, [log])).toBe(2.5);
   });

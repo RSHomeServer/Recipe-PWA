@@ -5,6 +5,7 @@ export * from "./shared/meal-entry";
 export * from "./ingredients/schemas";
 export * from "./ingredients/references";
 export * from "./ingredients/form";
+export * from "./meals/schemas";
 export * from "./recipes/schemas";
 export * from "./recipes/form";
 export * from "./recipes/image";

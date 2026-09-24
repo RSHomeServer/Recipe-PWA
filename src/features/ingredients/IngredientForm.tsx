@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
   emptyIngredientFormValues,
+  hasDivergedFromReference,
   IngredientFormSchema,
   nutritionBasisLabel,
   type Ingredient,
@@ -110,6 +111,16 @@ export function IngredientForm({
   const basisLabel = nutritionBasisLabel(measureKind);
   const busy = submitting || isSubmitting;
   const isArchived = initial?.archivedAt != null;
+  const diverged = initial ? hasDivergedFromReference(initial) : false;
+  const referenceOrigin =
+    initial?.source.datasetName ??
+    initial?.source.datasetId ??
+    null;
+  const showProvenance =
+    initial != null &&
+    (initial.source.kind === "reference" ||
+      diverged ||
+      initial.source.entryCode != null);
 
   const nameErrorId = "ingredient-name-error";
   const kcalErrorId = "ingredient-kcal-error";
@@ -131,6 +142,39 @@ export function IngredientForm({
       })}
       noValidate
     >
+      {showProvenance ? (
+        <p className="text-sm text-muted-foreground" data-testid="ingredient-provenance">
+          {diverged
+            ? `Originally ${referenceOrigin ?? "a reference dataset"}${
+                initial?.source.entryCode
+                  ? ` (${initial.source.entryCode})`
+                  : ""
+              }, since edited by you.`
+            : initial?.source.kind === "reference"
+              ? `Figures from ${referenceOrigin ?? "reference dataset"}${
+                  initial.source.entryCode
+                    ? ` · ${initial.source.entryCode}`
+                    : ""
+                }.`
+              : initial?.source.entryCode
+                ? `Source entry ${initial.source.entryCode}.`
+                : null}
+          {initial?.source.url ? (
+            <>
+              {" "}
+              <a
+                href={initial.source.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[var(--color-link)] underline-offset-2 hover:underline"
+              >
+                Check source
+              </a>
+            </>
+          ) : null}
+        </p>
+      ) : null}
+
       <div className="space-y-2">
         <Label htmlFor="ingredient-name">Name (required)</Label>
         <Input

@@ -33,5 +33,6 @@ export function logFromPlan(
     plannedMealId: planned.id,
     loggedAt: options.loggedAt,
     note: options.note !== undefined ? options.note : planned.note,
+    group: planned.group,
   };
 }

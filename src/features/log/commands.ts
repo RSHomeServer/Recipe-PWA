@@ -77,6 +77,7 @@ export async function createLoggedMeal(
     plannedMealId: input.plannedMealId ?? null,
     loggedAt,
     note: input.note ?? null,
+    group: null,
   };
   await writePantryCreate(repos, row.entry, loggedAt);
   await repos.loggedMeals.put(row);
@@ -119,6 +120,7 @@ export async function updateLoggedMeal(
     entry: next.entry,
     plannedMealId: next.plannedMealId,
     note: next.note,
+    group: next.group ?? previous.group ?? null,
   };
   await repos.loggedMeals.put(row);
   return row;

@@ -274,6 +274,7 @@ export function AddLoggedMealForm({
           entry,
           plannedMealId: editing.plannedMealId,
           note: note.trim() ? note.trim() : null,
+          group: editing.group,
         });
         toast.success("Log updated");
       } else {

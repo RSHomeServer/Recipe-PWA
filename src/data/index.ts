@@ -4,6 +4,7 @@ export {
   RECIPE_DB_KEY,
   RECIPE_TABLE_NAMES,
   recipeSchemaV1Stores,
+  recipeSchemaV2Stores,
   recipeSchemaVersions,
   type RecipeTableName,
 } from "./schema";
@@ -20,12 +21,16 @@ export {
   DEFAULT_MEAL_SLOTS,
   SEED_CATEGORY_IDS,
   SEED_SLOT_IDS,
+  CATEGORY_VISUALS_BY_ID,
   defaultSettings,
 } from "./seeds";
 export { ParseOnReadError, parseRow, parseRows } from "./parse";
 export {
   SnapshotImmutabilityError,
+  OriginImmutabilityError,
   assertSnapshotUnchanged,
+  assertOriginUnchanged,
+  prepareIngredientPut,
   snapshotsEqual,
 } from "./repos/snapshot-guard";
 export type * from "./repos/types";
@@ -41,7 +46,5 @@ export {
   recipeImageFromExport,
   type BackupV1,
 } from "./backup";
-export {
-  RecipeDataProvider,
-} from "./RecipeDataProvider";
+export { RecipeDataProvider } from "./RecipeDataProvider";
 export { useRecipeData, useRepos } from "./use-recipe-data";

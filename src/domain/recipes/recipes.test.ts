@@ -20,6 +20,19 @@ function chicken(): Ingredient {
     measureKind: "mass",
     nutrition: { kcal: 120, proteinG: 22, carbsG: 0, fatG: 3 },
     notes: null,
+    source: {
+        kind: "userEntered",
+        datasetId: null,
+        datasetName: null,
+        entryCode: null,
+        entryName: null,
+        licence: null,
+        url: null,
+        retrievedAt: null,
+        note: null,
+    },
+    imageId: null,
+    common: true,
     archivedAt: null,
   });
 }
@@ -32,6 +45,19 @@ function rice(): Ingredient {
     measureKind: "mass",
     nutrition: { kcal: 350, proteinG: 7, carbsG: 78, fatG: 1 },
     notes: null,
+    source: {
+      kind: "userEntered",
+      datasetId: null,
+      datasetName: null,
+      entryCode: null,
+      entryName: null,
+      licence: null,
+      url: null,
+      retrievedAt: null,
+      note: null,
+    },
+    imageId: null,
+    common: true,
     archivedAt: null,
   });
 }

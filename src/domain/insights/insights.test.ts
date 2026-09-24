@@ -27,6 +27,19 @@ const chicken: Ingredient = {
   measureKind: "mass",
   nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6 },
   notes: null,
+  source: {
+    kind: "userEntered",
+    datasetId: null,
+    datasetName: null,
+    entryCode: null,
+    entryName: null,
+    licence: null,
+    url: null,
+    retrievedAt: null,
+    note: null,
+  },
+  imageId: null,
+  common: true,
   archivedAt: null,
 };
 
@@ -37,6 +50,19 @@ const rice: Ingredient = {
   measureKind: "mass",
   nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3 },
   notes: null,
+  source: {
+    kind: "userEntered",
+    datasetId: null,
+    datasetName: null,
+    entryCode: null,
+    entryName: null,
+    licence: null,
+    url: null,
+    retrievedAt: null,
+    note: null,
+  },
+  imageId: null,
+  common: true,
   archivedAt: null,
 };
 
@@ -117,13 +143,14 @@ function ctx(recipes = [recipe], batches = [batch], ingredients = [chicken, rice
 }
 
 function log(
-  partial: Omit<LoggedMeal, "plannedMealId" | "loggedAt" | "note"> &
-    Partial<Pick<LoggedMeal, "plannedMealId" | "loggedAt" | "note">>,
+  partial: Omit<LoggedMeal, "plannedMealId" | "loggedAt" | "note" | "group"> &
+    Partial<Pick<LoggedMeal, "plannedMealId" | "loggedAt" | "note" | "group">>,
 ): LoggedMeal {
   return {
     plannedMealId: null,
     loggedAt: now,
     note: null,
+    group: null,
     ...partial,
   };
 }
