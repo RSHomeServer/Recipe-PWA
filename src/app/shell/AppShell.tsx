@@ -9,6 +9,10 @@ const IngredientDetailPage = lazy(
 );
 const RecipesPage = lazy(() => import("@/features/recipes/RecipesPage"));
 const RecipeDetailPage = lazy(() => import("@/features/recipes/RecipeDetailPage"));
+const MealsPage = lazy(() => import("@/features/meals/MealsPage"));
+const MealTemplateDetailPage = lazy(
+  () => import("@/features/meals/MealTemplateDetailPage"),
+);
 const PantryPage = lazy(() => import("@/features/pantry/PantryPage"));
 const CookPage = lazy(() => import("@/features/cook/CookPage"));
 const CookNewPage = lazy(() => import("@/features/cook/CookNewPage"));
@@ -40,6 +44,8 @@ export function AppShell() {
           <Route path="ingredients/:id" element={<IngredientDetailPage />} />
           <Route path="recipes" element={<RecipesPage />} />
           <Route path="recipes/:id" element={<RecipeDetailPage />} />
+          <Route path="meals" element={<MealsPage />} />
+          <Route path="meals/:id" element={<MealTemplateDetailPage />} />
           <Route path="pantry" element={<PantryPage />} />
           <Route path="cook" element={<CookPage />} />
           <Route path="cook/new" element={<CookNewPage />} />

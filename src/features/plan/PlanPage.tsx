@@ -25,7 +25,9 @@ import {
   MoreHorizontal,
   Plus,
   Trash2,
+  UtensilsCrossed,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useRecipeData, useRepos } from "@/data";
 import {
@@ -33,11 +35,13 @@ import {
   formatDayCompact,
   formatDayHeading,
   formatWeekRangeLabel,
+  partitionSlotMeals,
   shiftWeek,
   todayIso,
   weekContaining,
   type Ingredient,
   type MealSlot,
+  type MealTemplate,
   type PlannedMeal,
   type Recipe,
 } from "@/domain";
@@ -47,6 +51,21 @@ import {
   type PlanSlotTileDensity,
 } from "@/features/components/domain-stubs";
 import { useBatchListRows } from "@/features/cook/hooks";
+import {
+  logAllInGroup,
+  moveAllInGroup,
+  removeAllInGroup,
+  ungroupPlanGroup,
+} from "@/features/meals/commands";
+import { ApplyMealDialog } from "@/features/meals/ApplyMealDialog";
+import { useMealTemplates } from "@/features/meals/hooks";
+import {
+  GroupedMealCard,
+} from "@/features/plan/GroupedMealCard";
+import {
+  groupSortableId,
+  parseGroupSortableId,
+} from "@/features/plan/group-sortable";
 import { PageHeader } from "@/features/shared/RoutePlaceholder";
 import { RouteStatePanel } from "@/features/shared/RouteStatePanel";
 import { Button } from "@/ui/button";
@@ -218,6 +237,10 @@ function SlotDropZone({
   moveOptions,
   onMoveTo,
   onDelete,
+  onMoveAllTo,
+  onRemoveAll,
+  onLogAll,
+  onUngroup,
   onAdd,
 }: {
   dropId: DropId;
@@ -230,10 +253,17 @@ function SlotDropZone({
   moveOptions: { value: string; label: string }[];
   onMoveTo: (mealId: string, target: string) => void;
   onDelete: (mealId: string) => void;
+  onMoveAllTo: (groupId: string, target: string) => void;
+  onRemoveAll: (groupId: string) => void;
+  onLogAll: (groupId: string) => void;
+  onUngroup: (groupId: string) => void;
   onAdd: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: dropId });
-  const ids = meals.map((m) => m.id);
+  const items = partitionSlotMeals(meals);
+  const sortableIds = items.map((item) =>
+    item.kind === "group" ? groupSortableId(item.groupId) : item.meal.id,
+  );
 
   return (
     <MealSlotSection slotLabel={slot.name}>
@@ -244,24 +274,51 @@ function SlotDropZone({
           isOver && "bg-[var(--color-accent-muted)]/40",
         )}
       >
-        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-          {meals.map((meal) => {
+        <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+          {items.map((item) => {
+            if (item.kind === "group") {
+              return (
+                <GroupedMealCard
+                  key={item.groupId}
+                  groupId={item.groupId}
+                  name={item.name}
+                  meals={item.meals}
+                  density={density}
+                  moveOptions={moveOptions}
+                  currentTarget={dropId}
+                  labelFor={(meal) =>
+                    plannedMealLabel(
+                      meal,
+                      recipesById,
+                      ingredientsById,
+                      batchNameById,
+                    )
+                  }
+                  onMoveAllTo={(target) => onMoveAllTo(item.groupId, target)}
+                  onRemoveAll={() => onRemoveAll(item.groupId)}
+                  onLogAll={() => onLogAll(item.groupId)}
+                  onUngroup={() => onUngroup(item.groupId)}
+                  onMoveMemberTo={onMoveTo}
+                  onDeleteMember={onDelete}
+                />
+              );
+            }
             const label = plannedMealLabel(
-              meal,
+              item.meal,
               recipesById,
               ingredientsById,
               batchNameById,
             );
             return (
               <SortableMealCard
-                key={meal.id}
-                meal={meal}
+                key={item.meal.id}
+                meal={item.meal}
                 label={label}
                 density={density}
                 moveOptions={moveOptions}
                 currentTarget={dropId}
-                onMoveTo={(target) => onMoveTo(meal.id, target)}
-                onDelete={() => onDelete(meal.id)}
+                onMoveTo={(target) => onMoveTo(item.meal.id, target)}
+                onDelete={() => onDelete(item.meal.id)}
               />
             );
           })}
@@ -286,6 +343,7 @@ export default function PlanPage() {
   const recipes = useRecipesForPlan();
   const ingredients = useIngredientsForPlan();
   const batchRows = useBatchListRows();
+  const templates = useMealTemplates();
 
   const [week, setWeek] = useState(() => weekContaining(todayIso(), 1));
   const [selectedDay, setSelectedDay] = useState(() => todayIso());
@@ -293,6 +351,7 @@ export default function PlanPage() {
     date: string;
     slotId: string;
   } | null>(null);
+  const [applyTemplate, setApplyTemplate] = useState<MealTemplate | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const isMdUp = useIsMdUp();
   const weekTrackRef = useRef<HTMLDivElement>(null);
@@ -337,10 +396,18 @@ export default function PlanPage() {
     }),
   );
 
-  const activeMeal = useMemo(
-    () => (meals && activeId ? meals.find((m) => m.id === activeId) : null),
-    [meals, activeId],
-  );
+  const activeMeal = useMemo(() => {
+    if (!meals || !activeId) return null;
+    if (parseGroupSortableId(activeId)) return null;
+    return meals.find((m) => m.id === activeId) ?? null;
+  }, [meals, activeId]);
+
+  const activeGroupMeals = useMemo(() => {
+    if (!meals || !activeId) return null;
+    const groupId = parseGroupSortableId(activeId);
+    if (!groupId) return null;
+    return meals.filter((m) => m.group?.id === groupId);
+  }, [meals, activeId]);
 
   useEffect(() => {
     if (!isMdUp) return;
@@ -411,45 +478,131 @@ export default function PlanPage() {
     }
   };
 
+  const handleMoveAllTo = async (groupId: string, target: string) => {
+    if (!repos || !meals) return;
+    const parsed = parseDropId(target);
+    if (!parsed) return;
+    try {
+      await moveAllInGroup(
+        repos,
+        meals,
+        groupId,
+        parsed.date,
+        parsed.slotId,
+      );
+      toast.success("Moved meal");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not move meal",
+      );
+    }
+  };
+
+  const handleRemoveAll = async (groupId: string) => {
+    if (!repos || !meals) return;
+    try {
+      await removeAllInGroup(repos, meals, groupId);
+      toast.success("Removed meal from plan");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not remove meal",
+      );
+    }
+  };
+
+  const handleLogAll = async (groupId: string) => {
+    if (!repos || !meals) return;
+    try {
+      await logAllInGroup(repos, meals, groupId);
+      toast.success("Logged all components");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not log meal",
+      );
+    }
+  };
+
+  const handleUngroup = async (groupId: string) => {
+    if (!repos || !meals) return;
+    try {
+      await ungroupPlanGroup(repos, meals, groupId);
+      toast.success("Ungrouped");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not ungroup",
+      );
+    }
+  };
+
   const onDragStart = (event: DragStartEvent) => {
     setActiveId(String(event.active.id));
   };
 
   const onDragEnd = async (event: DragEndEvent) => {
     setActiveId(null);
-    if (!meals) return;
+    if (!meals || !repos) return;
     const { active, over } = event;
     if (!over) return;
 
-    const mealId = String(active.id);
+    const activeRaw = String(active.id);
     const overId = String(over.id);
+    const groupId = parseGroupSortableId(activeRaw);
 
     let targetDate: string;
     let targetSlotId: string;
     let targetIndex: number;
 
     const overAsDrop = parseDropId(overId);
-    if (overAsDrop && !meals.some((m) => m.id === overId)) {
+    const overGroupId = parseGroupSortableId(overId);
+
+    if (overAsDrop && !meals.some((m) => m.id === overId) && !overGroupId) {
       targetDate = overAsDrop.date;
       targetSlotId = overAsDrop.slotId;
       targetIndex = mealsForSlot(meals, targetDate, targetSlotId).filter(
-        (m) => m.id !== mealId,
+        (m) => (groupId ? m.group?.id !== groupId : m.id !== activeRaw),
       ).length;
+    } else if (overGroupId) {
+      const overMembers = meals.filter((m) => m.group?.id === overGroupId);
+      const first = overMembers[0];
+      if (!first) return;
+      targetDate = first.date;
+      targetSlotId = first.slotId;
+      targetIndex = Math.min(
+        ...overMembers.map((m) => m.position),
+      );
     } else {
       const overMeal = meals.find((m) => m.id === overId);
       if (!overMeal) return;
       targetDate = overMeal.date;
       targetSlotId = overMeal.slotId;
       const siblings = mealsForSlot(meals, targetDate, targetSlotId).filter(
-        (m) => m.id !== mealId,
+        (m) => (groupId ? m.group?.id !== groupId : m.id !== activeRaw),
       );
       const overIndex = siblings.findIndex((m) => m.id === overId);
       targetIndex = overIndex < 0 ? siblings.length : overIndex;
     }
 
+    if (groupId) {
+      try {
+        await moveAllInGroup(
+          repos,
+          meals,
+          groupId,
+          targetDate,
+          targetSlotId,
+          targetIndex,
+        );
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Could not move meal",
+        );
+      }
+      return;
+    }
+
     const updates = movePlannedMeal(
       meals,
-      mealId,
+      activeRaw,
       targetDate,
       targetSlotId,
       targetIndex,
@@ -494,7 +647,8 @@ export default function PlanPage() {
     ingredients === undefined ||
     batchRows === undefined ||
     weekMeals === undefined ||
-    requirementLines === undefined
+    requirementLines === undefined ||
+    templates === undefined
   ) {
     return (
       <div className="app-page workspace">
@@ -512,6 +666,7 @@ export default function PlanPage() {
         batchNameById,
       )
     : null;
+  const activeTemplates = templates.filter((t) => t.archivedAt == null);
 
   return (
     <div className="app-page workspace space-y-8">
@@ -527,10 +682,43 @@ export default function PlanPage() {
         }
         description="Plan what you will cook, eat from batches, or take from the pack. Planning never touches the pantry."
         actions={
-          <Button type="button" onClick={() => openComposer(dayInWeek)}>
-            <Plus className="size-4" aria-hidden="true" />
-            Plan a meal
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {activeTemplates.length > 0 ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="outline">
+                    <UtensilsCrossed className="size-4" aria-hidden="true" />
+                    Apply a meal
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[14rem]">
+                  {activeTemplates.map((template) => (
+                    <DropdownMenuItem
+                      key={template.id}
+                      onSelect={() => setApplyTemplate(template)}
+                    >
+                      {template.name}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/meals">Manage meals…</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button type="button" variant="outline" asChild>
+                <Link to="/meals/new">
+                  <UtensilsCrossed className="size-4" aria-hidden="true" />
+                  Save a meal
+                </Link>
+              </Button>
+            )}
+            <Button type="button" onClick={() => openComposer(dayInWeek)}>
+              <Plus className="size-4" aria-hidden="true" />
+              Plan a meal
+            </Button>
+          </div>
         }
       />
 
@@ -660,6 +848,12 @@ export default function PlanPage() {
                         void handleMoveTo(mealId, target)
                       }
                       onDelete={(mealId) => void handleDelete(mealId)}
+                      onMoveAllTo={(groupId, target) =>
+                        void handleMoveAllTo(groupId, target)
+                      }
+                      onRemoveAll={(groupId) => void handleRemoveAll(groupId)}
+                      onLogAll={(groupId) => void handleLogAll(groupId)}
+                      onUngroup={(groupId) => void handleUngroup(groupId)}
                       onAdd={() => openComposer(dayInWeek, slot.id)}
                     />
                   );
@@ -694,6 +888,12 @@ export default function PlanPage() {
                           void handleMoveTo(mealId, target)
                         }
                         onDelete={(mealId) => void handleDelete(mealId)}
+                        onMoveAllTo={(groupId, target) =>
+                          void handleMoveAllTo(groupId, target)
+                        }
+                        onRemoveAll={(groupId) => void handleRemoveAll(groupId)}
+                        onLogAll={(groupId) => void handleLogAll(groupId)}
+                        onUngroup={(groupId) => void handleUngroup(groupId)}
                         onAdd={() => openComposer(date, slot.id)}
                       />
                     );
@@ -709,6 +909,14 @@ export default function PlanPage() {
                 variant={activeLabel.variant}
                 title={activeLabel.title}
                 subtitle={activeLabel.subtitle}
+                density={isMdUp ? "compact" : "comfortable"}
+                className="shadow-lg"
+              />
+            ) : activeGroupMeals && activeGroupMeals.length > 0 ? (
+              <PlanSlotTile
+                variant="cook"
+                title={activeGroupMeals[0]!.group?.name ?? "Meal"}
+                subtitle={`${activeGroupMeals.length} items`}
                 density={isMdUp ? "compact" : "comfortable"}
                 className="shadow-lg"
               />
@@ -730,6 +938,22 @@ export default function PlanPage() {
           ingredientsById={ingredientsById}
         />
       </section>
+
+      {applyTemplate ? (
+        <ApplyMealDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setApplyTemplate(null);
+          }}
+          template={applyTemplate}
+          days={days}
+          slots={slots}
+          initialSlotId={
+            applyTemplate.defaultSlotId ?? slots[0]?.id ?? undefined
+          }
+          initialDates={days}
+        />
+      ) : null}
     </div>
   );
 }
