@@ -13,10 +13,11 @@ Recipe totals are never manually entered and never stored.
 
 ```ts
 type Nutrition = {
-  kcal: number;        // kilocalories
-  proteinG: number;    // grams
-  carbsG: number;      // grams
-  fatG: number;        // grams
+  kcal: number;            // kilocalories
+  proteinG: number;        // grams
+  carbsG: number;          // grams
+  fatG: number;            // grams
+  sodiumMg: number | null; // V3 — milligrams; null means unknown (ADR-007)
 };
 ```
 
@@ -25,6 +26,8 @@ Decisions:
 - **Four values in V1** (decision 21), with the record **extensible** to fibre, sugar,
   saturated fat and sodium (decision 1). Adding a nutrient is one key here plus one term in
   the summing helpers — no reshaping, because every function below is generic over the record.
+  **V3 took that step for sodium** and proved the claim: `sum` and `scale` each gained one
+  term, and nothing else in this document changed.
 - **kcal is stored, not derived from macros.** Computing energy via Atwater factors (4/4/9
   kcal per gram) does not reconcile with real food labels once fibre, sugar alcohols and
   label rounding are involved, and users copy figures from labels. Store what the label says.
@@ -34,6 +37,38 @@ Decisions:
   time.
 - No negative values. Zero is legal and common.
 - `Nutrition` is a value object with no identity, freely summed and scaled.
+
+### V3 — sodium, and why `null` is not zero
+
+Salt is 0 kcal, and so is almost everything the Flavour Lab promotes. A calorie-only record
+therefore reports a teaspoon of salt, a dash of fish sauce and a spoon of soy sauce as free, at
+every quantity. [ADR-007](../adr/007-sodium-as-a-nullable-nutrient.md) closes that blind spot.
+
+`sodiumMg` is nullable because three populations coexist in a real library: figures the dataset
+publishes, figures it marks as unreliable, and figures nobody has entered. **`null` means
+unknown; `0` means measured as none.** Conflating them repeats the mistake ADR-002 §2a caught
+in the CoFID macro transcode, where mapping `N` to zero would have asserted the opposite of
+what the source says.
+
+The propagation rule:
+
+```ts
+sum:   any null contributor  →  null total     // absorbing
+scale: null × f              →  null
+ZERO = { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0, sodiumMg: 0 }
+```
+
+**The monoid survives.** An absorbing element breaks neither commutativity nor associativity,
+and `ZERO.sodiumMg = 0` keeps `sum([]) = ZERO`, so `scale` still distributes over `sum`. The
+property tests below extend over records containing nulls rather than being relaxed for them.
+
+Display carries three states — known, partially known ("at least 480 mg · 2 of 7 items
+unknown"), and unknown — and never renders `null` as `0 mg`. Salt-equivalent is derived where
+it helps (`salt g ≈ sodium mg × 2.5 ÷ 1000`), never stored.
+
+The ~2.4 g sodium (≈6 g salt) UK adult daily reference is shown as **context**, in the same
+spirit as the calorie target: a denominator the user asked to see, not a budget the app
+enforces.
 
 ### Reference basis
 
@@ -61,9 +96,10 @@ Three pure functions; everything else is built from them.
 
 ```ts
 scale(n: Nutrition, f: number): Nutrition
-  => { kcal: n.kcal * f, proteinG: n.proteinG * f, carbsG: n.carbsG * f, fatG: n.fatG * f }
+  => { kcal: n.kcal * f, proteinG: n.proteinG * f, carbsG: n.carbsG * f, fatG: n.fatG * f,
+       sodiumMg: n.sodiumMg === null ? null : n.sodiumMg * f }          // V3
 
-sum(ns: Nutrition[]): Nutrition        // identity ZERO = { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 }
+sum(ns: Nutrition[]): Nutrition        // identity ZERO; sodiumMg is absorbing on null (V3)
 
 nutritionOf(ingredient, q: CanonicalQuantity): Nutrition {
   assert(q.kind === ingredient.measureKind);
@@ -368,7 +404,8 @@ properties and belong with the first nutrition ticket (decision 23,
 
 | Later capability | Change needed |
 | --- | --- |
-| Fibre, sugar, saturated fat, sodium | Add keys to `Nutrition`; `sum`/`scale` are already generic (decision 1) |
+| ~~Sodium~~ | **Done in V3** ([ADR-007](../adr/007-sodium-as-a-nullable-nutrient.md)) — one key, one term in each helper, nullable for "unknown" |
+| Fibre, sugar, saturated fat | Add keys to `Nutrition`; `sum`/`scale` are already generic (decision 1). Follow sodium's precedent and make any figure the datasets report unreliably nullable rather than zero |
 | Micronutrients | Same, or a `micros: Record<string, number>` companion |
 | Macro targets | Nullable fields on `Settings`; no calculation change (decision 20) |
 | External food database | Populates `Ingredient.nutrition` plus a provenance field; calculations untouched (decision 1) |

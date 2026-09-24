@@ -13,6 +13,16 @@ see the [decision map](#v1-decision-map). Nothing in this document is provisiona
 > `LoggedMeal` gain a display-only `group`, and `MealTemplate` is a new entity
 > ([ADR-004](../adr/004-meal-templates-by-expansion.md)). Everything else is unchanged, and
 > **no V1 invariant is reversed**. The build specification is [V2_SCOPE.md](./V2_SCOPE.md).
+>
+> **V3 additions (the Flavour Lab).** Four fields and one nutrient, **no new entity and no new
+> table**: `Nutrition` gains a nullable `sodiumMg`
+> ([ADR-007](../adr/007-sodium-as-a-nullable-nutrient.md)), `Ingredient` gains cited spoon
+> weights ([ADR-008](../adr/008-kitchen-spoons-as-an-entry-time-conversion.md)) and
+> `flavourTags` ([ADR-009](../adr/009-sensory-tags-and-derived-constraints.md)), `RecipeLine`
+> gains a display-only `entryHint`, and `Recipe` gains `kind`
+> ([ADR-010](../adr/010-flavour-lab-as-a-lens.md)). A seasoning mix **is** a `Recipe` and a
+> snack **is** a `MealTemplate`; again no V1 invariant is reversed. Build specification:
+> [V3_SCOPE.md](./V3_SCOPE.md).
 
 TypeScript shapes are the intended contract, not final code. Zod schemas are the single
 source of truth at implementation time, with types inferred from them.
@@ -85,8 +95,13 @@ type Nutrition = {
   proteinG: number;
   carbsG: number;
   fatG: number;
-  // V2 additions slot in here without reshaping anything:
-  // fibreG?, sugarG?, saturatedFatG?, sodiumMg?
+
+  /**
+   * V3 — ADR-007. null means **unknown**, never "none".
+   * Absorbing under sum: one unknown contributor makes the total unknown.
+   */
+  sodiumMg: number | null;
+  // Later nutrients slot in the same way: fibreG?, sugarG?, saturatedFatG?
 };
 ```
 
@@ -125,7 +140,21 @@ type Ingredient = {
   source: IngredientSource;      // never null; where these figures came from
   imageId: Id | null;            // optional user photo; category icon when absent
   common: boolean;               // surfaced by default in pickers; long tail behind "show all"
+
+  // V3 — ADR-008. Cited portion weights; null where no source publishes one.
+  // Used only by the entry control and the display formatter. Not a density model.
+  gramsPerTsp: number | null;
+  gramsPerTbsp: number | null;
+
+  // V3 — ADR-009. Closed sixteen-value sensory vocabulary. May be empty; never null.
+  flavourTags: FlavourTag[];
 };
+
+/** V3 — ADR-009. Sensory contribution, not merit. */
+type FlavourTag =
+  | "sweet" | "sour" | "salty" | "umami" | "spicy" | "bitter"
+  | "smoky" | "aromatic" | "earthy" | "fresh" | "creamy"
+  | "rich" | "nutty" | "fruity" | "floral" | "fermented";
 
 type IngredientCategory = {
   id: Id;
@@ -187,6 +216,12 @@ below); external-database provenance (decision 24, but the shape is ready for it
 **Resolved in V2:** provenance arrived exactly as predicted — a `source` field, changing no
 calculation. Density, per-item weight and the staple flag remain deferred.
 
+**Resolved in V3:** spoon weights arrived, but **not** as density
+([ADR-008](../adr/008-kitchen-spoons-as-an-entry-time-conversion.md)). `gramsPerTsp` and
+`gramsPerTbsp` are cited portion weights for mass ingredients, read only by the entry control
+and the display formatter. Cross-family (ml ↔ g) conversion and per-item weights remain
+excluded under decision 2, and the staple flag remains deferred.
+
 ## Recipe
 
 A reusable definition (decision 4). It stores no nutrition.
@@ -204,6 +239,9 @@ type Recipe = {
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
   archivedAt: IsoDateTime | null;
+
+  // V3 — ADR-010. Display and filtering only; a mix is an ordinary recipe.
+  kind: "dish" | "mix";
 };
 
 type RecipeLine = {
@@ -213,6 +251,9 @@ type RecipeLine = {
   displayUnit: Unit;              // what the user typed, e.g. "kg" — display only
   optional: boolean;              // excluded from totals, availability and shopping
   note: string | null;            // "finely diced"
+
+  // V3 — ADR-008. Preserves "2 tsp" for read-back. Display only; quantity is the truth.
+  entryHint: { spoons: number; spoon: "tsp" | "tbsp" } | null;
 };
 
 type RecipeImage = { id: Id; blob: Blob; width: number; height: number };
@@ -232,6 +273,10 @@ type RecipeImage = { id: Id; blob: Blob; width: number; height: number };
 6. Recipes are archived, never deleted — batches and logs reference them.
 7. Images are optional and user-supplied. **No layout may depend on one**
    ([DESIGN.md](./DESIGN.md)); a recipe without an image must look deliberate, not broken.
+8. **V3 — `kind` and `entryHint` are read by no derivation.** A seasoning mix is a recipe in
+   every respect that matters to a calculation; `kind` orders and filters lists, and
+   `entryHint` only remembers that the user typed "2 tsp". Both are guarded by the invariance
+   property test described in [`docs/adr/README.md`](../adr/README.md#the-invariance-family).
 
 ### Scaling
 

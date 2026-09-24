@@ -14,6 +14,12 @@ Companions: [DOMAIN_MODEL.md](./DOMAIN_MODEL.md), [NUTRITION_MODEL.md](./NUTRITI
 > sequence. That nothing structural moves is the intended outcome, not a coincidence: the
 > layering exists so that a feature like meal templates is a table and a component, not a
 > refactor.
+>
+> **V3.** Unchanged again, and by a wider margin: the Flavour Lab adds **no table and no
+> entity** — five fields, one nutrient, one route. See
+> [Schema version 3](#schema-version-3-v3) and [V3_SCOPE.md](./V3_SCOPE.md). A whole product
+> area arriving as a query over existing data is the clearest return yet on decision 4's
+> refusal to nest recipes and decision 23's refusal to store derived figures.
 
 ## Repo inspection findings
 
@@ -242,6 +248,39 @@ denormalised column.
 Renaming it would mean copying Blob rows in an `upgrade()` for no functional gain, and
 migrating binary data is a worse trade than a slightly stale table name. Record that
 reasoning in the schema file so a later tidy-up does not undo the judgement.
+
+### Schema version 3 (V3)
+
+Per ADRs [007](../adr/007-sodium-as-a-nullable-nutrient.md),
+[008](../adr/008-kitchen-spoons-as-an-entry-time-conversion.md),
+[009](../adr/009-sensory-tags-and-derived-constraints.md) and
+[010](../adr/010-flavour-lab-as-a-lens.md). Versions 1 and 2 are never edited.
+
+**No new table.** The Flavour Lab owns no entity: a seasoning mix is a `Recipe`, a snack is a
+`MealTemplate`, and a jar of sauce in the fridge is a `Batch`.
+
+| Table | Change | Migration |
+| --- | --- | --- |
+| `ingredients` | `+ nutrition.sodiumMg`, `+ gramsPerTsp`, `+ gramsPerTbsp`, `+ flavourTags`; new multi-entry index `*flavourTags` | `null`, `null`, `null`, `[]` — then reference rows have sodium **backfilled** from the packs |
+| `recipes` | `+ kind`, `+ lines[].entryHint`; new index `kind` | `kind = "dish"`, `entryHint = null` |
+| `settings` | `+ flavourPackVersion` | Via the existing `normalizeSettingsRow` pattern |
+
+**Version 3 is declared once, in full, by ticket 1** — including the `*flavourTags` and `kind`
+indexes, which sit unused until tickets 4 and 5. This is the version-2 rule above applied
+rather than relearned.
+
+Two things are specific to this version and worth stating before an Executor meets them.
+
+**The sodium backfill writes to existing user rows**, which no migration in this product has
+done before at this scale. It is safe because of one exact guard: R2.4 flips `source.kind` to
+`userEntered` the moment a user edits nutrition, so a row still marked `reference` is by
+definition untouched. The migration adds a nutrient that was absent and never alters a figure
+that exists. A plain re-seed would not work here — seeding is additive and skips rows that
+already exist (R2.7), so it would silently deliver nothing to anyone already installed.
+
+**`sodiumMg` is not indexed.** It lives inside the `nutrition` object, and filtering a few
+thousand rows in memory is cheaper than maintaining a nested index for one screen's filter.
+`*flavourTags` is indexed because multi-entry tag lookup is the Flavour Lab's primary query.
 
 **`Backup.formatVersion` stays 1** — the envelope shape is unchanged — while
 `Backup.schemaVersion` becomes 2. Export must include `mealTemplates`; import must accept a
@@ -533,6 +572,16 @@ The tests that matter most, called out so they are not skipped:
     `reason: "wrongFamily"` and never a fabricated number.
 12. **Backup round-trip** — export, wipe, import, and assert the database is equivalent
     including image Blobs; a payload with one invalid row imports **nothing**.
+13. **Metadata invariance (V2 and V3)** — one property test per field, asserting that
+    permuting it leaves requirements, shopping, availability, nutrition, `expand()` and every
+    insight byte-identical. The family is `Ingredient.source`, `Ingredient.common`,
+    `PlannedMeal.group` / `LoggedMeal.group`, `Ingredient.flavourTags`, `RecipeLine.entryHint`
+    and `Recipe.kind`. This is what keeps display metadata out of the calculation core, and
+    **any new field of that shape arrives with its test** — see
+    [`docs/adr/README.md`](../adr/README.md#the-invariance-family).
+14. **Null-sodium algebra (V3)** — `sum` and `scale` keep the monoid laws over records
+    containing `null`, one unknown contributor makes a total unknown, and no display path
+    renders `null` as `0`.
 
 ## Decisions summary
 
@@ -545,7 +594,8 @@ The tests that matter most, called out so they are not skipped:
 | Pantry | **Stored quantity, one row per ingredient — no ledger** | Decision 10: planning aid, not an accounting system |
 | Batch | **Immutable snapshot with actual quantities**; write-once | A batch is a past event; history must not move (decision A) |
 | Meal slots | A table, not an enum | Decision 14: nothing hard-coded around three meals |
-| Units | In-family conversion only; no density or item weights | Decision 2: no ingredient-specific conversion tables |
+| Units | In-family conversion only; no density or item weights | Decision 2: no ingredient-specific conversion tables. V3's spoons convert **at entry, from a cited weight**, and add no unit (ADR-008) |
+| Unknown figures | Nullable nutrient with absorbing `null`, never a zero | ADR-007: a missing sodium figure and a measured zero are different claims |
 | Reactive state | `useLiveQuery`, no global store | Database is the only copy of state |
 | Tokens & theme | PWA-Base `tokens.css` + `ThemeProvider`; shadcn aliased to it | One token source, platform consistency |
 | Components | shadcn/ui interactive layer; PWA-Base display primitives | Decision 25; PWA-Base defers what we need most |

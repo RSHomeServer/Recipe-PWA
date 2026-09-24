@@ -39,6 +39,14 @@ slice, and every other ingredient-relative measure. Also excluded: imperial unit
 fl oz). These are all additive later — see [Extension points](#extension-points) — but the
 spoon-and-cup family is deliberately harder than it looks and is not a units problem.
 
+> **V3 — and it was not solved as one.**
+> [ADR-008](../adr/008-kitchen-spoons-as-an-entry-time-conversion.md) added teaspoons and
+> tablespoons to the *entry control* without adding them to this table. A spoon is converted
+> to grams once, at the boundary, using a **cited** `gramsPerTsp` / `gramsPerTbsp` on the
+> ingredient, and only for `mass` ingredients that have one. `UNITS`, `Unit`, `MeasureKind`
+> and `CanonicalQuantity` are unchanged, every unit still has a fixed scalar factor, and
+> nothing downstream ever sees a spoon. Cross-family ml ↔ g conversion remains excluded.
+
 ## Quantity representation
 
 ```ts
@@ -219,8 +227,9 @@ Pure functions, no UI, no storage — the first tier in
 | oz, lb, fl oz, pt | One row each in `UNITS`; scalar factors only. No model change. |
 | Metric/imperial display toggle | A display preference read by the formatter. Canonical storage unaffected. |
 | Per-ingredient preferred display unit | A field on `Ingredient`; the formatter already accepts an override. |
-| Cups, tbsp, tsp, slices | Needs per-ingredient volume→mass or item→mass data — the conversion table decision 2 excludes. Treat as a **separate feature with its own decision**, not a units addition, and mark results approximate. |
-| Cross-family conversion (ml ↔ g) | Same as above: reintroduces `densityGPerMl` / `gramsPerItem` on `Ingredient`. Additive, but requires the decision to be revisited. |
+| ~~tsp, tbsp~~ | **Done in V3** ([ADR-008](../adr/008-kitchen-spoons-as-an-entry-time-conversion.md)), and taken exactly as this row prescribed: a separate feature with its own decision, not a units addition, with results marked approximate. Two nullable **cited** gram weights on `Ingredient`, converted at entry, never a unit. |
+| Cups, slices, handfuls, pinches | Still excluded. No dataset publishes a cup weight for a UK generic food, so this would be the guess ADR-008 refused to make. |
+| Cross-family conversion (ml ↔ g) | Still excluded. Reintroduces `densityGPerMl` / `gramsPerItem` on `Ingredient` and requires decision 2 to be revisited. **ADR-008 is not this** — its two fields are mass-only, entry-only and cited. |
 | Package sizes ("2 × 500 g packs") | A `packSize` on `Ingredient`, applied when rendering shopping lines. Requirements stay canonical. Explicitly out of scope for V1 (decision 19). |
 
 Every row has the same shape: entry and display gain options, canonical storage never changes.

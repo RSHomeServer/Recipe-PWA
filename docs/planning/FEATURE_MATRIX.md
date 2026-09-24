@@ -19,14 +19,16 @@ MFP = MyFitnessPal · SF = Samsung Food · SC = SuperCook · ETM = Eat This Much
 | Ingredient photo | P | Y | Y | — | **V2** | Optional and user-supplied; a category icon is the always-present default ([ADR-002](../adr/002-reference-ingredient-data-and-provenance.md) §3). |
 | Nutrition per ingredient (kcal + P/C/F) | Y | Y | — | Y | **V1** | Per 100 g / 100 ml / 1 item. |
 | Unit metadata (mass / volume / count) | Y | Y | — | Y | **V1** | One canonical measure kind per ingredient. |
-| Density and per-item weight for cross-kind conversion | P | P | — | P | **No** (V2-ready) | Decision 2 excludes ingredient-specific conversion tables. Conversion is in-family only (g↔kg, ml↔L). |
-| Arbitrary units (tbsp, cup, pinch, slice) | Y | Y | — | Y | **No** | Decision 2. Needs per-ingredient conversion data; a feature of its own, not a units addition. |
+| Density and per-item weight for cross-kind conversion | P | P | — | P | **No** | Decision 2 excludes ingredient-specific conversion tables. Conversion is in-family only (g↔kg, ml↔L). Unchanged by V3 — ADR-008's spoon weights are mass-only and entry-only, not a density model. |
+| Teaspoon / tablespoon entry | Y | Y | — | Y | **V3** | [ADR-008](../adr/008-kitchen-spoons-as-an-entry-time-conversion.md). A **cited** gram weight per spoon, converted once at entry; spoons never become a unit and nothing downstream sees one. Offered only where a source publishes the weight, which is the honest version of a feature every reference product fakes. |
+| Cups, pinches, handfuls, slices | Y | Y | — | Y | **No** | Same reasoning, no source data. Would be a guess. |
 | Staple flag (salt, oil, spice) for availability rules | — | — | P | — | **V2** | Availability now classifies by *how many* ingredients are short (decision 11). A staple flag refines that later. |
 | Category / aisle grouping | Y | Y | Y | Y | **V1** | Reused by pantry and shopping list. |
 | External food database lookup (live, on demand) | Y | Y | Y | Y | **No** | V2 seeds from a dataset once, offline; live lookup stays out. The `source` field makes it a later data-entry route, not a model change. |
 | Barcode scanning | Y | Y | — | Y | **No** | |
 | Photo / AI ingredient recognition | Y | P | Y | — | **No** | |
-| Micronutrients beyond the four macros | Y | Y | — | Y | **No** (V2-ready) | Nutrition record is extensible. |
+| Sodium tracking | Y | Y | — | Y | **V3** | [ADR-007](../adr/007-sodium-as-a-nullable-nutrient.md). The flavour layer is zero-calorie, so sodium is the only constraint that can describe it. **Nullable** — unknown is distinguished from none, which no reference product does; they all render a missing figure as 0. |
+| Other micronutrients | Y | Y | — | Y | **No** (ready) | Nutrition record is extensible; sodium proved the path. |
 
 ## Recipes
 
@@ -96,12 +98,32 @@ SF) or absent (MFP, SC).
 | Plan aggregates ingredient requirements | — | Y | — | Y | **V1** | Derived, never stored. |
 | Planning consumes pantry stock | — | — | — | P | **No** | Decision 12 — planning changes nothing physical. |
 | Separate cook-day field on a planned meal | — | — | — | P | **No** | Decisions 12, 14: plan meals, and create a Batch when you actually cook. No cook-session entity. |
-| Save / reload a favourite week | — | P | — | P | **V3** | Deferred behind meal templates, which cover most of the need. |
+| Save / reload a favourite week | — | P | — | P | **Later** | Deferred behind meal templates, which cover most of the need. Not in V3, which is the Flavour Lab. |
 | **Saved meals: a named combination of recipes and items** | — | P | — | P | **V2** | "Chicken thighs + hashbrowns + peas + sauce". Expands into ordinary planned meals sharing a group id, so no derivation changes and recipe nesting stays banned ([ADR-004](../adr/004-meal-templates-by-expansion.md)). |
 | Apply a saved meal to several days at once | — | — | — | P | **V2** | The highest-value interaction in V2 — four dinners in one action. |
 | Recently planned or logged items, one tap | P | — | — | P | **V2** | Derived from `plannedMeals` + `loggedMeals`, deduplicated, capped at twelve. Nothing stored. |
 | Automatic plan generation from macro targets | — | P | — | Y | **No** | Authorship over generation (decision 24). |
 | Household / per-meal head count | — | P | — | Y | **No** (V2-ready) | Servings scaling covers most of it. |
+
+## Flavour and seasoning (V3)
+
+The column is empty for a reason: **no reference product treats flavour as data.** MyFitnessPal
+and Samsung Food will tell you a teaspoon of paprika is 6 kcal if you search for it; none of
+them will answer "what is sour, spicy and under 10 kcal per teaspoon, and what should I put it
+on?".
+
+| Capability | MFP | SF | SC | ETM | Recipe PWA | Note |
+| --- | :-: | :-: | :-: | :-: | :-: | --- |
+| Seasoning and condiment coverage in the reference library | P | P | — | P | **V3** | A second curated pack from USDA SR Legacy fills fifteen named gaps CoFID leaves — paprika, cumin, turmeric, oregano, black pepper, MSG, miso, fish sauce and more ([ADR-006](../adr/006-flavour-coverage-by-curated-second-dataset.md)). |
+| Sensory tags on ingredients (sour, umami, smoky…) | — | — | — | — | **V3** | Closed sixteen-value vocabulary, curated per ingredient, read by no calculation ([ADR-009](../adr/009-sensory-tags-and-derived-constraints.md)). |
+| Query by taste **and** calorie ceiling | — | — | — | — | **V3** | The question the feature exists to answer. |
+| Reusable seasoning mixes and sauces with derived nutrition | — | P | — | — | **V3** | A mix **is** a `Recipe` — no new entity, so it works in planning, shopping and insights on day one ([ADR-010](../adr/010-flavour-lab-as-a-lens.md)). |
+| Snack = base + mix, saved and repeatable | — | P | — | P | **V3** | A snack **is** a `MealTemplate`. Shipped machinery from V2; V3 adds the way in. |
+| Calorie-density and high-sodium markers | P | — | — | — | **V3** | Derived predicates over the figures already held — never stored, so they cannot contradict the nutrition ([ADR-009](../adr/009-sensory-tags-and-derived-constraints.md) §5). |
+| A "health score" or reward-per-calorie ranking | Y | Y | — | P | **No** | Every reference product does this and it is the part users trust least ([PRODUCT_RESEARCH.md](./PRODUCT_RESEARCH.md)). Preserve the attributes; let the user trade them off. |
+| Allergen flags | Y | Y | — | P | **No** | A partial allergen list is more dangerous than none, and neither dataset annotates for the 14 UK regulated allergens. Needs its own ADR and a complete source ([ADR-009](../adr/009-sensory-tags-and-derived-constraints.md) §6). |
+| Heat / Scoville ratings | — | — | — | — | **No** | No dataset carries it, so it would be invented. `spicy` as a tag is honest; "7/10 heat" is not. |
+| Shelf life and food-safety warnings as structured data | — | P | — | — | **No** | Expiry tracking stays out (decision 24). Real cautions — homemade garlic in oil, for instance — belong in the recipe's own notes, in the user's words. |
 
 ## Shopping
 
@@ -200,6 +222,26 @@ into ordinary planned rows, applicable to several days at once, with a recents r
 ([ADR-004](../adr/004-meal-templates-by-expansion.md)) · choose the control from the option
 count rather than using a dropdown for everything
 ([ADR-005](../adr/005-choice-controls-by-cardinality.md)).
+
+## V3 scope summary
+
+V2 is built and shipped (PRs #16–#25). V3 adds one product area — the **Flavour Lab** — and is
+specified in [V3_SCOPE.md](./V3_SCOPE.md) against ADRs 006–010.
+
+It is deliberately small, because V1 and V2 already built the machinery: a seasoning mix is a
+`Recipe` with derived nutrition, a snack is a `MealTemplate` that expands onto a day, and
+logging one from Today shipped in V2 ticket 9. **No new entity, no new table.**
+
+What V3 actually adds: the missing spices, from a second curated pack rather than by hand
+([ADR-006](../adr/006-flavour-coverage-by-curated-second-dataset.md)) · sodium, nullable, so
+that a zero-calorie flavour layer stops looking free
+([ADR-007](../adr/007-sodium-as-a-nullable-nutrient.md)) · teaspoons and tablespoons at the
+entry box, from cited weights, without becoming units
+([ADR-008](../adr/008-kitchen-spoons-as-an-entry-time-conversion.md)) · a closed sensory
+vocabulary with constraints derived rather than asserted
+([ADR-009](../adr/009-sensory-tags-and-derived-constraints.md)) · and one route that lets the
+user ask for something sour and spicy under a calorie ceiling, build it, and eat it
+([ADR-010](../adr/010-flavour-lab-as-a-lens.md)).
 
 The measure of success is one scenario: four dinners of chicken, hashbrowns, veg and sauce
 planned from a fresh install in under a minute, without typing a nutrition figure.
