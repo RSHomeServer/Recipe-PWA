@@ -166,6 +166,7 @@ export function AddPlannedMealForm({
         entry,
         position,
         note: note.trim() ? note.trim() : null,
+        group: null,
       });
       toast.success("Meal planned");
       onDone();

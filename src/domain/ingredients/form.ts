@@ -4,10 +4,13 @@ import { MeasureKindSchema } from "../units/schemas";
 import { IdSchema } from "../shared/primitives";
 import { IngredientSchema } from "./schemas";
 
-/** RHF draft: id / archivedAt assigned on save; empty notes → null. */
+/** RHF draft: id / archivedAt / provenance assigned on save; empty notes → null. */
 export const IngredientFormSchema = IngredientSchema.omit({
   id: true,
   archivedAt: true,
+  source: true,
+  imageId: true,
+  common: true,
 }).extend({
   name: z.string().trim().min(1, "Name is required"),
   categoryId: IdSchema.nullable(),

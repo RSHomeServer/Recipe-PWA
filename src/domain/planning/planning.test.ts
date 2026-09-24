@@ -12,6 +12,19 @@ const chicken: Ingredient = {
   measureKind: "mass",
   nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6 },
   notes: null,
+  source: {
+    kind: "userEntered",
+    datasetId: null,
+    datasetName: null,
+    entryCode: null,
+    entryName: null,
+    licence: null,
+    url: null,
+    retrievedAt: null,
+    note: null,
+  },
+  imageId: null,
+  common: true,
   archivedAt: null,
 };
 
@@ -22,6 +35,19 @@ const rice: Ingredient = {
   measureKind: "mass",
   nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3 },
   notes: null,
+  source: {
+    kind: "userEntered",
+    datasetId: null,
+    datasetName: null,
+    entryCode: null,
+    entryName: null,
+    licence: null,
+    url: null,
+    retrievedAt: null,
+    note: null,
+  },
+  imageId: null,
+  common: true,
   archivedAt: null,
 };
 
@@ -32,6 +58,19 @@ const salt: Ingredient = {
   measureKind: "mass",
   nutrition: { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 },
   notes: null,
+  source: {
+    kind: "userEntered",
+    datasetId: null,
+    datasetName: null,
+    entryCode: null,
+    entryName: null,
+    licence: null,
+    url: null,
+    retrievedAt: null,
+    note: null,
+  },
+  imageId: null,
+  common: true,
   archivedAt: null,
 };
 
@@ -42,6 +81,19 @@ const yoghurt: Ingredient = {
   measureKind: "volume",
   nutrition: { kcal: 60, proteinG: 4, carbsG: 5, fatG: 3 },
   notes: null,
+  source: {
+    kind: "userEntered",
+    datasetId: null,
+    datasetName: null,
+    entryCode: null,
+    entryName: null,
+    licence: null,
+    url: null,
+    retrievedAt: null,
+    note: null,
+  },
+  imageId: null,
+  common: true,
   archivedAt: null,
 };
 
@@ -110,6 +162,7 @@ function meal(
     slotId,
     position: partial.position ?? 0,
     note: null,
+    group: null,
     date: partial.date,
     entry: partial.entry,
   });

@@ -27,7 +27,7 @@ import {
 } from "@/domain";
 import { DEFAULT_SETTINGS } from "@/domain";
 import { parseRow, parseRows } from "../parse";
-import { assertSnapshotUnchanged } from "./snapshot-guard";
+import { assertSnapshotUnchanged, prepareIngredientPut } from "./snapshot-guard";
 import type {
   BatchRepo,
   IngredientCategoryRepo,
@@ -113,7 +113,16 @@ export function createMemoryRepositories(
     },
     async put(row) {
       const parsed = IngredientSchema.parse(row);
-      ingredients.set(parsed.id, parsed);
+      const existing = ingredients.has(parsed.id)
+        ? parseRow(
+            IngredientSchema,
+            "ingredients",
+            ingredients.get(parsed.id),
+            parsed.id,
+          )
+        : undefined;
+      const prepared = prepareIngredientPut(existing, parsed);
+      ingredients.set(prepared.id, prepared);
     },
     async archive(id, archivedAt) {
       const existing = await this.byId(id);

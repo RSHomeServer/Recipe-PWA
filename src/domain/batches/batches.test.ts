@@ -27,6 +27,19 @@ const chicken: Ingredient = {
   measureKind: "mass",
   nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6 },
   notes: null,
+  source: {
+    kind: "userEntered",
+    datasetId: null,
+    datasetName: null,
+    entryCode: null,
+    entryName: null,
+    licence: null,
+    url: null,
+    retrievedAt: null,
+    note: null,
+  },
+  imageId: null,
+  common: true,
   archivedAt: null,
 };
 
@@ -37,6 +50,19 @@ const rice: Ingredient = {
   measureKind: "mass",
   nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3 },
   notes: null,
+  source: {
+    kind: "userEntered",
+    datasetId: null,
+    datasetName: null,
+    entryCode: null,
+    entryName: null,
+    licence: null,
+    url: null,
+    retrievedAt: null,
+    note: null,
+  },
+  imageId: null,
+  common: true,
   archivedAt: null,
 };
 
@@ -210,6 +236,7 @@ describe("portions + close", () => {
         plannedMealId: null,
         loggedAt: now,
         note: null,
+        group: null,
       },
     ];
 
@@ -240,6 +267,7 @@ describe("portions + close", () => {
         plannedMealId: null,
         loggedAt: now,
         note: null,
+        group: null,
       },
     ];
     expect(batchBase.closedAt).toBeNull();

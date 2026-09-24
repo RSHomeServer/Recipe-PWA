@@ -40,6 +40,19 @@ function sampleIngredient(): Ingredient {
     measureKind: "mass",
     nutrition: { kcal: 165, proteinG: 31, carbsG: 0, fatG: 3.6 },
     notes: null,
+    source: {
+        kind: "userEntered",
+        datasetId: null,
+        datasetName: null,
+        entryCode: null,
+        entryName: null,
+        licence: null,
+        url: null,
+        retrievedAt: null,
+        note: null,
+    },
+    imageId: null,
+    common: true,
     archivedAt: null,
   });
 }
@@ -247,7 +260,7 @@ describe("Dexie repositories", () => {
   });
 });
 
-describe("JSON backup V1", () => {
+describe("JSON backup (format v1, schemaVersion tracks Dexie)", () => {
   const names: string[] = [];
 
   afterEach(async () => {
@@ -282,7 +295,8 @@ describe("JSON backup V1", () => {
 
     const backup = await exportBackup(db);
     expect(backup.formatVersion).toBe(1);
-    expect(backup.schemaVersion).toBe(1);
+    expect(backup.schemaVersion).toBe(2);
+    expect(backup.data.mealTemplates).toEqual([]);
     expect(backup.data.recipeImages[0]).toMatchObject({
       id: imageId,
       mimeType: "image/png",
@@ -291,11 +305,14 @@ describe("JSON backup V1", () => {
       typeof (backup.data.recipeImages[0] as { blobBase64: string }).blobBase64,
     ).toBe("string");
 
-    // Mutate DB then replace via import
     await repos.ingredients.put({ ...ingredient, name: "Changed" });
     await importBackup(db, backup);
 
     expect((await repos.ingredients.byId(ingredientId))?.name).toBe("Chicken");
+    expect((await repos.ingredients.byId(ingredientId))?.source.kind).toBe(
+      "userEntered",
+    );
+    expect((await repos.ingredients.byId(ingredientId))?.common).toBe(true);
     const restored = await repos.recipeImages.byId(imageId);
     expect(restored?.width).toBe(8);
     expect(restored?.blob.type).toBe("image/png");
@@ -303,6 +320,77 @@ describe("JSON backup V1", () => {
       await image.blob.arrayBuffer(),
     );
     expect(await repos.batches.byId(batchId)).toEqual(batch);
+  });
+
+  it("accepts a v1-shaped backup payload and normalizes to schema v2", async () => {
+    const { db, repos } = await openFresh();
+    const v1Payload = {
+      formatVersion: 1 as const,
+      schemaVersion: 1,
+      exportedAt: now(),
+      data: {
+        ingredients: [
+          {
+            id: ingredientId,
+            name: "Chicken",
+            categoryId: null,
+            measureKind: "mass",
+            nutrition: { kcal: 165, proteinG: 31, carbsG: 0, fatG: 3.6 },
+            notes: null,
+            archivedAt: null,
+          },
+        ],
+        ingredientCategories: [],
+        recipes: [],
+        recipeImages: [],
+        batches: [],
+        pantryStock: [],
+        mealSlots: [],
+        plannedMeals: [
+          {
+            id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+            date: "2026-09-24",
+            slotId: SEED_SLOT_IDS.dinner,
+            entry: {
+              kind: "ingredient",
+              ingredientId,
+              quantity: { value: 100, unit: "g" },
+            },
+            position: 0,
+            note: null,
+          },
+        ],
+        loggedMeals: [],
+        shoppingOverlays: [],
+        settings: [
+          {
+            id: "singleton",
+            dailyCalorieTarget: null,
+            weekStartsOn: 1,
+            themePreference: "system",
+            shoppingWindow: null,
+          },
+        ],
+      },
+    };
+
+    await importBackup(db, v1Payload);
+
+    const ingredient = await repos.ingredients.byId(ingredientId);
+    expect(ingredient?.source.kind).toBe("userEntered");
+    expect(ingredient?.common).toBe(true);
+    expect(ingredient?.imageId).toBeNull();
+    expect(ingredient?.nutrition.kcal).toBe(165);
+
+    const planned = await repos.plannedMeals.byId(
+      "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+    );
+    expect(planned?.group).toBeNull();
+    expect(await db.table("mealTemplates").count()).toBe(0);
+
+    const settings = await repos.settings.get();
+    expect(settings.howItWorksDismissed).toBe(false);
+    expect(settings.starterPackVersion).toBeNull();
   });
 
   it("refuses newer schemaVersion and writes nothing on invalid payload", async () => {
@@ -327,8 +415,113 @@ describe("JSON backup V1", () => {
       }),
     ).rejects.toBeInstanceOf(BackupValidationError);
 
-    // Invalid import must not clear existing data
     expect((await repos.ingredients.byId(ingredientId))?.name).toBe("Chicken");
     expect(await repos.mealSlots.all()).toHaveLength(4);
+  });
+});
+
+describe("Dexie schema v2 migration", () => {
+  const names: string[] = [];
+
+  afterEach(async () => {
+    for (const name of names.splice(0)) {
+      await deleteRecipeDb(name);
+    }
+  });
+
+  it("migrates a v1 database with provenance defaults and complete v2 stores (tests 9, 9a)", async () => {
+    const { createSongaraDb } = await import("@songara/pwa-base/preview/dexie");
+    const { recipeSchemaV1Stores, recipeSchemaVersions, SEED_CATEGORY_IDS } =
+      await import("./index");
+
+    const name = testDbName(`m${Date.now()}${Math.random()}`);
+    names.push(name);
+
+    const v1 = createSongaraDb({
+      name,
+      versions: [{ version: 1, stores: { ...recipeSchemaV1Stores } }],
+    });
+    await v1.open();
+    await v1.table("ingredients").put({
+      id: ingredientId,
+      name: "Chicken",
+      categoryId: null,
+      measureKind: "mass",
+      nutrition: { kcal: 165, proteinG: 31, carbsG: 0, fatG: 3.6 },
+      notes: null,
+      archivedAt: null,
+    });
+    await v1.table("ingredientCategories").put({
+      id: SEED_CATEGORY_IDS.produce,
+      name: "Produce",
+      sortOrder: 10,
+    });
+    await v1.table("plannedMeals").put({
+      id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      date: "2026-09-24",
+      slotId: SEED_SLOT_IDS.dinner,
+      entry: {
+        kind: "ingredient",
+        ingredientId,
+        quantity: { value: 100, unit: "g" },
+      },
+      position: 0,
+      note: null,
+    });
+    await v1.table("settings").put({
+      id: "singleton",
+      dailyCalorieTarget: null,
+      weekStartsOn: 1,
+      themePreference: "system",
+      shoppingWindow: null,
+    });
+    v1.close();
+
+    const v2 = createSongaraDb({
+      name,
+      versions: recipeSchemaVersions,
+    });
+    await v2.open();
+    expect(v2.verno).toBe(2);
+
+    expect(v2.tables.map((t) => t.name)).toContain("mealTemplates");
+    expect(await v2.table("mealTemplates").count()).toBe(0);
+    const plannedIndexes = v2
+      .table("plannedMeals")
+      .schema.indexes.map((idx) => idx.keyPath);
+    const loggedIndexes = v2
+      .table("loggedMeals")
+      .schema.indexes.map((idx) => idx.keyPath);
+    expect(plannedIndexes).toContain("group.id");
+    expect(loggedIndexes).toContain("group.id");
+
+    const ingredient = await v2.table("ingredients").get(ingredientId);
+    expect(ingredient).toMatchObject({
+      nutrition: { kcal: 165, proteinG: 31, carbsG: 0, fatG: 3.6 },
+      source: { kind: "userEntered" },
+      common: true,
+      imageId: null,
+    });
+
+    const category = await v2
+      .table("ingredientCategories")
+      .get(SEED_CATEGORY_IDS.produce);
+    expect(category).toMatchObject({
+      icon: "Leaf",
+      accent: "--color-success",
+    });
+
+    const planned = await v2
+      .table("plannedMeals")
+      .get("eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee");
+    expect(planned).toMatchObject({ group: null });
+
+    const settings = await v2.table("settings").get("singleton");
+    expect(settings).toMatchObject({
+      howItWorksDismissed: false,
+      starterPackVersion: null,
+    });
+
+    v2.close();
   });
 });

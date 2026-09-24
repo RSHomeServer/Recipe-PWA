@@ -16,7 +16,10 @@ import {
 } from "@/domain";
 import { DEFAULT_SETTINGS } from "@/domain";
 import { parseRow, parseRows } from "../parse";
-import { assertSnapshotUnchanged } from "./snapshot-guard";
+import {
+  assertSnapshotUnchanged,
+  prepareIngredientPut,
+} from "./snapshot-guard";
 import type {
   BatchRepo,
   IngredientCategoryRepo,
@@ -47,7 +50,10 @@ export function createDexieRepositories(db: Dexie): RecipeRepositories {
         : undefined;
     },
     async put(row) {
-      await db.table("ingredients").put(IngredientSchema.parse(row));
+      const parsed = IngredientSchema.parse(row);
+      const existing = await this.byId(parsed.id);
+      const prepared = prepareIngredientPut(existing, parsed);
+      await db.table("ingredients").put(prepared);
     },
     async archive(id, archivedAt) {
       const existing = await this.byId(id);

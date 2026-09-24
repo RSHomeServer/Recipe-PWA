@@ -50,6 +50,19 @@ describe("in-memory repositories", () => {
       measureKind: "mass",
       nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3 },
       notes: null,
+      source: {
+            kind: "userEntered",
+            datasetId: null,
+            datasetName: null,
+            entryCode: null,
+            entryName: null,
+            licence: null,
+            url: null,
+            retrievedAt: null,
+            note: null,
+      },
+      imageId: null,
+      common: true,
       archivedAt: null,
     });
     await repos.ingredients.put(ingredient);
@@ -61,6 +74,8 @@ describe("in-memory repositories", () => {
       weekStartsOn: 1,
       themePreference: "light",
       shoppingWindow: null,
+      howItWorksDismissed: false,
+      starterPackVersion: null,
     });
     await repos.settings.put(settings);
     expect(await repos.settings.get()).toEqual(settings);
@@ -82,6 +97,7 @@ describe("in-memory repositories", () => {
         },
         position: 0,
         note: null,
+        group: null,
       }),
     ).toThrow();
   });

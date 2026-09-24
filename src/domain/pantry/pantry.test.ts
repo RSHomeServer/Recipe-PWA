@@ -21,6 +21,19 @@ function ingredient(
     nutrition: { kcal: 100, proteinG: 10, carbsG: 10, fatG: 1 },
     notes: null,
     archivedAt: null,
+    source: {
+      kind: "userEntered",
+      datasetId: null,
+      datasetName: null,
+      entryCode: null,
+      entryName: null,
+      licence: null,
+      url: null,
+      retrievedAt: null,
+      note: null,
+    },
+    imageId: null,
+    common: true,
     ...overrides,
   };
 }

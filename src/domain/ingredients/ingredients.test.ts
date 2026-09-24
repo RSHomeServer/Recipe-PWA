@@ -28,6 +28,19 @@ function sampleIngredient(): Ingredient {
     measureKind: "mass",
     nutrition: { kcal: 120, proteinG: 22, carbsG: 0, fatG: 3 },
     notes: null,
+    source: {
+        kind: "userEntered",
+        datasetId: null,
+        datasetName: null,
+        entryCode: null,
+        entryName: null,
+        licence: null,
+        url: null,
+        retrievedAt: null,
+        note: null,
+    },
+    imageId: null,
+    common: true,
     archivedAt: null,
   });
 }
@@ -127,6 +140,7 @@ describe("isIngredientReferenced", () => {
       },
       position: 0,
       note: null,
+      group: null,
     });
     expect(
       isIngredientReferenced(ingredientId, {
@@ -147,6 +161,7 @@ describe("isIngredientReferenced", () => {
       plannedMealId: null,
       loggedAt: "2026-09-22T12:00:00.000Z",
       note: null,
+      group: null,
     };
     expect(
       isIngredientReferenced(ingredientId, {

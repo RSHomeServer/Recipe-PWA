@@ -86,6 +86,19 @@ export default function IngredientDetailPage() {
       const row: Ingredient = {
         id: createId(),
         ...parsed,
+        source: {
+          kind: "userEntered",
+          datasetId: null,
+          datasetName: null,
+          entryCode: null,
+          entryName: null,
+          licence: null,
+          url: null,
+          retrievedAt: null,
+          note: null,
+        },
+        imageId: null,
+        common: true,
         archivedAt: null,
       };
       await repos.ingredients.put(row);

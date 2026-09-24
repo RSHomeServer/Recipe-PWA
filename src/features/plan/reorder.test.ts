@@ -17,6 +17,7 @@ function meal(
     slotId,
     position,
     note: null,
+    group: null,
     entry: {
       kind: "ingredient",
       ingredientId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
