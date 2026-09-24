@@ -2,6 +2,22 @@
 
 **No blocking questions remain. V1 is fully specified.**
 
+> **V2 decisions are not recorded here.** From V2 onward, any decision that changes,
+> constrains or reinterprets a rule gets an ADR in [`docs/adr`](../adr/README.md), because a
+> flat list with no status field and no supersession mechanism cannot express "decision 4
+> still holds, but here is the boundary case it did not anticipate". This document remains
+> authoritative for V1 and is not edited. See
+> [`docs/adr/README.md`](../adr/README.md#relationship-to-the-v1-decision-list) for how each
+> V1 decision stands after V2.
+>
+> **No V2 questions remain open.** The four calls drafted ahead of confirmation have all been
+> settled by the product owner; two changed the draft, and the outcomes are recorded in
+> [`docs/adr/README.md`](../adr/README.md#product-owner-confirmations). In short: CoFID with
+> USDA as an equally acceptable fallback; category icons plus optional user photos, with
+> breadth of accurate data explicitly preferred over pictures; meal templates by expansion;
+> and the cardinality rule **with no setting behind it**, which removed the escape hatch the
+> draft had kept.
+
 This document is now a record rather than a queue. It exists so that later tickets can see
 what was asked, what was decided, and why — and so nothing settled here is quietly reopened.
 

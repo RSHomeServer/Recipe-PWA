@@ -6,6 +6,14 @@ disagree, this document wins; change it here first.
 Reasoning behind these choices is in [DESIGN_RESEARCH.md](./DESIGN_RESEARCH.md).
 Implementation wiring is in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
+> **V2 corrections.** §5 (widths), §6.2–6.3 (choice controls and explanation), §7.1–7.2 (plan
+> grid and density) and §11 (ingredient identity) were revised after V1 shipped. Each is
+> marked in place and traced to [ADR-001](../adr/001-page-geometry-and-density.md),
+> [ADR-002](../adr/002-reference-ingredient-data-and-provenance.md),
+> [ADR-003](../adr/003-food-nomenclature-and-promotion-rule.md) or
+> [ADR-005](../adr/005-choice-controls-by-cardinality.md). All other sections stand as
+> written; the V1 critique found the direction right and the geometry wrong.
+
 Colour values below are **provisional pending contrast verification in both themes** during
 the UI-foundation ticket. The **token names are the contract**; hex values may be tuned to
 meet the contrast requirements in §9. Nothing in the product references a raw hex value.
@@ -280,11 +288,27 @@ comfortable (min 44px, and 48px+ for anything tappable), not compressed.
 
 ### Widths
 
-| Context | Token |
-| --- | --- |
-| Forms, recipe pages, prose | `--content-max` (72rem) |
-| Insights, plan grid, pantry | `--workspace-max` (90rem) |
-| Desktop sidebar | `--shell-sidebar-width` |
+**Corrected in V2 — see [ADR-001](../adr/001-page-geometry-and-density.md).** V1 read this
+table as advice and applied `--workspace-max` to every route, with no horizontal centring.
+Both are now binding rules.
+
+**Every page centres.** `.app-page` carries `margin-inline: auto` and `width: 100%`. A page
+that sets a `max-width` without centring is pinned to the left of a column flex container,
+which is what put a dead band of several centimetres down the right of every V1 route.
+
+**Width is a role, not a constant.** Every route declares exactly one, and may not invent a
+fourth. Content that wants to be wider than its role means the route is doing two jobs.
+
+| Role | Width | Used by |
+| --- | --- | --- |
+| `prose` | 48rem | Single-column forms and prose: settings, ingredient editor, recipe editor |
+| `content` | `--content-max` (72rem) | Lists and detail pages: recipes, ingredients, pantry, cook, log |
+| `workspace` | `--workspace-max` (90rem) | Genuine two-dimensional layouts only: plan, insights, shopping |
+| — | `--shell-sidebar-width` | Desktop sidebar |
+
+A list row's content does not span more than 72rem, and a right-aligned numeric group sits in
+a fixed-width column rather than being pushed to the viewport edge. Making the reader's eye
+travel 1300px to associate a recipe name with its calories is not spaciousness.
 
 ### Surfaces and elevation
 
@@ -385,6 +409,41 @@ emptying the list or silently reinterpreting the ticks.
 
 ### Forms
 
+#### 6.2 Choice controls — the control follows the option count
+
+**Added in V2 — see [ADR-005](../adr/005-choice-controls-by-cardinality.md).** V1 used a
+native `<select>` for every single choice, from four meal slots to twenty-eight move-to
+targets. This is a design-system rule, not a per-screen judgement:
+
+| Options | Control |
+| --- | --- |
+| 1 | Static text, no control |
+| 2–6 | **Segmented button group** — Radix `ToggleGroup type="single"`, so it is a real `radiogroup` with arrow-key navigation and one tab stop. 44px minimum, wraps rather than scrolls, selection shown by colour **and** a check. Supports per-option helper text rendered under the group. |
+| 7–15 | Button grid if labels are short, otherwise combobox |
+| >15 or unbounded | **Command palette** — shadcn `Command` in a `Dialog` (bottom sheet under `md`), search-first, recents pinned before any query, each row carrying the facts that make the choice |
+
+A disabled option stays visible with its reason in its accessible name. A capability that
+silently does not appear is a capability the user never learns exists.
+
+**There is no setting behind this.** The rule applies everywhere, with no compact mode and no
+way back to native selects. The obligation that creates falls on the segmented group: it must
+be genuinely good at 320px, wrapping rather than scrolling, never truncating a label, never
+dropping below 44px. Those are release gates, not aspirations, because nothing catches it if
+they slip.
+
+#### 6.3 Explanation is progressive and never depends on hover
+
+Per [ADR-003](../adr/003-food-nomenclature-and-promotion-rule.md) §5, in order of intrusion:
+persistent helper text under a field (the default, for anything that changes behaviour); a
+44px info **`Popover`** for longer definitions, because it works on touch and by keyboard; a
+dismissible "How this works" panel on Plan and Cook; and only then a hover `Tooltip`,
+reserved for icon-only buttons on pointer devices and duplicating an existing `aria-label`.
+
+**No information may exist only inside a hover tooltip** (§9 rule 2). Tooltips are the
+tempting answer and they are invisible on the phone where this product is mostly used.
+
+#### 6.4 Form mechanics
+
 React Hook Form + Zod, reusing domain schemas. Labels always visible (never placeholder-only).
 Errors below the field, in `--color-error`, referenced by `aria-describedby`, with
 `aria-invalid`. Required fields marked in text, never with colour alone. Numeric inputs use
@@ -416,7 +475,7 @@ Recipe authoring and Insights may be dense and are desktop-comfortable.
 | --- | --- | --- |
 | Navigation | Bottom tab bar: Today, Plan, Shop, Log, More | Left sidebar (`--shell-sidebar-width`) |
 | Primary action | Sticky bottom button, full width | Inline, top-right of section |
-| Plan grid | One day per screen, horizontal day switcher | 7-day × slot grid |
+| Plan grid | One day per screen, horizontal day switcher | **See below — corrected in V2** |
 | Tables | Stacked rows, label above value | True table |
 | Insights charts | Full width, one per row, ~200px tall | 2-up, ~280px tall |
 | Recipe page | Single column | Ingredients and method side by side |
@@ -424,6 +483,40 @@ Recipe authoring and Insights may be dense and are desktop-comfortable.
 
 Touch targets are **44 × 44px minimum**, 48px for shopping ticks and portion steppers
 (used while holding a basket or a pan).
+
+### 7.1 The plan grid — breakpoints follow content, not the default scale
+
+**Corrected in V2 — see [ADR-001](../adr/001-page-geometry-and-density.md) §3.** V1 rendered
+seven equal columns from `md` (48rem). After the sidebar and page padding that leaves roughly
+55px per day, into which a tile rendered an icon, four lines of text and around 150px of
+controls. The layout was below its own minimum viable width for half its breakpoint range.
+
+**A day column is at least 11rem (176px).** The number of columns follows from that:
+
+| Viewport | Layout |
+| --- | --- |
+| `< md` | One day at a time, horizontal day switcher. Unchanged. |
+| `md` – `xl` | Horizontally scrollable day track: `grid-auto-flow: column`, `grid-auto-columns: minmax(11rem, 1fr)`, scroll-snap on column boundaries, today scrolled into view. A partial column at the edge signals that there is more. |
+| `≥ xl` (80rem) | Full seven-column grid, `gap: var(--space-3)`. |
+
+Between `md` and `xl` this trades seeing all seven days at once for being able to read any of
+them. That is the right trade, but it must be signalled, and the day switcher must remain a
+keyboard path to any day.
+
+### 7.2 Density — explanation belongs where the choice is made
+
+A sentence that helps once in a composer becomes noise when repeated in all 28 cells of a
+week grid. `PlanSlotTile` therefore takes a `density` prop:
+
+- **`comfortable`** (composer, mobile day view, log diary) — icon, title, subtitle.
+- **`compact`** (week grid) — icon and title only, at most two lines. The cook / portion /
+  item distinction is carried entirely by icon and surface treatment, which §6 already
+  requires and which already works. Anything further is in the accessible name and an info
+  popover.
+
+Per-item controls follow the same principle: delete and "move to…" collapse into one 44px
+overflow `DropdownMenu` rather than occupying permanent space in every tile. The drag handle
+stays, because it is the direct-manipulation affordance rather than a command.
 
 ## 8. Charts
 
@@ -569,6 +662,24 @@ Rules:
   field, with removal always available.
 - `alt` text is the recipe name. Decorative-only usage means it must never be the sole carrier
   of information (§9).
+
+### Ingredient identity — icon first, photo optional (V2)
+
+Per [ADR-002](../adr/002-reference-ingredient-data-and-provenance.md) §3. No licence-clean
+photograph exists for a generic food like "chicken thigh, raw", and buying one would be a
+decorative gain at real cost.
+
+- **Every `IngredientCategory` carries an `icon` and an `accent`.** That is the default
+  identity, it is always present, and it makes a library of several hundred entries scannable
+  by category at a glance — which is the job photos were being asked to do.
+- `Ingredient.imageId` allows an optional user photo on exactly the terms recipe images
+  already have. The icon occupies the slot when no photo exists, so **the slot is never
+  empty, the layout never shifts, and a list is never ragged.** The "do not mix present and
+  absent thumbnails in one view" rule above is satisfied automatically rather than by
+  vigilance.
+- Provenance is shown as a small, plain line on the ingredient detail page — the dataset
+  name, the entry code, and a link to check it. Edited reference figures say so. This is
+  reporting, not a badge: no trust score, no colour coding, no verification tick.
 
 ### Empty
 
