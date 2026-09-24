@@ -6,7 +6,7 @@ import {
   type Unit,
 } from "@/domain";
 import { Button } from "@/ui/button";
-import { CommandPicker } from "@/ui/command-picker";
+import { IngredientPicker } from "@/features/ingredients/IngredientPicker";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import {
@@ -62,18 +62,14 @@ export function ManualAddForm({
       <p className="font-medium">Add something to buy</p>
       <div className="space-y-1">
         <Label id="manual-ingredient-label">Ingredient</Label>
-        <CommandPicker
+        <IngredientPicker
           id="manual-ingredient"
           aria-labelledby="manual-ingredient-label"
           title="Choose ingredient"
           value={ingredientId}
           onValueChange={onIngredientChange}
           recentIds={recents}
-          items={ingredients.map((ingredient) => ({
-            value: ingredient.id,
-            label: ingredient.name,
-            context: ingredient.measureKind,
-          }))}
+          ingredients={ingredients}
         />
       </div>
       <div className="flex flex-wrap gap-3">

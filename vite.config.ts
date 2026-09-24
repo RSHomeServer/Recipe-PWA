@@ -41,6 +41,9 @@ export default defineConfig({
       workbox: {
         navigateFallback: "/index.html",
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,json}"],
+        // Starter-pack JSON is ~1MB minified; default 2MiB is enough once it
+        // is not inlined into the main JS chunk.
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
     }),
   ],

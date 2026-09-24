@@ -1,0 +1,298 @@
+#!/usr/bin/env node
+/**
+ * Build-time CoFID → starter pack transcode (ADR-002 §2 / R2.5*).
+ * Reads the published Excel workbook; never ships xlsx to the browser.
+ *
+ * Usage:
+ *   node scripts/cofid/transcode.mjs [--xlsx path] [--out-dir path]
+ */
+
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import XLSX from "xlsx";
+import { deterministicId } from "./deterministic-id.mjs";
+import {
+  categoryIdForGroup,
+  measureKindForGroup,
+} from "./group-to-category.mjs";
+import { parseRequiredMacros } from "./parse-macros.mjs";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(__dirname, "../..");
+
+const DATASET = {
+  datasetId: "cofid-2021",
+  datasetName:
+    "McCance and Widdowson's The Composition of Foods Integrated Dataset 2021",
+  /** Placeholder — human must confirm OGL version from GOV.UK licence footer (R2.12). */
+  licence: "OGL-UK-UNCONFIRMED",
+  url: "https://www.gov.uk/government/publications/composition-of-foods-integrated-dataset-cofid",
+  retrievedAt: "2021-03-19",
+};
+
+export const STARTER_PACK_VERSION = "cofid-2021-v1";
+
+const DEFAULT_XLSX = path.join(root, "data/cofid/CoFID_2021.xlsx");
+const DEFAULT_OUT = path.join(root, "src/data/starter-pack");
+const COMMON_CODES_PATH = path.join(DEFAULT_OUT, "common-codes.json");
+
+/**
+ * @param {string[]} argv
+ */
+function parseArgs(argv) {
+  /** @type {{ xlsx: string; outDir: string }} */
+  const opts = { xlsx: DEFAULT_XLSX, outDir: DEFAULT_OUT };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--xlsx") opts.xlsx = path.resolve(argv[++i] ?? "");
+    else if (arg === "--out-dir") opts.outDir = path.resolve(argv[++i] ?? "");
+  }
+  return opts;
+}
+
+/**
+ * Locate macro columns by acronym row (row index 1).
+ * @param {unknown[][]} rows
+ */
+function findColumns(rows) {
+  const acronyms = rows[1] ?? [];
+  const headers = rows[0] ?? [];
+
+  const findAcronym = (name) => {
+    const idx = acronyms.findIndex(
+      (cell) => String(cell ?? "").trim().toUpperCase() === name,
+    );
+    if (idx < 0) {
+      throw new Error(`Proximates sheet missing acronym column ${name}`);
+    }
+    return idx;
+  };
+
+  const findHeader = (name) => {
+    const idx = headers.findIndex(
+      (cell) => String(cell ?? "").trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (idx < 0) {
+      throw new Error(`Proximates sheet missing header ${name}`);
+    }
+    return idx;
+  };
+
+  return {
+    code: findHeader("Food Code"),
+    name: findHeader("Food Name"),
+    group: findHeader("Group"),
+    prot: findAcronym("PROT"),
+    fat: findAcronym("FAT"),
+    cho: findAcronym("CHO"),
+    kcals: findAcronym("KCALS"),
+  };
+}
+
+/**
+ * @param {string} xlsxPath
+ */
+export function transcodeWorkbook(xlsxPath) {
+  const workbook = XLSX.readFile(xlsxPath);
+  const sheetName = workbook.SheetNames.find((name) =>
+    /proximate/i.test(name),
+  );
+  if (!sheetName) {
+    throw new Error(
+      `No Proximates worksheet in ${xlsxPath}; sheets: ${workbook.SheetNames.join(", ")}`,
+    );
+  }
+
+  const sheet = workbook.Sheets[sheetName];
+  const rows = /** @type {unknown[][]} */ (
+    XLSX.utils.sheet_to_json(sheet, {
+      header: 1,
+      defval: null,
+      raw: true,
+      blankrows: false,
+    })
+  );
+
+  if (rows.length < 4) {
+    throw new Error("Proximates sheet has no data rows (expected headers in rows 1–3)");
+  }
+
+  const cols = findColumns(rows);
+  const dataRows = rows.slice(3);
+
+  /** @type {object[]} */
+  const ingredients = [];
+  let excludedN = 0;
+  let incomplete = 0;
+  let duplicateCodes = 0;
+  const seenCodes = new Set();
+
+  for (const row of dataRows) {
+    const entryCode = String(row[cols.code] ?? "").trim();
+    const entryName = String(row[cols.name] ?? "").trim();
+    const group = String(row[cols.group] ?? "").trim();
+    if (!entryCode || !entryName) {
+      incomplete += 1;
+      continue;
+    }
+
+    if (seenCodes.has(entryCode)) {
+      // CoFID 2021 ships at least one duplicated food code (13-669).
+      duplicateCodes += 1;
+      continue;
+    }
+
+    const macros = parseRequiredMacros({
+      kcals: row[cols.kcals],
+      prot: row[cols.prot],
+      fat: row[cols.fat],
+      cho: row[cols.cho],
+    });
+
+    if (macros.status === "exclude") {
+      excludedN += 1;
+      continue;
+    }
+    if (macros.status !== "ok") {
+      incomplete += 1;
+      continue;
+    }
+
+    seenCodes.add(entryCode);
+    ingredients.push({
+      id: deterministicId(`cofid:${entryCode}`),
+      name: entryName,
+      categoryId: categoryIdForGroup(group),
+      measureKind: measureKindForGroup(group),
+      nutrition: {
+        kcal: macros.kcal,
+        proteinG: macros.proteinG,
+        carbsG: macros.carbsG,
+        fatG: macros.fatG,
+      },
+      notes: null,
+      archivedAt: null,
+      source: {
+        kind: "reference",
+        datasetId: DATASET.datasetId,
+        datasetName: DATASET.datasetName,
+        entryCode,
+        entryName,
+        licence: DATASET.licence,
+        url: DATASET.url,
+        retrievedAt: DATASET.retrievedAt,
+        note: null,
+      },
+      imageId: null,
+      common: false,
+      _group: group,
+    });
+  }
+
+  return {
+    ingredients,
+    stats: {
+      sheetName,
+      dataRows: dataRows.length,
+      seeded: ingredients.length,
+      excludedN,
+      incomplete,
+      duplicateCodes,
+    },
+  };
+}
+
+/**
+ * @param {object[]} ingredients
+ * @param {string[]} commonCodes
+ */
+function applyCommonFlags(ingredients, commonCodes) {
+  const codeSet = new Set(commonCodes.map((c) => String(c).trim()));
+  const byCode = new Map(
+    ingredients.map((ing) => [ing.source.entryCode, ing]),
+  );
+
+  /** @type {string[]} */
+  const unresolved = [];
+  for (const code of codeSet) {
+    const hit = byCode.get(code);
+    if (!hit) {
+      unresolved.push(code);
+      continue;
+    }
+    hit.common = true;
+  }
+
+  if (unresolved.length > 0) {
+    const preview = unresolved.slice(0, 20).join(", ");
+    throw new Error(
+      `Common-code list has ${unresolved.length} code(s) with no seeded entry: ${preview}`,
+    );
+  }
+
+  return ingredients.map(({ _group, ...rest }) => rest);
+}
+
+async function main() {
+  const opts = parseArgs(process.argv.slice(2));
+  const commonRaw = JSON.parse(await readFile(COMMON_CODES_PATH, "utf8"));
+  if (!Array.isArray(commonRaw.codes)) {
+    throw new Error(`${COMMON_CODES_PATH} must contain a "codes" array`);
+  }
+
+  const { ingredients, stats } = transcodeWorkbook(opts.xlsx);
+  const withCommon = applyCommonFlags(ingredients, commonRaw.codes);
+
+  const pack = {
+    version: STARTER_PACK_VERSION,
+    dataset: DATASET,
+    generatedAt: new Date().toISOString(),
+    stats: {
+      ...stats,
+      commonCount: withCommon.filter((i) => i.common).length,
+    },
+    ingredients: withCommon,
+  };
+
+  const publicDir = path.join(root, "public/starter-pack");
+  await mkdir(publicDir, { recursive: true });
+  await mkdir(opts.outDir, { recursive: true });
+
+  const packPath = path.join(publicDir, "pack.json");
+  // Minified runtime asset — fetched at seed time, not inlined into the JS bundle.
+  await writeFile(packPath, `${JSON.stringify(pack)}\n`, "utf8");
+
+  const metaPath = path.join(opts.outDir, "meta.json");
+  await writeFile(
+    metaPath,
+    `${JSON.stringify(
+      {
+        version: STARTER_PACK_VERSION,
+        dataset: DATASET,
+        stats: pack.stats,
+        attributionNote:
+          "Licence string is a placeholder (OGL-UK-UNCONFIRMED). A human must read the GOV.UK publication page licence footer before release (R2.12).",
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
+
+  console.log(
+    `Wrote ${withCommon.length} ingredients (${pack.stats.commonCount} common) → ${packPath}`,
+  );
+  console.log(JSON.stringify(pack.stats, null, 2));
+}
+
+const isDirect =
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isDirect) {
+  main().catch((err) => {
+    console.error(err instanceof Error ? err.message : err);
+    process.exitCode = 1;
+  });
+}

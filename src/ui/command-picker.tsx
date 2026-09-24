@@ -33,6 +33,11 @@ export type CommandPickerItem = {
   disabledReason?: string;
   /** Secondary facts shown beside / under the label (R5.7). */
   context?: ReactNode;
+  /**
+   * When any item sets this, the picker prefers `common: true` until the user
+   * expands or searches (R2.9a).
+   */
+  common?: boolean;
 };
 
 export type CommandPickerProps = {
@@ -75,9 +80,15 @@ export function CommandPicker({
 }: CommandPickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
   const descriptionId = useId();
+
+  const usesCommonTier = useMemo(
+    () => items.some((item) => item.common === true || item.common === false),
+    [items],
+  );
 
   const byId = useMemo(() => {
     const map = new Map<string, CommandPickerItem>();
@@ -92,11 +103,11 @@ export function CommandPicker({
     if (query.trim()) return [];
     const seen = new Set<string>();
     const out: CommandPickerItem[] = [];
-    for (const id of recentIds) {
-      if (seen.has(id)) continue;
-      const item = byId.get(id);
+    for (const recentId of recentIds) {
+      if (seen.has(recentId)) continue;
+      const item = byId.get(recentId);
       if (!item) continue;
-      seen.add(id);
+      seen.add(recentId);
       out.push(item);
     }
     return out;
@@ -108,15 +119,42 @@ export function CommandPicker({
   );
 
   const catalogItems = useMemo(() => {
-    if (!query.trim()) {
-      return items.filter((item) => !recentSet.has(item.value));
+    let list = !query.trim()
+      ? items.filter((item) => !recentSet.has(item.value))
+      : [...items];
+
+    if (usesCommonTier) {
+      list = [...list].sort((a, b) => {
+        const ac = a.common === true ? 0 : 1;
+        const bc = b.common === true ? 0 : 1;
+        if (ac !== bc) return ac - bc;
+        return a.label.localeCompare(b.label, undefined, {
+          sensitivity: "base",
+        });
+      });
+
+      // Searching always shows the full match set; idle browse hides the tail.
+      if (!query.trim() && !showAll) {
+        const commonOnly = list.filter((item) => item.common === true);
+        if (commonOnly.length > 0) list = commonOnly;
+      }
     }
-    return items;
-  }, [items, recentSet, query]);
+
+    return list;
+  }, [items, recentSet, query, usesCommonTier, showAll]);
+
+  const hiddenCount = useMemo(() => {
+    if (!usesCommonTier || query.trim() || showAll) return 0;
+    const catalog = items.filter((item) => !recentSet.has(item.value));
+    const commonCount = catalog.filter((item) => item.common === true).length;
+    if (commonCount === 0) return 0;
+    return catalog.length - commonCount;
+  }, [usesCommonTier, query, showAll, items, recentSet]);
 
   const closeAndRestoreFocus = () => {
     setOpen(false);
     setQuery("");
+    setShowAll(false);
     queueMicrotask(() => triggerRef.current?.focus());
   };
 
@@ -185,8 +223,8 @@ export function CommandPicker({
 
         <Command
           shouldFilter
-          filter={(value, search, keywords) => {
-            const hay = `${value} ${(keywords ?? []).join(" ")}`.toLowerCase();
+          filter={(itemValue, search, keywords) => {
+            const hay = `${itemValue} ${(keywords ?? []).join(" ")}`.toLowerCase();
             const needle = search.trim().toLowerCase();
             if (!needle) return 1;
             return hay.includes(needle) ? 1 : 0;
@@ -221,6 +259,18 @@ export function CommandPicker({
                   />
                 ))}
               </CommandGroup>
+            ) : null}
+            {hiddenCount > 0 ? (
+              <div className="border-t border-border p-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-11 w-full justify-start text-sm"
+                  onClick={() => setShowAll(true)}
+                >
+                  Show all {catalogItems.length + hiddenCount} results
+                </Button>
+              </div>
             ) : null}
           </CommandList>
         </Command>

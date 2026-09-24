@@ -1,10 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ThemeToggle } from "@songara/pwa-base/ui";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useRepos } from "@/data";
+import {
+  STARTER_PACK_ATTRIBUTION,
+  STARTER_PACK_VERSION,
+  seedStarterPack,
+  useRecipeData,
+} from "@/data";
 import { useSettings } from "@/features/shopping/hooks";
 import { PageHeader } from "@/features/shared/RoutePlaceholder";
 import { RouteStatePanel } from "@/features/shared/RouteStatePanel";
@@ -30,8 +35,10 @@ const settingsSchema = z.object({
 type SettingsForm = z.infer<typeof settingsSchema>;
 
 export default function SettingsPage() {
-  const repos = useRepos();
+  const { db, repos } = useRecipeData();
   const settings = useSettings();
+  const [topUpBusy, setTopUpBusy] = useState(false);
+  const [lastTopUp, setLastTopUp] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -146,6 +153,94 @@ export default function SettingsPage() {
           </Button>
         </div>
       </form>
+
+      <section className="mt-10 max-w-lg space-y-3" aria-labelledby="starter-pack-heading">
+        <h2 id="starter-pack-heading" className="text-lg font-semibold">
+          Starter ingredients
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Adds any missing CoFID reference ingredients. Existing rows are never
+          overwritten — including ones you have edited. Pack version:{" "}
+          <span className="font-medium text-foreground">
+            {settings.starterPackVersion ?? "not seeded yet"}
+          </span>{" "}
+          (current build: {STARTER_PACK_VERSION}).
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!db || topUpBusy}
+          onClick={async () => {
+            if (!db) return;
+            setTopUpBusy(true);
+            try {
+              const report = await seedStarterPack(db);
+              const summary = `Added ${report.added}, skipped ${report.skippedExisting} already present${
+                report.skippedInvalid > 0
+                  ? `, ${report.skippedInvalid} invalid`
+                  : ""
+              }.`;
+              setLastTopUp(summary);
+              toast.success(
+                report.added > 0
+                  ? `Added ${report.added} starter ingredients`
+                  : "No missing starter ingredients",
+              );
+            } catch (error) {
+              toast.error(
+                error instanceof Error
+                  ? error.message
+                  : "Could not top up starter ingredients",
+              );
+            } finally {
+              setTopUpBusy(false);
+            }
+          }}
+        >
+          {topUpBusy ? "Adding…" : "Add missing starter ingredients"}
+        </Button>
+        {lastTopUp ? (
+          <p className="text-sm text-muted-foreground" role="status">
+            {lastTopUp}
+          </p>
+        ) : null}
+      </section>
+
+      <section className="mt-10 max-w-lg space-y-3" aria-labelledby="about-heading">
+        <h2 id="about-heading" className="text-lg font-semibold">
+          About
+        </h2>
+        <div className="space-y-2 text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">
+            {STARTER_PACK_ATTRIBUTION.title}
+          </p>
+          <p>{STARTER_PACK_ATTRIBUTION.body}</p>
+          <p>
+            Dataset:{" "}
+            <a
+              className="underline-offset-4 hover:underline"
+              href={STARTER_PACK_ATTRIBUTION.datasetUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {STARTER_PACK_ATTRIBUTION.datasetName}
+            </a>
+          </p>
+          <p>
+            Licence (placeholder — unconfirmed):{" "}
+            <span className="font-medium text-foreground">
+              {STARTER_PACK_ATTRIBUTION.licenceLabel}
+            </span>
+            {!STARTER_PACK_ATTRIBUTION.licenceConfirmed ? (
+              <span>
+                {" "}
+                — confirm from the GOV.UK publication page licence footer before
+                release.
+              </span>
+            ) : null}
+          </p>
+        </div>
+      </section>
     </div>
   );
 }

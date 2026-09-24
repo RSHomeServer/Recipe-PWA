@@ -13,6 +13,7 @@ import {
 import { useRepos } from "@/data";
 import type { BatchListRow } from "@/features/cook/hooks";
 import { Button } from "@/ui/button";
+import { IngredientPicker } from "@/features/ingredients/IngredientPicker";
 import { CommandPicker } from "@/ui/command-picker";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
@@ -317,18 +318,14 @@ export function AddPlannedMealForm({
             {ingredients.length === 0 ? (
               <p className="text-sm text-muted-foreground">No ingredients yet</p>
             ) : (
-              <CommandPicker
+              <IngredientPicker
                 id="plan-ingredient"
                 aria-labelledby="plan-ingredient-label"
                 title="Choose ingredient"
                 value={ingredientId}
                 onValueChange={onIngredientChange}
                 recentIds={ingredientRecents}
-                items={ingredients.map((ingredient) => ({
-                  value: ingredient.id,
-                  label: ingredient.name,
-                  context: ingredient.measureKind,
-                }))}
+                ingredients={ingredients}
               />
             )}
           </div>

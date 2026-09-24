@@ -30,7 +30,7 @@ import {
 } from "@/domain";
 import { RecipeNutritionPanel } from "@/features/recipes/RecipeNutritionPanel";
 import { Button } from "@/ui/button";
-import { CommandPicker } from "@/ui/command-picker";
+import { IngredientPicker } from "@/features/ingredients/IngredientPicker";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import {
@@ -326,7 +326,7 @@ export function RecipeForm({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div className="min-w-0 flex-1 space-y-2">
                   <Label id="recipe-add-ingredient-label">Add ingredient</Label>
-                  <CommandPicker
+                  <IngredientPicker
                     id="recipe-add-ingredient"
                     aria-labelledby="recipe-add-ingredient-label"
                     title="Choose ingredient"
@@ -339,11 +339,7 @@ export function RecipeForm({
                       );
                     }}
                     recentIds={ingredientRecents}
-                    items={pickerOptions.map((ingredient) => ({
-                      value: ingredient.id,
-                      label: ingredient.name,
-                      context: ingredient.measureKind,
-                    }))}
+                    ingredients={pickerOptions}
                   />
                 </div>
                 <Button
