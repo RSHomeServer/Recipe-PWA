@@ -12,6 +12,9 @@ import {
   type Unit,
 } from "@/domain";
 import { useRepos } from "@/data";
+import { IngredientIdentity } from "@/features/ingredients/IngredientIdentity";
+import { useIngredientCategories } from "@/features/ingredients/hooks";
+import { useRecipeImageUrl } from "@/features/recipes/hooks";
 import { Quantity as QuantityDisplay } from "@/features/components/domain-stubs";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
@@ -37,6 +40,12 @@ export type StockRowProps = {
 
 export function StockRow({ ingredient, stock }: StockRowProps) {
   const repos = useRepos();
+  const categories = useIngredientCategories();
+  const category =
+    ingredient.categoryId == null
+      ? undefined
+      : categories?.find((row) => row.id === ingredient.categoryId);
+  const { url: imageUrl } = useRecipeImageUrl(ingredient.imageId);
   const units = unitsForKind(ingredient.measureKind);
   const defaultUnit = preferredDisplayUnit(stock.quantity);
   const [open, setOpen] = useState(false);
@@ -117,18 +126,26 @@ export function StockRow({ ingredient, stock }: StockRowProps) {
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <p className="font-medium">{ingredient.name}</p>
-          <QuantityDisplay
-            amount={amountPart ?? display}
-            unit={unitPart || undefined}
-            className="text-base"
+        <div className="flex min-w-0 items-start gap-3">
+          <IngredientIdentity
+            category={category}
+            imageUrl={imageUrl}
+            name={ingredient.name}
+            size="sm"
           />
-          {negative ? (
-            <p className="text-sm text-muted-foreground">
-              Records are behind what you used — correct when you can.
-            </p>
-          ) : null}
+          <div className="min-w-0 space-y-1">
+            <p className="font-medium">{ingredient.name}</p>
+            <QuantityDisplay
+              amount={amountPart ?? display}
+              unit={unitPart || undefined}
+              className="text-base"
+            />
+            {negative ? (
+              <p className="text-sm text-muted-foreground">
+                Records are behind what you used — correct when you can.
+              </p>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

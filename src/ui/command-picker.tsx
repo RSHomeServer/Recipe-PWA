@@ -33,6 +33,8 @@ export type CommandPickerItem = {
   disabledReason?: string;
   /** Secondary facts shown beside / under the label (R5.7). */
   context?: ReactNode;
+  /** Leading visual (e.g. category identity slot). */
+  leading?: ReactNode;
   /**
    * When any item sets this, the picker prefers `common: true` until the user
    * expands or searches (R2.9a).
@@ -298,6 +300,11 @@ function PickerRow({
       onSelect={() => onSelect(item.value)}
       aria-label={name}
     >
+      {item.leading ? (
+        <span className="shrink-0" aria-hidden="true">
+          {item.leading}
+        </span>
+      ) : null}
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate font-medium">{item.label}</span>
         {item.context ? (
