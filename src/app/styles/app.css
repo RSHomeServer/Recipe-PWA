@@ -84,7 +84,9 @@
   --color-macro-protein: #d9705a;
   --color-macro-carbs: #e8b85a;
   --color-macro-fat: #7fb0c4;
-  --color-macro-none: #6e665c;
+  /* Lightened from #6e665c for WCAG AA as text/legend on dark surfaces
+     (2.9:1 → 4.8:1); DESIGN.md §3 / §9 rule 1. */
+  --color-macro-none: #9a9184;
 }
 
 /* shadcn contract mapped onto PWA-Base tokens */

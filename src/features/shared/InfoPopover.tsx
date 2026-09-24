@@ -34,7 +34,7 @@ export function InfoPopover({
           <CircleHelp className="size-5" aria-hidden="true" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent side={side} align="start" className="text-sm leading-relaxed">
+      <PopoverContent side={side} align="start" className="text-base leading-relaxed">
         {children}
       </PopoverContent>
     </Popover>

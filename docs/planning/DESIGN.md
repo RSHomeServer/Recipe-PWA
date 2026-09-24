@@ -14,9 +14,11 @@ Implementation wiring is in [ARCHITECTURE.md](./ARCHITECTURE.md).
 > [ADR-005](../adr/005-choice-controls-by-cardinality.md). All other sections stand as
 > written; the V1 critique found the direction right and the geometry wrong.
 
-Colour values below are **provisional pending contrast verification in both themes** during
-the UI-foundation ticket. The **token names are the contract**; hex values may be tuned to
-meet the contrast requirements in §9. Nothing in the product references a raw hex value.
+Colour values below were **contrast-verified in both themes** (V2 ticket 10). Every macro
+colour now meets WCAG AA (≥4.5:1) as text/legend against `--color-surface` in light and dark;
+the dark `--color-macro-none` was lightened from `#6E665C` to `#9A9184` to clear it. The
+**token names are the contract**; hex values may be tuned to meet the contrast requirements
+in §9. Nothing in the product references a raw hex value.
 
 ## 1. Design intent
 
@@ -170,7 +172,7 @@ The most consequential colour decision in the product. These encode *which nutri
   --color-macro-protein: #D9705A;
   --color-macro-carbs:   #E8B85A;
   --color-macro-fat:     #7FB0C4;
-  --color-macro-none:    #6E665C;
+  --color-macro-none:    #9A9184;   /* lightened for AA on dark surfaces (§9 rule 1) */
 }
 ```
 
@@ -586,8 +588,9 @@ these are the additional, binding requirements for this product.
 
 1. **WCAG 2.1 AA contrast** for all text, in **both** themes. Every macro colour must reach
    AA against `--color-surface` when used for text or a legend label; where a fill cannot,
-   pair it with an adjacent AA-compliant text label. Verify during the UI-foundation ticket —
-   the hex values in §3 are provisional precisely because of this.
+   pair it with an adjacent AA-compliant text label. **Verified in V2 ticket 10:** all five
+   macro tokens clear AA against surface, raised and background in both themes (dark
+   `--color-macro-none` lightened to `#9A9184` to fix a 2.9:1 failure).
 2. **Never colour alone.** Availability, macro series, and status all carry text, an icon, or
    both. This is the rule most at risk in a colour-coded nutrition product.
 3. **Body text never below 16px.** No exceptions for "dense" tables.

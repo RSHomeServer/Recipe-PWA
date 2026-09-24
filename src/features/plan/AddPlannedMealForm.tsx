@@ -44,7 +44,6 @@ export type AddPlannedMealFormProps = {
   ingredients: Ingredient[];
   batchRows: BatchListRow[];
   onDone: () => void;
-  onCancel: () => void;
 };
 
 export function AddPlannedMealForm({
@@ -55,7 +54,6 @@ export function AddPlannedMealForm({
   ingredients,
   batchRows,
   onDone,
-  onCancel,
 }: AddPlannedMealFormProps) {
   const repos = useRepos();
   const plannedMeals = usePlannedMeals();
@@ -225,8 +223,14 @@ export function AddPlannedMealForm({
     try {
       const ok = await putPlanned(entry, note.trim() ? note.trim() : null);
       if (!ok) return;
-      toast.success("Meal planned");
-      onDone();
+      // Keep the composer open so a multi-item meal (the headline scenario) can
+      // be built with rapid successive picks. Reset only the per-entry fields;
+      // date, slot and kind persist. "Done" closes.
+      toast.success("Added to plan — add another or Done");
+      setAmount("");
+      setNote("");
+      setServings("1");
+      setPortions("1");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Could not save planned meal",
@@ -440,8 +444,8 @@ export function AddPlannedMealForm({
         <Button type="submit" disabled={busy}>
           {busy ? "Saving…" : "Add to plan"}
         </Button>
-        <Button type="button" variant="outline" onClick={onCancel} disabled={busy}>
-          Cancel
+        <Button type="button" variant="outline" onClick={onDone} disabled={busy}>
+          Done
         </Button>
       </div>
     </form>
