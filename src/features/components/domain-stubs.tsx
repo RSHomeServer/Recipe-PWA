@@ -163,7 +163,7 @@ const availabilityCopy: Record<
     Icon: Check,
   },
   almostCanMake: {
-    label: "Almost ready",
+    label: "Almost",
     token: "var(--color-warning)",
     Icon: AlertTriangle,
   },
@@ -291,24 +291,24 @@ const PLAN_TILE_META: Record<
   }
 > = {
   cook: {
-    label: "Still to cook",
-    hint: "Needs cooking — ingredients go on the shopping list",
+    label: "Cook a recipe",
+    hint: "You'll cook this fresh — ingredients go on the shopping list",
     surface:
       "border-2 border-[var(--color-accent)] bg-[var(--color-surface-raised)]",
     iconWrap: "bg-accent text-primary-foreground",
     Icon: ChefHat,
   },
   portion: {
-    label: "Already cooked",
-    hint: "From a batch you already made — nothing to buy",
+    label: "From a batch",
+    hint: "A portion you already cooked — nothing to buy",
     surface:
       "border border-[var(--color-border-subtle)] bg-[var(--color-surface-sunken)]",
     iconWrap: "bg-muted text-muted-foreground",
     Icon: Utensils,
   },
   ingredient: {
-    label: "Eat as-is",
-    hint: "A raw ingredient — quantity goes on the shopping list",
+    label: "Eat or heat one item",
+    hint: "One thing from the pack — quantity goes on the shopping list",
     surface: "border border-dashed border-border bg-background",
     iconWrap: "bg-[var(--color-surface-raised)] text-foreground",
     Icon: Leaf,

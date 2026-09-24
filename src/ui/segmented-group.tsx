@@ -109,6 +109,17 @@ export function SegmentedGroup({
           {selected.helperText}
         </p>
       ) : null}
+      {options
+        .filter((option) => option.disabled && option.disabledReason)
+        .map((option) => (
+          <p
+            key={`${option.value}-disabled`}
+            className="text-sm text-muted-foreground"
+            data-slot="segmented-group-disabled-reason"
+          >
+            {option.label} — {option.disabledReason}
+          </p>
+        ))}
     </div>
   );
 }

@@ -1,10 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { useRecipeData } from "@/data";
 import { portionNutrition } from "@/domain";
 import { NutritionSummary } from "@/features/components/domain-stubs";
 import { useBatchListRows } from "@/features/cook/hooks";
+import { HowThisWorksPanel } from "@/features/shared/HowThisWorks";
+import { InfoPopover } from "@/features/shared/InfoPopover";
+import { LEXICON } from "@/features/shared/entry-kind-copy";
 import { PageHeader } from "@/features/shared/RoutePlaceholder";
 import { RouteStatePanel } from "@/features/shared/RouteStatePanel";
 import { Button } from "@/ui/button";
@@ -22,6 +25,9 @@ const listStateConfig = {
   },
 } as const;
 
+const COOK_DESCRIPTION =
+  "A batch is one cooking session. You cooked a recipe, it made portions, and those portions are now food in your fridge or freezer.";
+
 function formatCookedAt(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
@@ -29,6 +35,32 @@ function formatCookedAt(iso: string): string {
     dateStyle: "medium",
     timeStyle: "short",
   });
+}
+
+function CookPageHeader({
+  actions,
+}: {
+  actions?: ReactNode;
+}) {
+  return (
+    <PageHeader
+      title="Batches"
+      titleAccessory={
+        <InfoPopover label="What is a batch?">
+          <p className="font-medium text-foreground">Batch</p>
+          <p className="mt-1 text-muted-foreground">{LEXICON.batch}</p>
+          <p className="mt-3 font-medium text-foreground">Portion</p>
+          <p className="mt-1 text-muted-foreground">{LEXICON.portion}</p>
+          <p className="mt-3 text-muted-foreground">
+            Planning to eat a portion adds nothing to your shopping list,
+            because you already bought and cooked it.
+          </p>
+        </InfoPopover>
+      }
+      description={COOK_DESCRIPTION}
+      actions={actions}
+    />
+  );
 }
 
 export default function CookPage() {
@@ -48,8 +80,8 @@ export default function CookPage() {
 
   if (dataError) {
     return (
-      <div className="app-page content">
-        <PageHeader title="Batches" description="Cook recipes and track portions remaining." />
+      <div className="app-page content space-y-8">
+        <CookPageHeader />
         <RouteStatePanel state="error" config={listStateConfig} />
       </div>
     );
@@ -57,8 +89,8 @@ export default function CookPage() {
 
   if (!ready || rows === undefined) {
     return (
-      <div className="app-page content">
-        <PageHeader title="Batches" description="Cook recipes and track portions remaining." />
+      <div className="app-page content space-y-8">
+        <CookPageHeader />
         <RouteStatePanel state="loading" config={listStateConfig} />
       </div>
     );
@@ -66,10 +98,8 @@ export default function CookPage() {
 
   if (rows.length === 0) {
     return (
-      <div className="app-page content">
-        <PageHeader
-          title="Batches"
-          description="Cook recipes and track portions remaining."
+      <div className="app-page content space-y-8">
+        <CookPageHeader
           actions={
             <Button type="button" onClick={goCook}>
               <Plus className="size-4" aria-hidden="true" />
@@ -77,6 +107,7 @@ export default function CookPage() {
             </Button>
           }
         />
+        <HowThisWorksPanel />
         <RouteStatePanel
           state="empty"
           config={listStateConfig}
@@ -89,10 +120,8 @@ export default function CookPage() {
   const list = visible ?? rows;
 
   return (
-    <div className="app-page content">
-      <PageHeader
-        title="Batches"
-        description="Cook recipes and track portions remaining."
+    <div className="app-page content space-y-8">
+      <CookPageHeader
         actions={
           <Button type="button" onClick={goCook}>
             <Plus className="size-4" aria-hidden="true" />
@@ -100,6 +129,8 @@ export default function CookPage() {
           </Button>
         }
       />
+
+      <HowThisWorksPanel />
 
       <div className="mb-4 flex items-center gap-3">
         <label className="flex items-center gap-2 text-sm text-muted-foreground">

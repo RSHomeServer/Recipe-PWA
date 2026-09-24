@@ -16,8 +16,8 @@ export function RequirementsPreview({
   if (lines.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No shopping requirements for this week. Batch portions do not add
-        ingredients — only recipes to cook and bare ingredients do.
+        No shopping requirements for this week. Portions from batches do not
+        add ingredients — only recipes you will cook and pack items do.
       </p>
     );
   }
