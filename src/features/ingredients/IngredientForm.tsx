@@ -13,15 +13,32 @@ import {
   type MeasureKind,
 } from "@/domain";
 import { Button } from "@/ui/button";
+import { Choice } from "@/ui/choice";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
-import { NativeSelect } from "@/ui/native-select";
+import { SegmentedGroup } from "@/ui/segmented-group";
 import { Textarea } from "@/ui/textarea";
 
-const MEASURE_KIND_OPTIONS: { value: MeasureKind; label: string }[] = [
-  { value: "mass", label: "Mass (g / kg)" },
-  { value: "volume", label: "Volume (ml / L)" },
-  { value: "count", label: "Count (items)" },
+const MEASURE_KIND_OPTIONS: {
+  value: MeasureKind;
+  label: string;
+  helperText: string;
+}[] = [
+  {
+    value: "mass",
+    label: "Mass",
+    helperText: "Quantities in grams or kilograms.",
+  },
+  {
+    value: "volume",
+    label: "Volume",
+    helperText: "Quantities in millilitres or litres.",
+  },
+  {
+    value: "count",
+    label: "Count",
+    helperText: "Quantities as whole or fractional items.",
+  },
 ];
 
 export type IngredientFormProps = {
@@ -127,55 +144,53 @@ export function IngredientForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="ingredient-category">Category</Label>
+        <Label id="ingredient-category-label">Category</Label>
         <Controller
           control={control}
           name="categoryId"
           render={({ field }) => (
-            <NativeSelect
+            <Choice
               id="ingredient-category"
+              aria-labelledby="ingredient-category-label"
               value={field.value ?? ""}
-              onChange={(event) => {
-                const value = event.target.value;
+              onValueChange={(value) => {
                 field.onChange(value === "" ? null : value);
               }}
-              onBlur={field.onBlur}
-              ref={field.ref}
-            >
-              <option value="">Uncategorized</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </NativeSelect>
+              options={[
+                { value: "", label: "Uncategorized" },
+                ...categories.map((category) => ({
+                  value: category.id,
+                  label: category.name,
+                })),
+              ]}
+            />
           )}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="ingredient-measure-kind">Measure kind (required)</Label>
+        <Label id="ingredient-measure-kind-label">Measure kind (required)</Label>
         <Controller
           control={control}
           name="measureKind"
           render={({ field }) => (
-            <NativeSelect
+            <SegmentedGroup
               id="ingredient-measure-kind"
+              aria-labelledby="ingredient-measure-kind-label"
+              aria-describedby="ingredient-measure-kind-help"
               value={field.value}
               disabled={measureKindLocked}
-              onChange={(event) =>
-                field.onChange(event.target.value as MeasureKind)
-              }
-              onBlur={field.onBlur}
-              ref={field.ref}
-              aria-describedby="ingredient-measure-kind-help"
-            >
-              {MEASURE_KIND_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </NativeSelect>
+              onValueChange={(value) => field.onChange(value as MeasureKind)}
+              options={MEASURE_KIND_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label,
+                helperText: option.helperText,
+                disabled: measureKindLocked,
+                disabledReason: measureKindLocked
+                  ? "Locked because this ingredient is already used"
+                  : undefined,
+              }))}
+            />
           )}
         />
         <p

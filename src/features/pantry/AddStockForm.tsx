@@ -9,9 +9,14 @@ import {
 } from "@/domain";
 import { useRepos } from "@/data";
 import { Button } from "@/ui/button";
+import { CommandPicker } from "@/ui/command-picker";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
-import { NativeSelect } from "@/ui/native-select";
+import {
+  readPickerRecents,
+  rememberPickerRecent,
+} from "@/ui/picker-recents";
+import { UnitChoice } from "@/ui/unit-choice";
 
 export type AddStockFormProps = {
   candidates: Ingredient[];
@@ -26,6 +31,9 @@ export function AddStockForm({
 }: AddStockFormProps) {
   const repos = useRepos();
   const [ingredientId, setIngredientId] = useState(candidates[0]?.id ?? "");
+  const [recents, setRecents] = useState(() =>
+    readPickerRecents("ingredients"),
+  );
   const selected =
     candidates.find((row) => row.id === ingredientId) ?? candidates[0];
   const units = selected ? unitsForKind(selected.measureKind) : [];
@@ -35,6 +43,7 @@ export function AddStockForm({
 
   const onIngredientChange = (id: string) => {
     setIngredientId(id);
+    setRecents(rememberPickerRecent("ingredients", id));
     const next = candidates.find((row) => row.id === id);
     if (next) {
       const nextUnits = unitsForKind(next.measureKind);
@@ -95,22 +104,24 @@ export function AddStockForm({
 
   return (
     <form
-      className="grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_6rem_6rem_auto]"
+      className="grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_6rem_minmax(0,8rem)_auto]"
       onSubmit={(event) => void onSubmit(event)}
     >
       <div className="space-y-2">
-        <Label htmlFor="add-stock-ingredient">Ingredient</Label>
-        <NativeSelect
+        <Label id="add-stock-ingredient-label">Ingredient</Label>
+        <CommandPicker
           id="add-stock-ingredient"
+          aria-labelledby="add-stock-ingredient-label"
+          title="Choose ingredient"
           value={selected?.id ?? ""}
-          onChange={(event) => onIngredientChange(event.target.value)}
-        >
-          {candidates.map((ingredient) => (
-            <option key={ingredient.id} value={ingredient.id}>
-              {ingredient.name}
-            </option>
-          ))}
-        </NativeSelect>
+          onValueChange={onIngredientChange}
+          recentIds={recents}
+          items={candidates.map((ingredient) => ({
+            value: ingredient.id,
+            label: ingredient.name,
+            context: ingredient.measureKind,
+          }))}
+        />
       </div>
       <div className="space-y-2">
         <Label htmlFor="add-stock-amount">Amount</Label>
@@ -124,18 +135,14 @@ export function AddStockForm({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="add-stock-unit">Unit</Label>
-        <NativeSelect
+        <Label id="add-stock-unit-label">Unit</Label>
+        <UnitChoice
           id="add-stock-unit"
+          aria-labelledby="add-stock-unit-label"
+          units={units}
           value={unit}
-          onChange={(event) => setUnit(event.target.value as Unit)}
-        >
-          {units.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </NativeSelect>
+          onValueChange={setUnit}
+        />
       </div>
       <div className="flex items-end">
         <Button type="submit" disabled={busy || !selected}>

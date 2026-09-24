@@ -6,9 +6,14 @@ import {
   type Unit,
 } from "@/domain";
 import { Button } from "@/ui/button";
+import { CommandPicker } from "@/ui/command-picker";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
-import { NativeSelect } from "@/ui/native-select";
+import {
+  readPickerRecents,
+  rememberPickerRecent,
+} from "@/ui/picker-recents";
+import { UnitChoice } from "@/ui/unit-choice";
 
 export type ManualAddFormProps = {
   ingredients: Ingredient[];
@@ -22,6 +27,9 @@ export function ManualAddForm({
   onCancel,
 }: ManualAddFormProps) {
   const [ingredientId, setIngredientId] = useState(ingredients[0]?.id ?? "");
+  const [recents, setRecents] = useState(() =>
+    readPickerRecents("ingredients"),
+  );
   const selected =
     ingredients.find((i) => i.id === ingredientId) ?? ingredients[0];
   const units = selected ? unitsForKind(selected.measureKind) : [];
@@ -30,6 +38,7 @@ export function ManualAddForm({
 
   const onIngredientChange = (id: string) => {
     setIngredientId(id);
+    setRecents(rememberPickerRecent("ingredients", id));
     const next = ingredients.find((row) => row.id === id);
     if (next) {
       const nextUnits = unitsForKind(next.measureKind);
@@ -52,18 +61,20 @@ export function ManualAddForm({
     >
       <p className="font-medium">Add something to buy</p>
       <div className="space-y-1">
-        <Label htmlFor="manual-ingredient">Ingredient</Label>
-        <NativeSelect
+        <Label id="manual-ingredient-label">Ingredient</Label>
+        <CommandPicker
           id="manual-ingredient"
+          aria-labelledby="manual-ingredient-label"
+          title="Choose ingredient"
           value={ingredientId}
-          onChange={(e) => onIngredientChange(e.target.value)}
-        >
-          {ingredients.map((ingredient) => (
-            <option key={ingredient.id} value={ingredient.id}>
-              {ingredient.name}
-            </option>
-          ))}
-        </NativeSelect>
+          onValueChange={onIngredientChange}
+          recentIds={recents}
+          items={ingredients.map((ingredient) => ({
+            value: ingredient.id,
+            label: ingredient.name,
+            context: ingredient.measureKind,
+          }))}
+        />
       </div>
       <div className="flex flex-wrap gap-3">
         <div className="space-y-1">
@@ -80,18 +91,14 @@ export function ManualAddForm({
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="manual-unit">Unit</Label>
-          <NativeSelect
+          <Label id="manual-unit-label">Unit</Label>
+          <UnitChoice
             id="manual-unit"
+            aria-labelledby="manual-unit-label"
+            units={units}
             value={unit}
-            onChange={(e) => setUnit(e.target.value as Unit)}
-          >
-            {units.map((u) => (
-              <option key={u} value={u}>
-                {u}
-              </option>
-            ))}
-          </NativeSelect>
+            onValueChange={setUnit}
+          />
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
