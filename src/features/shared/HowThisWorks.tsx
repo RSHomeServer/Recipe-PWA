@@ -37,7 +37,7 @@ export function HowThisWorksPanel() {
           >
             How this works
           </h2>
-          <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+          <ol className="list-decimal space-y-1 pl-5 text-base text-muted-foreground">
             {LOOP_SENTENCES.map((sentence) => (
               <li key={sentence}>{sentence}</li>
             ))}

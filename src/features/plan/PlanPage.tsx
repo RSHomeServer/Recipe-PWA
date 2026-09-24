@@ -804,7 +804,6 @@ export default function PlanPage() {
           ingredients={ingredients}
           batchRows={batchRows}
           onDone={() => setComposer(null)}
-          onCancel={() => setComposer(null)}
         />
       ) : null}
 
