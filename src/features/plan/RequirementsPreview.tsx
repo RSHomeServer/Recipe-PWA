@@ -23,17 +23,14 @@ export function RequirementsPreview({
   }
 
   return (
-    <ul className="space-y-2">
+    <ul className="app-list-measure space-y-2">
       {lines.map((line) => {
         const name =
           ingredientsById.get(line.ingredientId)?.name ?? "Unknown ingredient";
         return (
-          <li
-            key={line.ingredientId}
-            className="flex items-baseline justify-between gap-4 text-base"
-          >
-            <span>{name}</span>
-            <span className="num font-mono text-sm text-muted-foreground">
+          <li key={line.ingredientId} className="app-list-row text-base">
+            <span className="min-w-0 flex-1">{name}</span>
+            <span className="app-list-row-metrics num font-mono text-sm text-muted-foreground">
               {formatQuantity(line.quantity)}
             </span>
           </li>

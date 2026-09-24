@@ -241,7 +241,7 @@ export function RecipeForm({
 
   return (
     <form
-      className="space-y-10"
+      className="space-y-8"
       onSubmit={handleSubmit(async (values) => {
         const built = buildRecipeFields(values, ingredientsById);
         if (!built.ok) {

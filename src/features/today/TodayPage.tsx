@@ -12,7 +12,7 @@ export default function TodayPage() {
   const consumed = useTodayConsumedKcal(today);
 
   return (
-    <div className="app-page">
+    <div className="app-page content">
       <PageHeader
         title="Today"
         description="What to eat, quick-log, and plan for today."

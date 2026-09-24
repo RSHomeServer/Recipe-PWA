@@ -49,7 +49,7 @@ export default function RecipeDetailPage() {
 
   if (dataError) {
     return (
-      <div className="app-page">
+      <div className="app-page prose">
         <PageHeader title="Recipe" />
         <RouteStatePanel state="error" config={detailStateConfig} />
       </div>
@@ -64,7 +64,7 @@ export default function RecipeDetailPage() {
     waitingForRow
   ) {
     return (
-      <div className="app-page">
+      <div className="app-page prose">
         <PageHeader title={isCreate ? "New recipe" : "Recipe"} />
         <RouteStatePanel state="loading" config={detailStateConfig} />
       </div>
@@ -73,7 +73,7 @@ export default function RecipeDetailPage() {
 
   if (!isCreate && recipe === null) {
     return (
-      <div className="app-page">
+      <div className="app-page prose">
         <PageHeader title="Recipe" />
         <RouteStatePanel
           state="empty"
@@ -161,7 +161,7 @@ export default function RecipeDetailPage() {
   };
 
   return (
-    <div className="app-page">
+    <div className="app-page prose">
       <PageHeader
         title={title}
         description={

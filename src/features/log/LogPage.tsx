@@ -318,7 +318,7 @@ export default function LogPage() {
 
   if (dataError) {
     return (
-      <div className="app-page">
+      <div className="app-page content">
         <PageHeader title="Log" description="Diary by day — fast meal logging." />
         <RouteStatePanel state="error" config={logStateConfig} />
       </div>
@@ -326,7 +326,7 @@ export default function LogPage() {
   }
 
   return (
-    <div className="app-page">
+    <div className="app-page content">
       <PageHeader
         title="Log"
         description="What you actually ate — day and slot. Plan stays intent."

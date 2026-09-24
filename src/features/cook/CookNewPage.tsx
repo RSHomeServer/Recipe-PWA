@@ -239,7 +239,7 @@ export default function CookNewPage() {
 
   if (dataError) {
     return (
-      <div className="app-page">
+      <div className="app-page prose">
         <PageHeader title="Cook a recipe" />
         <RouteStatePanel state="error" config={pageStateConfig} />
       </div>
@@ -253,7 +253,7 @@ export default function CookNewPage() {
     stockById === undefined
   ) {
     return (
-      <div className="app-page">
+      <div className="app-page prose">
         <PageHeader title="Cook a recipe" />
         <RouteStatePanel state="loading" config={pageStateConfig} />
       </div>
@@ -262,7 +262,7 @@ export default function CookNewPage() {
 
   if (activeRecipes.length === 0) {
     return (
-      <div className="app-page">
+      <div className="app-page prose">
         <PageHeader title="Cook a recipe" />
         <RouteStatePanel
           state="empty"
@@ -276,7 +276,7 @@ export default function CookNewPage() {
   }
 
   return (
-    <div className="app-page space-y-8">
+    <div className="app-page prose space-y-8">
       <PageHeader
         title="Cook a recipe"
         description="Confirm what you actually used. Nutrition freezes into a batch snapshot."

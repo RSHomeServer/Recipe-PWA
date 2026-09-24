@@ -242,7 +242,7 @@ export default function ShoppingPage() {
 
   if (dataError) {
     return (
-      <div className="app-page">
+      <div className="app-page workspace">
         <PageHeader
           title="Shopping"
           description="Derived list from your plan and pantry."
@@ -254,7 +254,7 @@ export default function ShoppingPage() {
 
   if (!ready || !window || lineViews === undefined || groups === undefined) {
     return (
-      <div className="app-page">
+      <div className="app-page workspace">
         <PageHeader
           title="Shopping"
           description="Derived list from your plan and pantry."
@@ -265,7 +265,7 @@ export default function ShoppingPage() {
   }
 
   return (
-    <div className="app-page">
+    <div className="app-page workspace">
       <PageHeader
         title="Shopping"
         description="Live list from your plan minus what is already in the pantry."

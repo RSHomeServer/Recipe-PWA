@@ -170,7 +170,7 @@ export default function InsightsPage() {
 
   if (data === undefined) {
     return (
-      <div className="app-page">
+      <div className="app-page workspace">
         <PageHeader
           title="Insights"
           description="Where your calories came from — organised by question."
@@ -183,7 +183,7 @@ export default function InsightsPage() {
   const hasLogs = data.logs.length > 0;
   if (!hasLogs) {
     return (
-      <div className="app-page">
+      <div className="app-page workspace">
         <PageHeader
           title="Insights"
           description="Where your calories came from — organised by question."
@@ -231,7 +231,7 @@ export default function InsightsPage() {
   }));
 
   return (
-    <div className="app-page space-y-12">
+    <div className="app-page workspace space-y-8">
       <PageHeader
         title="Insights"
         description={`Week of ${formatWeekRangeLabel(data.weekRange)}. Derived from your meal log — nothing stored separately.`}

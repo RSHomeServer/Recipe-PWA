@@ -45,7 +45,7 @@ export default function IngredientDetailPage() {
 
   if (dataError) {
     return (
-      <div className="app-page">
+      <div className="app-page prose">
         <PageHeader title="Ingredient" />
         <RouteStatePanel state="error" config={detailStateConfig} />
       </div>
@@ -55,7 +55,7 @@ export default function IngredientDetailPage() {
   const waitingForRow = !isCreate && ingredient === undefined;
   if (!ready || categories === undefined || waitingForRow) {
     return (
-      <div className="app-page">
+      <div className="app-page prose">
         <PageHeader title={isCreate ? "New ingredient" : "Ingredient"} />
         <RouteStatePanel state="loading" config={detailStateConfig} />
       </div>
@@ -64,7 +64,7 @@ export default function IngredientDetailPage() {
 
   if (!isCreate && ingredient === null) {
     return (
-      <div className="app-page">
+      <div className="app-page prose">
         <PageHeader title="Ingredient" />
         <RouteStatePanel
           state="empty"
@@ -127,7 +127,7 @@ export default function IngredientDetailPage() {
   };
 
   return (
-    <div className="app-page">
+    <div className="app-page prose">
       <PageHeader
         title={title}
         description={

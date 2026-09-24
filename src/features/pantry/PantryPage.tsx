@@ -92,7 +92,7 @@ export default function PantryPage() {
 
   if (dataError) {
     return (
-      <div className="app-page">
+      <div className="app-page content">
         <PageHeader
           title="Pantry"
           description="What you have in stock and what you can cook."
@@ -111,7 +111,7 @@ export default function PantryPage() {
     addCandidates === undefined
   ) {
     return (
-      <div className="app-page">
+      <div className="app-page content">
         <PageHeader
           title="Pantry"
           description="What you have in stock and what you can cook."
@@ -126,7 +126,7 @@ export default function PantryPage() {
   const showAddForm = showAdd || (isEmpty && !noIngredients);
 
   return (
-    <div className="app-page space-y-10">
+    <div className="app-page content space-y-8">
       <PageHeader
         title="Pantry"
         description="What you have in stock and what you can cook."
@@ -228,13 +228,10 @@ export default function PantryPage() {
                 to see what you can cook from stock.
               </p>
             ) : (
-              <ul className="divide-y divide-border border-y border-border">
+              <ul className="app-list-measure divide-y divide-border border-y border-border">
                 {availabilityRows.map((row) => (
-                  <li
-                    key={row.recipe.id}
-                    className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start sm:justify-between"
-                  >
-                    <div className="min-w-0 space-y-1">
+                  <li key={row.recipe.id} className="app-list-row items-start py-4">
+                    <div className="min-w-0 flex-1 space-y-1">
                       <Link
                         to={`/recipes/${row.recipe.id}`}
                         className="font-medium underline-offset-2 hover:underline"
@@ -246,11 +243,13 @@ export default function PantryPage() {
                         {row.recipe.servings === 1 ? "serving" : "servings"}
                       </p>
                     </div>
-                    <AvailabilityIndicator
-                      state={row.availability.status}
-                      shortfalls={row.shortfallLabels}
-                      className="sm:max-w-sm"
-                    />
+                    <div className="app-list-row-metrics">
+                      <AvailabilityIndicator
+                        state={row.availability.status}
+                        shortfalls={row.shortfallLabels}
+                        className="text-start sm:text-end"
+                      />
+                    </div>
                   </li>
                 ))}
               </ul>
