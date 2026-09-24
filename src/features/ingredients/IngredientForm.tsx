@@ -1,18 +1,22 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
+  createId,
   emptyIngredientFormValues,
   hasDivergedFromReference,
   IngredientFormSchema,
   nutritionBasisLabel,
+  resizeRecipeImage,
   type Ingredient,
   type IngredientCategory,
   type IngredientFormParsed,
   type IngredientFormValues,
   type MeasureKind,
+  type RecipeImage,
 } from "@/domain";
+import { IngredientIdentity } from "@/features/ingredients/IngredientIdentity";
 import { Button } from "@/ui/button";
 import { Choice } from "@/ui/choice";
 import { Input } from "@/ui/input";
@@ -45,9 +49,14 @@ const MEASURE_KIND_OPTIONS: {
 export type IngredientFormProps = {
   categories: IngredientCategory[];
   initial?: Ingredient;
+  existingImageUrl?: string | null;
   measureKindLocked: boolean;
   submitting?: boolean;
-  onSubmit: (values: IngredientFormParsed) => Promise<void>;
+  onSubmit: (payload: {
+    values: IngredientFormParsed;
+    image: RecipeImage | null;
+    removeImage: boolean;
+  }) => Promise<void>;
   onArchive?: () => Promise<void>;
   onRestore?: () => Promise<void>;
   onCancel: () => void;
@@ -65,6 +74,7 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 export function IngredientForm({
   categories,
   initial,
+  existingImageUrl,
   measureKindLocked,
   submitting = false,
   onSubmit,
@@ -107,8 +117,30 @@ export function IngredientForm({
     });
   }, [initial, reset]);
 
+  const [pendingImage, setPendingImage] = useState<RecipeImage | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(
+    null,
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    };
+  }, [pendingPreviewUrl]);
+
   const measureKind = useWatch({ control, name: "measureKind" }) ?? "mass";
+  const watchedCategoryId = useWatch({ control, name: "categoryId" });
+  const watchedName = useWatch({ control, name: "name" }) ?? "";
   const basisLabel = nutritionBasisLabel(measureKind);
+  const selectedCategory = useMemo(() => {
+    if (watchedCategoryId == null || watchedCategoryId === "") return undefined;
+    return categories.find((category) => category.id === watchedCategoryId);
+  }, [categories, watchedCategoryId]);
+  const showImage =
+    pendingPreviewUrl ??
+    (removeImage ? null : (existingImageUrl ?? null));
   const busy = submitting || isSubmitting;
   const isArchived = initial?.archivedAt != null;
   const diverged = initial ? hasDivergedFromReference(initial) : false;
@@ -122,6 +154,40 @@ export function IngredientForm({
       diverged ||
       initial.source.entryCode != null);
 
+  const onImageSelected = async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choose an image file");
+      return;
+    }
+    try {
+      const resized = await resizeRecipeImage(file, { aspect: 1 });
+      const image: RecipeImage = {
+        id: createId(),
+        blob: resized.blob,
+        width: resized.width,
+        height: resized.height,
+      };
+      if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+      setPendingImage(image);
+      setPendingPreviewUrl(URL.createObjectURL(resized.blob));
+      setRemoveImage(false);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Could not process image",
+      );
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const clearImage = () => {
+    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    setPendingImage(null);
+    setPendingPreviewUrl(null);
+    setRemoveImage(true);
+  };
+
   const nameErrorId = "ingredient-name-error";
   const kcalErrorId = "ingredient-kcal-error";
   const proteinErrorId = "ingredient-protein-error";
@@ -133,7 +199,11 @@ export function IngredientForm({
       className="mx-auto max-w-xl space-y-8"
       onSubmit={handleSubmit(async (values) => {
         try {
-          await onSubmit(values);
+          await onSubmit({
+            values,
+            image: pendingImage,
+            removeImage: removeImage && !pendingImage,
+          });
         } catch (err) {
           toast.error(
             err instanceof Error ? err.message : "Could not save ingredient",
@@ -185,6 +255,55 @@ export function IngredientForm({
           {...register("name")}
         />
         <FieldError id={nameErrorId} message={errors.name?.message} />
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-start gap-4">
+          <IngredientIdentity
+            category={selectedCategory}
+            imageUrl={showImage}
+            name={watchedName.trim() || "Ingredient"}
+            size="lg"
+            labelled
+          />
+          <div className="min-w-0 flex-1 space-y-2">
+            <p className="text-sm font-medium text-foreground">Photo (optional)</p>
+            <p className="text-sm text-muted-foreground">
+              Category icon fills this slot when no photo is set. Upload lives
+              here in the editor only — lists never look ragged.
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              id="ingredient-image-input"
+              onChange={(event) => {
+                void onImageSelected(event.target.files?.[0]);
+              }}
+            />
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {showImage ? "Replace photo" : "Add photo"}
+              </Button>
+              {showImage ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={clearImage}
+                >
+                  Remove photo
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-2">
