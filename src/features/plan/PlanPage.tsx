@@ -78,6 +78,9 @@ import {
 import { RequirementsPreview } from "./RequirementsPreview";
 import { movePlannedMeal } from "./reorder";
 import { useIsMdUp } from "./use-media";
+import { HowThisWorksPanel } from "@/features/shared/HowThisWorks";
+import { InfoPopover } from "@/features/shared/InfoPopover";
+import { LEXICON } from "@/features/shared/entry-kind-copy";
 
 const listStateConfig = {
   empty: {
@@ -514,7 +517,15 @@ export default function PlanPage() {
     <div className="app-page workspace space-y-8">
       <PageHeader
         title="Meal plan"
-        description="Plan what you will cook, eat from batches you already made, or have raw. Planning never touches the pantry."
+        titleAccessory={
+          <InfoPopover label="What is planned food?">
+            <p className="font-medium text-foreground">Planned</p>
+            <p className="mt-1 text-muted-foreground">{LEXICON.planned}</p>
+            <p className="mt-3 font-medium text-foreground">Batch</p>
+            <p className="mt-1 text-muted-foreground">{LEXICON.batch}</p>
+          </InfoPopover>
+        }
+        description="Plan what you will cook, eat from batches, or take from the pack. Planning never touches the pantry."
         actions={
           <Button type="button" onClick={() => openComposer(dayInWeek)}>
             <Plus className="size-4" aria-hidden="true" />
@@ -522,6 +533,8 @@ export default function PlanPage() {
           </Button>
         }
       />
+
+      <HowThisWorksPanel />
 
       <div className="flex flex-wrap items-center gap-2">
         <Button

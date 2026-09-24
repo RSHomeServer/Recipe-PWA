@@ -7,7 +7,7 @@ import {
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "react-router-dom";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   RecipeFormSchema,
@@ -28,6 +28,7 @@ import {
   type RecipeImage,
   type Unit,
 } from "@/domain";
+import { SINGLE_INGREDIENT_RECIPE_WARN } from "@/features/shared/entry-kind-copy";
 import { RecipeNutritionPanel } from "@/features/recipes/RecipeNutritionPanel";
 import { Button } from "@/ui/button";
 import { CommandPicker } from "@/ui/command-picker";
@@ -110,6 +111,8 @@ export function RecipeForm({
   const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(
     null,
   );
+  const [dismissedSingleIngredientKey, setDismissedSingleIngredientKey] =
+    useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -153,6 +156,14 @@ export function RecipeForm({
     () => new Set(watchedLines.map((line) => line.ingredientId)),
     [watchedLines],
   );
+
+  const singleIngredientWarnKey =
+    watchedLines.length === 1 && Number(watchedServings) === 1
+      ? `1:${watchedLines[0]?.ingredientId ?? ""}:1`
+      : null;
+  const showSingleIngredientWarn =
+    singleIngredientWarnKey != null &&
+    dismissedSingleIngredientKey !== singleIngredientWarnKey;
 
   const pickerOptions = activeIngredients.filter(
     (ingredient) => !usedIngredientIds.has(ingredient.id),
@@ -661,6 +672,32 @@ export function RecipeForm({
           </Button>
         </div>
       </div>
+
+      {showSingleIngredientWarn ? (
+        <div
+          role="status"
+          className="flex items-start justify-between gap-3 rounded-lg border border-[var(--color-warning)]/40 bg-[var(--color-surface-raised)] p-3"
+          data-slot="single-ingredient-recipe-warn"
+        >
+          <p className="text-sm text-muted-foreground">
+            {SINGLE_INGREDIENT_RECIPE_WARN}
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-11 shrink-0"
+            aria-label="Dismiss single-ingredient warning"
+            onClick={() => {
+              if (singleIngredientWarnKey) {
+                setDismissedSingleIngredientKey(singleIngredientWarnKey);
+              }
+            }}
+          >
+            <X className="size-4" aria-hidden="true" />
+          </Button>
+        </div>
+      ) : null}
     </form>
   );
 }
