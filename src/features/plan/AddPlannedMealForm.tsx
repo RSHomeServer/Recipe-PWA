@@ -1,14 +1,12 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import {
-  createId,
   deriveRecents,
   recipePerServing,
   unitsForKind,
   type Ingredient,
   type MealSlot,
   type PlanMealEntry,
-  type PlannedMeal,
   type Recipe,
   type Unit,
 } from "@/domain";
@@ -21,8 +19,9 @@ import {
   planEntryKindOptions,
 } from "@/features/shared/entry-kind-copy";
 import { InfoPopover } from "@/features/shared/InfoPopover";
-import { planEntryLabel } from "@/features/plan/labels";
+import { appendPlannedMeal } from "@/features/plan/appendPlannedMeal";
 import { usePlannedMeals } from "@/features/plan/hooks";
+import { RecentsRail } from "@/features/plan/RecentsRail";
 import { Button } from "@/ui/button";
 import { IngredientPicker } from "@/features/ingredients/IngredientPicker";
 import { CommandPicker } from "@/ui/command-picker";
@@ -139,19 +138,11 @@ export function AddPlannedMealForm({
       toast.error("Data is not ready yet");
       return false;
     }
-    const existing = (await repos.plannedMeals.all()).filter(
-      (m: PlannedMeal) => m.date === date && m.slotId === slotId,
-    );
-    const position =
-      existing.reduce((max, m) => Math.max(max, m.position), -1) + 1;
-    await repos.plannedMeals.put({
-      id: createId(),
+    await appendPlannedMeal(repos, {
       date,
       slotId,
       entry,
-      position,
       note: entryNote,
-      group: null,
     });
     return true;
   };
@@ -250,42 +241,15 @@ export function AddPlannedMealForm({
       className="space-y-4 rounded-lg border border-border bg-[var(--color-surface-raised)] p-4"
       onSubmit={(event) => void onSubmit(event)}
     >
-      {recents.length > 0 ? (
-        <div className="space-y-2">
-          <Label id="plan-recents-label">Recent</Label>
-          <div
-            className="flex flex-wrap gap-2"
-            role="list"
-            aria-labelledby="plan-recents-label"
-          >
-            {recents.map((recent) => {
-              const label = planEntryLabel(
-                recent.entry,
-                recipesById,
-                ingredientsById,
-                batchNameById,
-              );
-              return (
-                <Button
-                  key={recent.identityKey}
-                  type="button"
-                  role="listitem"
-                  variant="outline"
-                  size="sm"
-                  className="max-w-full"
-                  disabled={busy}
-                  onClick={() => void onRecentTap(recent.entry)}
-                >
-                  <span className="truncate">{label.title}</span>
-                  <span className="ml-1 truncate text-muted-foreground">
-                    · {label.subtitle}
-                  </span>
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
+      <RecentsRail
+        recents={recents}
+        recipesById={recipesById}
+        ingredientsById={ingredientsById}
+        batchNameById={batchNameById}
+        disabled={busy}
+        onSelect={(entry) => void onRecentTap(entry)}
+        labelId="plan-recents-label"
+      />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2">
