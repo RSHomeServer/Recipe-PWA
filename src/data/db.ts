@@ -13,6 +13,7 @@ import {
   STARTER_CATEGORIES,
   defaultSettings,
 } from "./seeds";
+import { ensureStarterPackSeeded } from "./starter-pack";
 
 let singleton: Dexie | null = null;
 let openPromise: Promise<Dexie> | null = null;
@@ -32,6 +33,7 @@ export function createRecipeDb(name?: string): Dexie {
 /**
  * Seed meal slots, starter categories, and settings singleton when empty.
  * Idempotent — never overwrites existing rows.
+ * Then top up the CoFID starter ingredient pack when the watermark differs.
  */
 export async function seedDefaults(db: Dexie): Promise<void> {
   await db.transaction(
@@ -58,6 +60,8 @@ export async function seedDefaults(db: Dexie): Promise<void> {
       }
     },
   );
+
+  await ensureStarterPackSeeded(db);
 }
 
 /** Open (or reuse) the app database and apply first-run seeds. */

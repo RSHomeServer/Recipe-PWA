@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# CoFID source workbook (regenerate pack from published download)
+data/cofid/*.xlsx

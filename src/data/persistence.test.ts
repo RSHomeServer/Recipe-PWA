@@ -123,17 +123,24 @@ describe("Dexie repositories", () => {
     return { db, repos: createDexieRepositories(db), name };
   }
 
-  it("seeds meal slots, categories, and settings on open", async () => {
-    const { repos } = await openFresh();
+  it("seeds meal slots, categories, settings, and starter pack on open", async () => {
+    const { repos, db } = await openFresh();
     const slots = await repos.mealSlots.all();
     const categories = await repos.ingredientCategories.all();
     const settings = await repos.settings.get();
+    const ingredients = await repos.ingredients.all();
 
     expect(slots).toHaveLength(4);
     expect(slots.map((s) => s.id)).toContain(SEED_SLOT_IDS.breakfast);
     expect(categories.length).toBeGreaterThanOrEqual(4);
     expect(settings.id).toBe("singleton");
     expect(settings.weekStartsOn).toBe(1);
+    expect(settings.starterPackVersion).toBeTruthy();
+    expect(ingredients.length).toBeGreaterThan(500);
+    expect(
+      ingredients.some((ingredient) => ingredient.common),
+    ).toBe(true);
+    expect(await db.table("ingredients").count()).toBe(ingredients.length);
   });
 
   it("round-trips core entities through parse-on-read", async () => {

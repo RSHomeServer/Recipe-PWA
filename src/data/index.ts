@@ -24,6 +24,21 @@ export {
   CATEGORY_VISUALS_BY_ID,
   defaultSettings,
 } from "./seeds";
+export {
+  STARTER_PACK_VERSION,
+  STARTER_PACK_ATTRIBUTION,
+  starterPackMeta,
+  loadStarterPack,
+  setStarterPackForTests,
+  seedStarterPack,
+  ensureStarterPackSeeded,
+  partitionCommonFirst,
+  sortIngredientsCommonFirst,
+  type StarterPackSeedReport,
+  type StarterPackFile,
+  type StarterPackMeta,
+  type CommonFirstPartition,
+} from "./starter-pack";
 export { ParseOnReadError, parseRow, parseRows } from "./parse";
 export {
   SnapshotImmutabilityError,

@@ -1,0 +1,20 @@
+{
+  "version": "cofid-2021-v1",
+  "dataset": {
+    "datasetId": "cofid-2021",
+    "datasetName": "McCance and Widdowson's The Composition of Foods Integrated Dataset 2021",
+    "licence": "OGL-UK-UNCONFIRMED",
+    "url": "https://www.gov.uk/government/publications/composition-of-foods-integrated-dataset-cofid",
+    "retrievedAt": "2021-03-19"
+  },
+  "stats": {
+    "sheetName": "1.3 Proximates",
+    "dataRows": 2887,
+    "seeded": 2852,
+    "excludedN": 32,
+    "incomplete": 2,
+    "duplicateCodes": 1,
+    "commonCount": 150
+  },
+  "attributionNote": "Licence string is a placeholder (OGL-UK-UNCONFIRMED). A human must read the GOV.UK publication page licence footer before release (R2.12)."
+}

@@ -8,8 +8,8 @@ import {
   type Unit,
 } from "@/domain";
 import { useRepos } from "@/data";
+import { IngredientPicker } from "@/features/ingredients/IngredientPicker";
 import { Button } from "@/ui/button";
-import { CommandPicker } from "@/ui/command-picker";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import {
@@ -109,18 +109,14 @@ export function AddStockForm({
     >
       <div className="space-y-2">
         <Label id="add-stock-ingredient-label">Ingredient</Label>
-        <CommandPicker
+        <IngredientPicker
           id="add-stock-ingredient"
           aria-labelledby="add-stock-ingredient-label"
           title="Choose ingredient"
           value={selected?.id ?? ""}
           onValueChange={onIngredientChange}
           recentIds={recents}
-          items={candidates.map((ingredient) => ({
-            value: ingredient.id,
-            label: ingredient.name,
-            context: ingredient.measureKind,
-          }))}
+          ingredients={candidates}
         />
       </div>
       <div className="space-y-2">
