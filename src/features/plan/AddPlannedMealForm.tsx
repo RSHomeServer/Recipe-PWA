@@ -2,22 +2,27 @@ import { useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import {
   createId,
+  deriveRecents,
   recipePerServing,
   unitsForKind,
   type Ingredient,
   type MealSlot,
   type PlanMealEntry,
+  type PlannedMeal,
   type Recipe,
   type Unit,
 } from "@/domain";
 import { useRepos } from "@/data";
 import type { BatchListRow } from "@/features/cook/hooks";
+import { useLoggedMeals } from "@/features/cook/hooks";
 import {
   ENTRY_SOURCE_QUESTION,
   LEXICON,
   planEntryKindOptions,
 } from "@/features/shared/entry-kind-copy";
 import { InfoPopover } from "@/features/shared/InfoPopover";
+import { planEntryLabel } from "@/features/plan/labels";
+import { usePlannedMeals } from "@/features/plan/hooks";
 import { Button } from "@/ui/button";
 import { IngredientPicker } from "@/features/ingredients/IngredientPicker";
 import { CommandPicker } from "@/ui/command-picker";
@@ -54,6 +59,8 @@ export function AddPlannedMealForm({
   onCancel,
 }: AddPlannedMealFormProps) {
   const repos = useRepos();
+  const plannedMeals = usePlannedMeals();
+  const loggedMeals = useLoggedMeals();
   const availableBatches = useMemo(
     () => batchRows.filter((row) => row.available),
     [batchRows],
@@ -68,6 +75,23 @@ export function AddPlannedMealForm({
     for (const ingredient of ingredients) map.set(ingredient.id, ingredient);
     return map;
   }, [ingredients]);
+  const recipesById = useMemo(() => {
+    const map = new Map<string, Recipe>();
+    for (const recipe of recipes) map.set(recipe.id, recipe);
+    return map;
+  }, [recipes]);
+  const batchNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const row of batchRows) {
+      map.set(row.batch.id, row.batch.label ?? row.batch.snapshot.recipeName);
+    }
+    return map;
+  }, [batchRows]);
+
+  const recents = useMemo(() => {
+    if (!plannedMeals || !loggedMeals) return [];
+    return deriveRecents(plannedMeals, loggedMeals);
+  }, [plannedMeals, loggedMeals]);
 
   const [date, setDate] = useState(initialDate);
   const [slotId, setSlotId] = useState(initialSlotId);
@@ -107,6 +131,62 @@ export function AddPlannedMealForm({
     if (next) {
       const nextUnits = unitsForKind(next.measureKind);
       setUnit(nextUnits[0] ?? "g");
+    }
+  };
+
+  const putPlanned = async (entry: PlanMealEntry, entryNote: string | null) => {
+    if (!repos) {
+      toast.error("Data is not ready yet");
+      return false;
+    }
+    const existing = (await repos.plannedMeals.all()).filter(
+      (m: PlannedMeal) => m.date === date && m.slotId === slotId,
+    );
+    const position =
+      existing.reduce((max, m) => Math.max(max, m.position), -1) + 1;
+    await repos.plannedMeals.put({
+      id: createId(),
+      date,
+      slotId,
+      entry,
+      position,
+      note: entryNote,
+      group: null,
+    });
+    return true;
+  };
+
+  const onRecentTap = async (entry: PlanMealEntry) => {
+    if (busy) return;
+    if (entry.kind === "batchPortions") {
+      const stillAvailable = availableBatches.some(
+        (row) => row.batch.id === entry.batchId,
+      );
+      if (!stillAvailable) {
+        toast.error("That batch no longer has portions left");
+        return;
+      }
+    }
+    setBusy(true);
+    try {
+      const ok = await putPlanned(entry, null);
+      if (!ok) return;
+      if (entry.kind === "recipeServings") {
+        setRecipeRecents(rememberPickerRecent("recipes", entry.recipeId));
+      } else if (entry.kind === "batchPortions") {
+        setBatchRecents(rememberPickerRecent("batches", entry.batchId));
+      } else {
+        setIngredientRecents(
+          rememberPickerRecent("ingredients", entry.ingredientId),
+        );
+      }
+      toast.success("Meal planned");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not save planned meal",
+      );
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -152,20 +232,8 @@ export function AddPlannedMealForm({
 
     setBusy(true);
     try {
-      const existing = (await repos.plannedMeals.all()).filter(
-        (m) => m.date === date && m.slotId === slotId,
-      );
-      const position =
-        existing.reduce((max, m) => Math.max(max, m.position), -1) + 1;
-      await repos.plannedMeals.put({
-        id: createId(),
-        date,
-        slotId,
-        entry,
-        position,
-        note: note.trim() ? note.trim() : null,
-        group: null,
-      });
+      const ok = await putPlanned(entry, note.trim() ? note.trim() : null);
+      if (!ok) return;
       toast.success("Meal planned");
       onDone();
     } catch (error) {
@@ -182,6 +250,43 @@ export function AddPlannedMealForm({
       className="space-y-4 rounded-lg border border-border bg-[var(--color-surface-raised)] p-4"
       onSubmit={(event) => void onSubmit(event)}
     >
+      {recents.length > 0 ? (
+        <div className="space-y-2">
+          <Label id="plan-recents-label">Recent</Label>
+          <div
+            className="flex flex-wrap gap-2"
+            role="list"
+            aria-labelledby="plan-recents-label"
+          >
+            {recents.map((recent) => {
+              const label = planEntryLabel(
+                recent.entry,
+                recipesById,
+                ingredientsById,
+                batchNameById,
+              );
+              return (
+                <Button
+                  key={recent.identityKey}
+                  type="button"
+                  role="listitem"
+                  variant="outline"
+                  size="sm"
+                  className="max-w-full"
+                  disabled={busy}
+                  onClick={() => void onRecentTap(recent.entry)}
+                >
+                  <span className="truncate">{label.title}</span>
+                  <span className="ml-1 truncate text-muted-foreground">
+                    · {label.subtitle}
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="plan-date">Date</Label>

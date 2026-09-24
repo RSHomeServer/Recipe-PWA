@@ -28,6 +28,12 @@ import {
 } from "./schemas";
 import { expandTemplateToPlannedMeals } from "./apply";
 import { clearLogGroups, clearPlanGroups, ungroupMeals } from "./groups";
+import {
+  canSaveSlotAsMeal,
+  deriveRecents,
+  entryIdentityKey,
+  mealTemplatePrefillFromSlot,
+} from "./recents";
 
 const chicken: Ingredient = {
   id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -480,5 +486,228 @@ describe("ungroup", () => {
     expect(updated).toHaveLength(4);
     expect(updated.every((m) => m.group == null)).toBe(true);
     expect(updated.map((m) => m.entry)).toEqual(planned.map((m) => m.entry));
+  });
+});
+
+describe("deriveRecents (R4.10 / ADR-004 verification 8)", () => {
+  const recipeEntry = {
+    kind: "recipeServings" as const,
+    recipeId: recipe.id,
+    servings: 1,
+  };
+  const peasEntry = {
+    kind: "ingredient" as const,
+    ingredientId: peas.id,
+    quantity: { value: 100, unit: "g" as const },
+  };
+  const riceEntry = {
+    kind: "ingredient" as const,
+    ingredientId: rice.id,
+    quantity: { value: 50, unit: "g" as const },
+  };
+
+  function plannedRow(
+    id: string,
+    date: string,
+    entry: PlannedMeal["entry"],
+    position: number,
+  ): PlannedMeal {
+    return PlannedMealSchema.parse({
+      id,
+      date,
+      slotId,
+      entry,
+      position,
+      note: null,
+      group: null,
+    });
+  }
+
+  function loggedRow(
+    id: string,
+    date: string,
+    loggedAt: string,
+    entry: LoggedMeal["entry"],
+  ): LoggedMeal {
+    return {
+      id,
+      date,
+      slotId,
+      entry,
+      plannedMealId: null,
+      loggedAt,
+      note: null,
+      group: null,
+    };
+  }
+
+  it("dedupes across plan and log, most recent first, caps at twelve", () => {
+    const plannedRows: PlannedMeal[] = [
+      plannedRow("11111111-1111-4111-8111-111111111101", "2026-09-20", recipeEntry, 0),
+      plannedRow("11111111-1111-4111-8111-111111111102", "2026-09-21", peasEntry, 0),
+      // Duplicate recipe later in the plan — should win over the earlier one.
+      plannedRow(
+        "11111111-1111-4111-8111-111111111103",
+        "2026-09-23",
+        { ...recipeEntry, servings: 2 },
+        0,
+      ),
+    ];
+
+    const loggedRows: LoggedMeal[] = [
+      // Same recipe as plan, but older log — plan date 09-23 end-of-day wins.
+      loggedRow(
+        "22222222-2222-4222-8222-222222222201",
+        "2026-09-22",
+        "2026-09-22T10:00:00.000Z",
+        { ...recipeEntry, servings: 3 },
+      ),
+      // Rice only in log — newest overall.
+      loggedRow(
+        "22222222-2222-4222-8222-222222222202",
+        "2026-09-24",
+        "2026-09-24T18:00:00.000Z",
+        riceEntry,
+      ),
+      // Duplicate peas older than plan.
+      loggedRow(
+        "22222222-2222-4222-8222-222222222203",
+        "2026-09-19",
+        "2026-09-19T08:00:00.000Z",
+        { ...peasEntry, quantity: { value: 200, unit: "g" } },
+      ),
+      // customFood ignored
+      loggedRow(
+        "22222222-2222-4222-8222-222222222204",
+        "2026-09-24",
+        "2026-09-24T20:00:00.000Z",
+        {
+          kind: "customFood",
+          food: {
+            name: "Snack",
+            quantity: 1,
+            nutrition: { kcal: 100, proteinG: 0, carbsG: 20, fatG: 0 },
+          },
+        },
+      ),
+    ];
+
+    const recents = deriveRecents(plannedRows, loggedRows);
+    expect(recents).toHaveLength(3);
+    expect(recents.map((r) => r.identityKey)).toEqual([
+      entryIdentityKey(riceEntry),
+      entryIdentityKey(recipeEntry),
+      entryIdentityKey(peasEntry),
+    ]);
+    // Most recent recipe occurrence keeps servings: 2 from the later plan.
+    expect(recents[1]!.entry).toEqual({ ...recipeEntry, servings: 2 });
+    // Peas from plan (newer than the old log).
+    expect(recents[2]!.entry).toEqual(peasEntry);
+  });
+
+  it("returns at most twelve entries over a fixture with many duplicates", () => {
+    const plannedRows: PlannedMeal[] = [];
+    const loggedRows: LoggedMeal[] = [];
+    for (let i = 0; i < 20; i += 1) {
+      const suffix = (i + 1).toString(16).padStart(12, "0");
+      const ingredientId = `bbbbbbbb-bbbb-4bbb-8bbb-${suffix}`;
+      const entry = {
+        kind: "ingredient" as const,
+        ingredientId,
+        quantity: { value: 10, unit: "g" as const },
+      };
+      plannedRows.push(
+        plannedRow(`aaaaaaaa-aaaa-4aaa-8aaa-${suffix}`, "2026-09-10", entry, i),
+      );
+      loggedRows.push(
+        loggedRow(
+          `cccccccc-cccc-4ccc-8ccc-${suffix}`,
+          "2026-09-11",
+          `2026-09-11T${String(i).padStart(2, "0")}:00:00.000Z`,
+          entry,
+        ),
+      );
+    }
+    const recents = deriveRecents(plannedRows, loggedRows);
+    expect(recents).toHaveLength(12);
+    // Highest hour first (19 … 8) → ingredient suffix 0x14 (20).
+    expect(recents[0]!.identityKey).toBe(
+      entryIdentityKey({
+        kind: "ingredient",
+        ingredientId: "bbbbbbbb-bbbb-4bbb-8bbb-000000000014",
+        quantity: { value: 10, unit: "g" },
+      }),
+    );
+  });
+});
+
+describe("save slot as meal (R4.11)", () => {
+  it("offers prefill only for two or more ungrouped template-eligible entries", () => {
+    const one: PlannedMeal[] = [
+      PlannedMealSchema.parse({
+        id: "11111111-1111-4111-8111-111111111201",
+        date: "2026-09-24",
+        slotId,
+        entry: {
+          kind: "ingredient",
+          ingredientId: peas.id,
+          quantity: { value: 100, unit: "g" },
+        },
+        position: 0,
+        note: null,
+        group: null,
+      }),
+    ];
+    expect(canSaveSlotAsMeal(one)).toBe(false);
+    expect(mealTemplatePrefillFromSlot(one, slotId)).toBeNull();
+
+    const two: PlannedMeal[] = [
+      one[0]!,
+      PlannedMealSchema.parse({
+        id: "11111111-1111-4111-8111-111111111202",
+        date: "2026-09-24",
+        slotId,
+        entry: {
+          kind: "ingredient",
+          ingredientId: rice.id,
+          quantity: { value: 50, unit: "g" },
+        },
+        position: 1,
+        note: "side",
+        group: null,
+      }),
+    ];
+    expect(canSaveSlotAsMeal(two)).toBe(true);
+    const prefill = mealTemplatePrefillFromSlot(two, slotId);
+    expect(prefill).not.toBeNull();
+    expect(prefill!.components).toHaveLength(2);
+    expect(prefill!.components[1]!.note).toBe("side");
+    expect(prefill!.defaultSlotId).toBe(slotId);
+
+    const withGroup: PlannedMeal[] = [
+      ...two,
+      PlannedMealSchema.parse({
+        id: "11111111-1111-4111-8111-111111111203",
+        date: "2026-09-24",
+        slotId,
+        entry: {
+          kind: "recipeServings",
+          recipeId: recipe.id,
+          servings: 1,
+        },
+        position: 2,
+        note: null,
+        group: {
+          id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+          name: "G",
+          templateId: null,
+        },
+      }),
+    ];
+    // Grouped row does not count toward the ungrouped threshold.
+    expect(canSaveSlotAsMeal(withGroup)).toBe(true);
+    expect(
+      mealTemplatePrefillFromSlot(withGroup, slotId)!.components,
+    ).toHaveLength(2);
   });
 });
