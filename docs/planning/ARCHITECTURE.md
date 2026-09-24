@@ -252,6 +252,13 @@ Two repository rules extend the existing write-once enforcement on `Batch.snapsh
 `IngredientSource`'s origin fields may not be mutated once set, and the starter-pack seed is
 additive-only, matched by `source.entryCode`, never overwriting an edited row.
 
+### One new dependency, build-time only
+
+The starter pack is transcoded from an **Excel workbook** (ADR-002 §2a), so the build needs an
+xlsx reader. It is a **devDependency and must never reach the browser bundle**: the script runs
+at build time and its output is a static JSON asset parsed through `IngredientSchema`. Nothing
+in `src/` imports it. This is the only dependency V2 adds.
+
 ### Backup: JSON export and import (V1)
 
 With no server and no sync (decision 24), this is the primary backup and migration mechanism,

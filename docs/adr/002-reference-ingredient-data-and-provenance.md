@@ -166,6 +166,88 @@ nothing else does. If CoFID's published format makes the script materially slowe
 **take USDA and do not escalate**; pace matters more than the choice between two rigorous
 public datasets, and `source` records which one was used either way.
 
+### 2a. Dataset mechanics, verified against the published CoFID 2021 user guide
+
+Checked after the decision was taken, because everything above assumed properties of the
+dataset that had not been confirmed. Most held; four did not, and they change what ticket 5
+builds. Source: *McCance and Widdowson's The Composition of Foods Integrated Dataset 2021:
+user guide*, published by PHE/OHID.
+
+| Property | Verified |
+| --- | --- |
+| Scale | **2,898 foods**, plus a separate 'old foods' file of 303 — **exclude the old-foods file** |
+| Format | **Excel workbook (.xlsx), ~4.4 MB**, also ASCII. **Not CSV or JSON.** |
+| Structure | Multiple worksheets (`Proximates`, `Inorganics`, `Vitamins`, …). A food code occupies the **same row in every worksheet**, so sheets align positionally. Only `Proximates` is needed. |
+| Header rows | **Column headings occupy rows 1 to 3**, not row 1. A reader that assumes a single header row silently takes a heading fragment as data. |
+| Macro columns | `KCALS` (energy, kcal), `PROT`, `FAT`, `CHO`. Take `KCALS`, **not** `KJ`. |
+| Identifier | Food code, up to 6 digits, unique per food — this is `source.entryCode` |
+| Category source | The **`GROUP` column** (a 1–3 letter code, listed in the guide's Appendix B). Prefer it to the food-code prefix, which the guide explicitly warns carries no reliable significance. |
+
+Four consequences that are not optional:
+
+**1. `Tr` and `N` are different, and conflating them corrupts data.** The guide is explicit:
+`Tr` means a trace, and `N` means *"present in significant quantities, but there is no reliable
+information on the amount"*. So:
+
+- `Tr` → **0**. Honest, and a zero-calorie ingredient is already legal in the model.
+- `N` → **the entry fails the completeness filter and is not seeded.** Mapping `N` to zero
+  would assert "this food contains none of this macro" when the dataset says the opposite.
+  This is the single most likely transcode bug and the one with the worst blast radius, since
+  it would be systematic and silent.
+
+**2. There is no per-item data in CoFID, at all.** Values are per 100 g, except alcoholic
+beverages which are per 100 ml. So the transcode produces `measureKind: "mass"` for
+essentially everything and `"volume"` for the alcohol group, and **seeds no `count`
+ingredients whatsoever**. Count ingredients (an egg, a banana) remain user-created. That is
+consistent with decision 2, which already rules out per-item weights and cross-kind
+conversion, so it needs no new decision — but it must be stated, or an Executor will go
+looking for data that does not exist.
+
+**3. CoFID computes energy with carbohydrate at 3.75 kcal/g**, not the 4 kcal/g of standard
+Atwater (its factors are protein 4, fat 9, available carbohydrate as monosaccharides 3.75,
+alcohol 7). This is already handled and requires no change:
+[NUTRITION_MODEL.md](../planning/NUTRITION_MODEL.md) stores kcal rather than deriving it, and
+only *warns* when a declared figure deviates from the Atwater estimate by more than ~20% —
+far wider than this gap.
+
+The consequence to record, so it is not later mistaken for a bug: a display-time macro energy
+share computed with 4/4/9 will not reconcile exactly with a seeded CoFID kcal figure. That is
+[DESIGN.md](../planning/DESIGN.md) §4's stated policy — show the true total, never fudge the
+parts — arriving in practice. **Do not "fix" it by rewriting seeded kcal values.**
+
+**4. CoFID's carbohydrate is *available* carbohydrate as monosaccharide equivalents**, not
+"by difference" as used on some labels and in some other tables. Figures are therefore not
+always directly comparable with a UK pack label. Worth a line in the provenance display, not a
+model change.
+
+### 2b. The licence claim needs a human read, and here is precisely why
+
+The guide carries `© Crown copyright 2021` and no inline licence statement. Secondary sources
+**disagree on the version**: the Quadram/NBRI FAQ points at Open Government Licence **v1**,
+while other summaries state **v3.0** with the attribution *"Contains public sector information
+licensed under the Open Government Licence v3.0."*
+
+Both permit free reuse including commercially, with attribution, so the decision is not at
+risk — but the version and the exact attribution string are not settled by the sources I can
+reach, and they are what goes in Settings → About. **R2.12 stands as a human gate.** Resolve
+it from the GOV.UK publication page's own licence footer, not from this ADR and not from a
+search summary.
+
+### 2c. If USDA is taken instead
+
+The fallback is genuinely easier on two axes and harder on one, now that both are checked:
+
+| | CoFID | USDA FoodData Central |
+| --- | --- | --- |
+| Licence | OGL, version unconfirmed, attribution required | **CC0 1.0, public domain, unambiguous**; attribution requested, not required |
+| Format | Excel, one row per food, 3 header rows | CSV, but **normalised across `food.csv`, `nutrient.csv`, `food_nutrient.csv`** — needs a join |
+| Naming | UK foods and UK conventions | US naming and portion conventions |
+| Currency | 2021 | Foundation Foods current; **SR Legacy frozen at April 2018** |
+
+Net: USDA removes the licence ambiguity and the Excel dependency but adds a three-way join
+and US naming. CoFID remains preferred for a UK product. The fallback stays available without
+escalation, as decided.
+
 ### 3. Ingredient visual identity is a category icon; photos are optional and user-supplied
 
 No licence-clean photograph exists for "chicken thigh, raw" as a generic food. Sourcing them
@@ -215,9 +297,13 @@ the most dangerous ticket in V2; scripted, its errors are uniform and therefore 
 2. A build-time check parses every starter-pack entry through `IngredientSchema` and fails the
    build on any error.
 3. Spot-check test: named entries match their published figures within rounding, with the
-   `entryCode` asserted alongside. **Cover at least one entry per `measureKind` and one per
-   category**, because the failure this guards against is a systematic mapping error, and a
-   spot check that samples only one shape cannot see it.
+   `entryCode` asserted alongside. **Cover at least one entry per category**, because the
+   failure this guards against is a systematic mapping error and a spot check that samples one
+   shape cannot see it. Include at least one `volume` entry (an alcoholic beverage) alongside
+   the `mass` ones. Do **not** require a `count` entry — per §2a the dataset contains none.
+3a. **Sentinel handling** — a food whose `Proximates` row carries `Tr` in a macro seeds with
+   that macro at 0; a food carrying `N` in any of the four **is not seeded at all**. Assert
+   both directions against named real entries, not only synthetic fixtures.
 4. Every entry in the hand-maintained common list resolves to a seeded ingredient. A code that
    matches nothing fails the build rather than silently producing a smaller default set.
 5. Property test: for a corpus of ingredients, every nutrition, availability, requirements,
