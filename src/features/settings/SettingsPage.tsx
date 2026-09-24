@@ -82,7 +82,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="app-page prose">
+    <div className="app-page prose space-y-10">
       <PageHeader
         title="Settings"
         description="Theme, calorie target, and preferences."
@@ -154,7 +154,38 @@ export default function SettingsPage() {
         </div>
       </form>
 
-      <section className="mt-10 max-w-lg space-y-3" aria-labelledby="starter-pack-heading">
+      <section className="max-w-md space-y-3" aria-labelledby="how-it-works-settings">
+        <h2 id="how-it-works-settings" className="text-lg font-semibold">
+          How this works
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          A short explanation of pantry → batch → plan → shop appears at the top
+          of Plan and Cook until you dismiss it.
+        </p>
+        {settings.howItWorksDismissed ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!repos}
+            onClick={async () => {
+              if (!repos) return;
+              await repos.settings.put({
+                ...settings,
+                howItWorksDismissed: false,
+              });
+              toast.success("How this works will show again on Plan and Cook");
+            }}
+          >
+            Show “How this works” again
+          </Button>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            The panel is currently visible on Plan and Cook.
+          </p>
+        )}
+      </section>
+
+      <section className="max-w-lg space-y-3" aria-labelledby="starter-pack-heading">
         <h2 id="starter-pack-heading" className="text-lg font-semibold">
           Starter ingredients
         </h2>
@@ -206,7 +237,7 @@ export default function SettingsPage() {
         ) : null}
       </section>
 
-      <section className="mt-10 max-w-lg space-y-3" aria-labelledby="about-heading">
+      <section className="max-w-lg space-y-3" aria-labelledby="about-heading">
         <h2 id="about-heading" className="text-lg font-semibold">
           About
         </h2>

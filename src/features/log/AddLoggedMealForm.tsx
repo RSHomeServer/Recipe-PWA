@@ -14,6 +14,12 @@ import {
 import { useRepos } from "@/data";
 import type { BatchListRow } from "@/features/cook/hooks";
 import { PortionStepper } from "@/features/components/domain-stubs";
+import {
+  ENTRY_SOURCE_QUESTION,
+  LEXICON,
+  logEntryKindOptions,
+} from "@/features/shared/entry-kind-copy";
+import { InfoPopover } from "@/features/shared/InfoPopover";
 import { Button } from "@/ui/button";
 import { IngredientPicker } from "@/features/ingredients/IngredientPicker";
 import { CommandPicker } from "@/ui/command-picker";
@@ -26,29 +32,6 @@ import {
 import { SegmentedGroup } from "@/ui/segmented-group";
 import { UnitChoice } from "@/ui/unit-choice";
 import { createLoggedMeal, updateLoggedMeal } from "./commands";
-
-const LOG_KIND_OPTIONS = [
-  {
-    value: "recipeServings",
-    label: "Recipe",
-    helperText: "Recipe servings — does not deduct pantry.",
-  },
-  {
-    value: "batchPortions",
-    label: "Batch",
-    helperText: "Batch portions — uses remaining portions.",
-  },
-  {
-    value: "ingredient",
-    label: "Ingredient",
-    helperText: "Bare ingredient — deducts pantry (may go negative).",
-  },
-  {
-    value: "customFood",
-    label: "Custom",
-    helperText: "Inline custom food with its own nutrition.",
-  },
-] as const;
 
 type EntryKind = MealEntry["kind"];
 
@@ -82,6 +65,14 @@ export function AddLoggedMealForm({
     () => batchRows.filter((row) => row.available || editing?.entry.kind === "batchPortions"),
     [batchRows, editing],
   );
+  const hasAvailableBatches = availableBatches.length > 0;
+  const kindOptions = useMemo(
+    () =>
+      logEntryKindOptions(
+        hasAvailableBatches || editing?.entry.kind === "batchPortions",
+      ),
+    [hasAvailableBatches, editing?.entry.kind],
+  );
   const ingredientsById = useMemo(() => {
     const map = new Map<string, Ingredient>();
     for (const ingredient of ingredients) map.set(ingredient.id, ingredient);
@@ -101,6 +92,12 @@ export function AddLoggedMealForm({
   const [date, setDate] = useState(editing?.date ?? initialDate);
   const [slotId, setSlotId] = useState(editing?.slotId ?? initialSlotId);
   const [kind, setKind] = useState<EntryKind>(initialKind);
+  const effectiveKind: EntryKind =
+    kind === "batchPortions" &&
+    !hasAvailableBatches &&
+    editing?.entry.kind !== "batchPortions"
+      ? "recipeServings"
+      : kind;
   const [recipeId, setRecipeId] = useState(
     editing?.entry.kind === "recipeServings"
       ? editing.entry.recipeId
@@ -183,7 +180,7 @@ export function AddLoggedMealForm({
   }, [selectedBatchRow, allLogs, editing?.id, batchId]);
 
   const portionsOverRemaining =
-    kind === "batchPortions" &&
+    effectiveKind === "batchPortions" &&
     remainingForWarn != null &&
     portions > remainingForWarn + 1e-6;
 
@@ -197,29 +194,29 @@ export function AddLoggedMealForm({
   };
 
   const buildEntry = (): MealEntry | null => {
-    if (kind === "recipeServings") {
+    if (effectiveKind === "recipeServings") {
       const servingsNum = Number(servings);
       if (!recipeId || !Number.isFinite(servingsNum) || servingsNum <= 0) {
         toast.error("Pick a recipe and a positive servings amount");
         return null;
       }
-      return { kind, recipeId, servings: servingsNum };
+      return { kind: "recipeServings", recipeId, servings: servingsNum };
     }
-    if (kind === "batchPortions") {
+    if (effectiveKind === "batchPortions") {
       if (!batchId || !Number.isFinite(portions) || portions <= 0) {
         toast.error("Pick a batch and a positive portion amount");
         return null;
       }
-      return { kind, batchId, portions };
+      return { kind: "batchPortions", batchId, portions };
     }
-    if (kind === "ingredient") {
+    if (effectiveKind === "ingredient") {
       const value = Number(amount);
       if (!selectedIngredient || !Number.isFinite(value) || value < 0) {
         toast.error("Pick an ingredient and a non-negative amount");
         return null;
       }
       return {
-        kind,
+        kind: "ingredient",
         ingredientId: selectedIngredient.id,
         quantity: { value, unit },
       };
@@ -329,17 +326,27 @@ export function AddLoggedMealForm({
       </div>
 
       <div className="space-y-2">
-        <Label id="log-kind-label">What to log</Label>
+        <div className="flex items-center gap-1">
+          <Label id="log-kind-label">{ENTRY_SOURCE_QUESTION}</Label>
+          <InfoPopover label="About where food comes from">
+            <p className="font-medium text-foreground">Batch</p>
+            <p className="mt-1 text-muted-foreground">{LEXICON.batch}</p>
+            <p className="mt-3 font-medium text-foreground">Serving vs portion</p>
+            <p className="mt-1 text-muted-foreground">
+              {LEXICON.serving} {LEXICON.portion}
+            </p>
+          </InfoPopover>
+        </div>
         <SegmentedGroup
           id="log-kind"
           aria-labelledby="log-kind-label"
-          value={kind}
+          value={effectiveKind}
           onValueChange={(next) => setKind(next as EntryKind)}
-          options={[...LOG_KIND_OPTIONS]}
+          options={kindOptions}
         />
       </div>
 
-      {kind === "recipeServings" ? (
+      {effectiveKind === "recipeServings" ? (
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
           <div className="space-y-2">
             <Label id="log-recipe-label">Recipe</Label>
@@ -390,13 +397,13 @@ export function AddLoggedMealForm({
         </div>
       ) : null}
 
-      {kind === "batchPortions" ? (
+      {effectiveKind === "batchPortions" ? (
         <div className="space-y-3">
           <div className="space-y-2">
             <Label id="log-batch-label">Batch</Label>
             {availableBatches.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No batches available
+                No batches yet. Cook a recipe and its portions appear here.
               </p>
             ) : (
               <CommandPicker
@@ -442,7 +449,7 @@ export function AddLoggedMealForm({
         </div>
       ) : null}
 
-      {kind === "ingredient" ? (
+      {effectiveKind === "ingredient" ? (
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_6rem_minmax(0,8rem)]">
           <div className="space-y-2">
             <Label id="log-ingredient-label">Ingredient</Label>
@@ -487,7 +494,7 @@ export function AddLoggedMealForm({
         </div>
       ) : null}
 
-      {kind === "customFood" ? (
+      {effectiveKind === "customFood" ? (
         <div className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_6rem]">
             <div className="space-y-2">

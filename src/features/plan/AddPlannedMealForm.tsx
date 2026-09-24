@@ -12,6 +12,12 @@ import {
 } from "@/domain";
 import { useRepos } from "@/data";
 import type { BatchListRow } from "@/features/cook/hooks";
+import {
+  ENTRY_SOURCE_QUESTION,
+  LEXICON,
+  planEntryKindOptions,
+} from "@/features/shared/entry-kind-copy";
+import { InfoPopover } from "@/features/shared/InfoPopover";
 import { Button } from "@/ui/button";
 import { IngredientPicker } from "@/features/ingredients/IngredientPicker";
 import { CommandPicker } from "@/ui/command-picker";
@@ -37,24 +43,6 @@ export type AddPlannedMealFormProps = {
   onCancel: () => void;
 };
 
-const KIND_OPTIONS = [
-  {
-    value: "recipeServings",
-    label: "Still to cook",
-    helperText: "Recipe servings — adds required ingredients to shopping.",
-  },
-  {
-    value: "batchPortions",
-    label: "Already cooked",
-    helperText: "Batch portions — nothing to buy; uses freezer stock.",
-  },
-  {
-    value: "ingredient",
-    label: "Eat as-is",
-    helperText: "Bare ingredient — adds that item to shopping.",
-  },
-] as const;
-
 export function AddPlannedMealForm({
   date: initialDate,
   slotId: initialSlotId,
@@ -70,6 +58,11 @@ export function AddPlannedMealForm({
     () => batchRows.filter((row) => row.available),
     [batchRows],
   );
+  const hasAvailableBatches = availableBatches.length > 0;
+  const kindOptions = useMemo(
+    () => planEntryKindOptions(hasAvailableBatches),
+    [hasAvailableBatches],
+  );
   const ingredientsById = useMemo(() => {
     const map = new Map<string, Ingredient>();
     for (const ingredient of ingredients) map.set(ingredient.id, ingredient);
@@ -83,6 +76,10 @@ export function AddPlannedMealForm({
   const [servings, setServings] = useState("1");
   const [batchId, setBatchId] = useState(availableBatches[0]?.batch.id ?? "");
   const [portions, setPortions] = useState("1");
+  const effectiveKind: EntryKind =
+    kind === "batchPortions" && !hasAvailableBatches
+      ? "recipeServings"
+      : kind;
   const [ingredientId, setIngredientId] = useState(ingredients[0]?.id ?? "");
   const selectedIngredient =
     ingredients.find((i) => i.id === ingredientId) ?? ingredients[0];
@@ -121,21 +118,21 @@ export function AddPlannedMealForm({
     }
 
     let entry: PlanMealEntry;
-    if (kind === "recipeServings") {
+    if (effectiveKind === "recipeServings") {
       const servingsNum = Number(servings);
       if (!recipeId || !Number.isFinite(servingsNum) || servingsNum <= 0) {
         toast.error("Pick a recipe and a positive servings amount");
         return;
       }
-      entry = { kind, recipeId, servings: servingsNum };
+      entry = { kind: "recipeServings", recipeId, servings: servingsNum };
       setRecipeRecents(rememberPickerRecent("recipes", recipeId));
-    } else if (kind === "batchPortions") {
+    } else if (effectiveKind === "batchPortions") {
       const portionsNum = Number(portions);
       if (!batchId || !Number.isFinite(portionsNum) || portionsNum <= 0) {
         toast.error("Pick a batch and a positive portion amount");
         return;
       }
-      entry = { kind, batchId, portions: portionsNum };
+      entry = { kind: "batchPortions", batchId, portions: portionsNum };
       setBatchRecents(rememberPickerRecent("batches", batchId));
     } else {
       const value = Number(amount);
@@ -212,17 +209,27 @@ export function AddPlannedMealForm({
       </div>
 
       <div className="space-y-2">
-        <Label id="plan-kind-label">What to plan</Label>
+        <div className="flex items-center gap-1">
+          <Label id="plan-kind-label">{ENTRY_SOURCE_QUESTION}</Label>
+          <InfoPopover label="About where food comes from">
+            <p className="font-medium text-foreground">Batch</p>
+            <p className="mt-1 text-muted-foreground">{LEXICON.batch}</p>
+            <p className="mt-3 font-medium text-foreground">Serving vs portion</p>
+            <p className="mt-1 text-muted-foreground">
+              {LEXICON.serving} {LEXICON.portion}
+            </p>
+          </InfoPopover>
+        </div>
         <SegmentedGroup
           id="plan-kind"
           aria-labelledby="plan-kind-label"
-          value={kind}
+          value={effectiveKind}
           onValueChange={(next) => setKind(next as EntryKind)}
-          options={[...KIND_OPTIONS]}
+          options={kindOptions}
         />
       </div>
 
-      {kind === "recipeServings" ? (
+      {effectiveKind === "recipeServings" ? (
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
           <div className="space-y-2">
             <Label id="plan-recipe-label">Recipe</Label>
@@ -271,13 +278,13 @@ export function AddPlannedMealForm({
         </div>
       ) : null}
 
-      {kind === "batchPortions" ? (
+      {effectiveKind === "batchPortions" ? (
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
           <div className="space-y-2">
             <Label id="plan-batch-label">Batch</Label>
-            {availableBatches.length === 0 ? (
+            {!hasAvailableBatches ? (
               <p className="text-sm text-muted-foreground">
-                No available batches — cook a recipe first.
+                No batches yet. Cook a recipe and its portions appear here.
               </p>
             ) : (
               <CommandPicker
@@ -311,7 +318,7 @@ export function AddPlannedMealForm({
         </div>
       ) : null}
 
-      {kind === "ingredient" ? (
+      {effectiveKind === "ingredient" ? (
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_6rem_minmax(0,8rem)]">
           <div className="space-y-2">
             <Label id="plan-ingredient-label">Ingredient</Label>

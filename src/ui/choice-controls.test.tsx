@@ -115,19 +115,24 @@ describe("segmented groups at 320px (V2 test 11a)", () => {
     const { container } = render(
       <div style={{ width: 320 }}>
         <SegmentedGroup
-          aria-label="What to plan"
+          aria-label="Where's this coming from?"
           value="recipeServings"
           onValueChange={() => {}}
           options={[
-            { value: "recipeServings", label: "Still to cook" },
-            { value: "batchPortions", label: "Already cooked" },
-            { value: "ingredient", label: "Eat as-is" },
+            { value: "recipeServings", label: "Cook a recipe" },
+            {
+              value: "batchPortions",
+              label: "Eat a portion you already cooked",
+            },
+            { value: "ingredient", label: "Eat or heat one item" },
           ]}
         />
       </div>,
     );
 
-    const group = screen.getByRole("radiogroup", { name: "What to plan" });
+    const group = screen.getByRole("radiogroup", {
+      name: "Where's this coming from?",
+    });
     expect(group.className).toMatch(/flex-wrap/);
 
     for (const radio of within(group).getAllByRole("radio")) {
@@ -139,5 +144,37 @@ describe("segmented groups at 320px (V2 test 11a)", () => {
     expect(
       container.querySelector('[data-slot="segmented-group"]'),
     ).toBeTruthy();
+  });
+
+  it("shows disabled reasons as visible text, not title-only", () => {
+    render(
+      <SegmentedGroup
+        aria-label="Where's this coming from?"
+        value="recipeServings"
+        onValueChange={() => {}}
+        options={[
+          { value: "recipeServings", label: "Cook a recipe" },
+          {
+            value: "batchPortions",
+            label: "Eat a portion you already cooked",
+            disabled: true,
+            disabledReason:
+              "No batches yet. Cook a recipe and its portions appear here.",
+          },
+          { value: "ingredient", label: "Eat or heat one item" },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        /Eat a portion you already cooked — No batches yet/,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("radio", {
+        name: /Eat a portion you already cooked — No batches yet/,
+      }),
+    ).toHaveProperty("disabled", true);
   });
 });
