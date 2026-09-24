@@ -31,10 +31,15 @@ import {
 import { PageHeader } from "@/features/shared/RoutePlaceholder";
 import { RouteStatePanel } from "@/features/shared/RouteStatePanel";
 import { Button } from "@/ui/button";
+import { CommandPicker } from "@/ui/command-picker";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
-import { NativeSelect } from "@/ui/native-select";
+import {
+  readPickerRecents,
+  rememberPickerRecent,
+} from "@/ui/picker-recents";
 import { Textarea } from "@/ui/textarea";
+import { UnitChoice } from "@/ui/unit-choice";
 
 const pageStateConfig = {
   empty: {
@@ -149,6 +154,9 @@ export default function CookNewPage() {
     null,
   );
   const [busy, setBusy] = useState(false);
+  const [recipeRecents, setRecipeRecents] = useState(() =>
+    readPickerRecents("recipes"),
+  );
 
   const selectedRecipe =
     activeRecipes.find((recipe) => recipe.id === recipeId) ??
@@ -289,20 +297,22 @@ export default function CookNewPage() {
 
       <section className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="cook-recipe">Recipe</Label>
-          <NativeSelect
+          <Label id="cook-recipe-label">Recipe</Label>
+          <CommandPicker
             id="cook-recipe"
+            aria-labelledby="cook-recipe-label"
+            title="Choose recipe"
             value={selectedRecipe?.id ?? ""}
-            onChange={(event) => {
-              setRecipeId(event.target.value);
+            onValueChange={(id) => {
+              setRecipeId(id);
+              setRecipeRecents(rememberPickerRecent("recipes", id));
             }}
-          >
-            {activeRecipes.map((recipe) => (
-              <option key={recipe.id} value={recipe.id}>
-                {recipe.name}
-              </option>
-            ))}
-          </NativeSelect>
+            recentIds={recipeRecents}
+            items={activeRecipes.map((recipe) => ({
+              value: recipe.id,
+              label: recipe.name,
+            }))}
+          />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -413,12 +423,13 @@ export default function CookNewPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor={`cook-line-unit-${index}`}>Unit</Label>
-                  <NativeSelect
+                  <Label id={`cook-line-unit-${index}-label`}>Unit</Label>
+                  <UnitChoice
                     id={`cook-line-unit-${index}`}
+                    aria-labelledby={`cook-line-unit-${index}-label`}
+                    units={units as Unit[]}
                     value={line.unit}
-                    onChange={(event) => {
-                      const unit = event.target.value as Unit;
+                    onValueChange={(unit) => {
                       setLines((prev) =>
                         prev.map((row, rowIndex) =>
                           rowIndex === index ? { ...row, unit } : row,
@@ -426,13 +437,7 @@ export default function CookNewPage() {
                       );
                       setPendingShortfalls(null);
                     }}
-                  >
-                    {units.map((unit) => (
-                      <option key={unit} value={unit}>
-                        {unit}
-                      </option>
-                    ))}
-                  </NativeSelect>
+                  />
                 </div>
               </li>
             );

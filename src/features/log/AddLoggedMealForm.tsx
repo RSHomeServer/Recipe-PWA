@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import {
   portionsRemaining,
+  recipePerServing,
   unitsForKind,
   type Ingredient,
   type LoggedMeal,
@@ -14,10 +15,39 @@ import { useRepos } from "@/data";
 import type { BatchListRow } from "@/features/cook/hooks";
 import { PortionStepper } from "@/features/components/domain-stubs";
 import { Button } from "@/ui/button";
+import { CommandPicker } from "@/ui/command-picker";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
-import { NativeSelect } from "@/ui/native-select";
+import {
+  readPickerRecents,
+  rememberPickerRecent,
+} from "@/ui/picker-recents";
+import { SegmentedGroup } from "@/ui/segmented-group";
+import { UnitChoice } from "@/ui/unit-choice";
 import { createLoggedMeal, updateLoggedMeal } from "./commands";
+
+const LOG_KIND_OPTIONS = [
+  {
+    value: "recipeServings",
+    label: "Recipe",
+    helperText: "Recipe servings — does not deduct pantry.",
+  },
+  {
+    value: "batchPortions",
+    label: "Batch",
+    helperText: "Batch portions — uses remaining portions.",
+  },
+  {
+    value: "ingredient",
+    label: "Ingredient",
+    helperText: "Bare ingredient — deducts pantry (may go negative).",
+  },
+  {
+    value: "customFood",
+    label: "Custom",
+    helperText: "Inline custom food with its own nutrition.",
+  },
+] as const;
 
 type EntryKind = MealEntry["kind"];
 
@@ -50,6 +80,20 @@ export function AddLoggedMealForm({
   const availableBatches = useMemo(
     () => batchRows.filter((row) => row.available || editing?.entry.kind === "batchPortions"),
     [batchRows, editing],
+  );
+  const ingredientsById = useMemo(() => {
+    const map = new Map<string, Ingredient>();
+    for (const ingredient of ingredients) map.set(ingredient.id, ingredient);
+    return map;
+  }, [ingredients]);
+  const [recipeRecents, setRecipeRecents] = useState(() =>
+    readPickerRecents("recipes"),
+  );
+  const [batchRecents, setBatchRecents] = useState(() =>
+    readPickerRecents("batches"),
+  );
+  const [ingredientRecents, setIngredientRecents] = useState(() =>
+    readPickerRecents("ingredients"),
   );
 
   const initialKind: EntryKind = editing?.entry.kind ?? "recipeServings";
@@ -268,53 +312,67 @@ export function AddLoggedMealForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="log-slot">Slot</Label>
-          <NativeSelect
+          <Label id="log-slot-label">Slot</Label>
+          <SegmentedGroup
             id="log-slot"
+            aria-labelledby="log-slot-label"
             value={slotId}
-            onChange={(e) => setSlotId(e.target.value)}
-          >
-            {slots.map((slot) => (
-              <option key={slot.id} value={slot.id}>
-                {slot.name}
-              </option>
-            ))}
-          </NativeSelect>
+            onValueChange={setSlotId}
+            options={slots.map((slot) => ({
+              value: slot.id,
+              label: slot.name,
+            }))}
+          />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="log-kind">What to log</Label>
-        <NativeSelect
+        <Label id="log-kind-label">What to log</Label>
+        <SegmentedGroup
           id="log-kind"
+          aria-labelledby="log-kind-label"
           value={kind}
-          onChange={(e) => setKind(e.target.value as EntryKind)}
-        >
-          <option value="recipeServings">Recipe servings (no pantry deduct)</option>
-          <option value="batchPortions">Batch portions (uses remaining)</option>
-          <option value="ingredient">Ingredient (deducts pantry)</option>
-          <option value="customFood">Custom food (inline)</option>
-        </NativeSelect>
+          onValueChange={(next) => setKind(next as EntryKind)}
+          options={[...LOG_KIND_OPTIONS]}
+        />
       </div>
 
       {kind === "recipeServings" ? (
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
           <div className="space-y-2">
-            <Label htmlFor="log-recipe">Recipe</Label>
-            <NativeSelect
-              id="log-recipe"
-              value={recipeId}
-              onChange={(e) => setRecipeId(e.target.value)}
-            >
-              {recipes.length === 0 ? (
-                <option value="">No recipes yet</option>
-              ) : null}
-              {recipes.map((recipe) => (
-                <option key={recipe.id} value={recipe.id}>
-                  {recipe.name}
-                </option>
-              ))}
-            </NativeSelect>
+            <Label id="log-recipe-label">Recipe</Label>
+            {recipes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No recipes yet</p>
+            ) : (
+              <CommandPicker
+                id="log-recipe"
+                aria-labelledby="log-recipe-label"
+                title="Choose recipe"
+                value={recipeId}
+                onValueChange={(id) => {
+                  setRecipeId(id);
+                  setRecipeRecents(rememberPickerRecent("recipes", id));
+                }}
+                recentIds={recipeRecents}
+                items={recipes.map((recipe) => {
+                  let context: string | undefined;
+                  try {
+                    const per = recipePerServing(
+                      recipe,
+                      Object.fromEntries(ingredientsById),
+                    );
+                    context = `${Math.round(per.kcal)} kcal / serving`;
+                  } catch {
+                    context = undefined;
+                  }
+                  return {
+                    value: recipe.id,
+                    label: recipe.name,
+                    context,
+                  };
+                })}
+              />
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="log-servings">Servings</Label>
@@ -333,22 +391,29 @@ export function AddLoggedMealForm({
       {kind === "batchPortions" ? (
         <div className="space-y-3">
           <div className="space-y-2">
-            <Label htmlFor="log-batch">Batch</Label>
-            <NativeSelect
-              id="log-batch"
-              value={batchId}
-              onChange={(e) => setBatchId(e.target.value)}
-            >
-              {availableBatches.length === 0 ? (
-                <option value="">No batches available</option>
-              ) : null}
-              {availableBatches.map((row) => (
-                <option key={row.batch.id} value={row.batch.id}>
-                  {row.batch.label ?? row.batch.snapshot.recipeName} ·{" "}
-                  {row.remaining} left
-                </option>
-              ))}
-            </NativeSelect>
+            <Label id="log-batch-label">Batch</Label>
+            {availableBatches.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No batches available
+              </p>
+            ) : (
+              <CommandPicker
+                id="log-batch"
+                aria-labelledby="log-batch-label"
+                title="Choose batch"
+                value={batchId}
+                onValueChange={(id) => {
+                  setBatchId(id);
+                  setBatchRecents(rememberPickerRecent("batches", id));
+                }}
+                recentIds={batchRecents}
+                items={availableBatches.map((row) => ({
+                  value: row.batch.id,
+                  label: row.batch.label ?? row.batch.snapshot.recipeName,
+                  context: `${row.remaining} left · cooked ${row.batch.cookedAt.slice(0, 10)}`,
+                }))}
+              />
+            )}
           </div>
           <div className="space-y-2">
             <Label>Portions</Label>
@@ -376,23 +441,29 @@ export function AddLoggedMealForm({
       ) : null}
 
       {kind === "ingredient" ? (
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_6rem_5rem]">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_6rem_minmax(0,8rem)]">
           <div className="space-y-2">
-            <Label htmlFor="log-ingredient">Ingredient</Label>
-            <NativeSelect
-              id="log-ingredient"
-              value={ingredientId}
-              onChange={(e) => onIngredientChange(e.target.value)}
-            >
-              {ingredients.length === 0 ? (
-                <option value="">No ingredients yet</option>
-              ) : null}
-              {ingredients.map((ingredient) => (
-                <option key={ingredient.id} value={ingredient.id}>
-                  {ingredient.name}
-                </option>
-              ))}
-            </NativeSelect>
+            <Label id="log-ingredient-label">Ingredient</Label>
+            {ingredients.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No ingredients yet</p>
+            ) : (
+              <CommandPicker
+                id="log-ingredient"
+                aria-labelledby="log-ingredient-label"
+                title="Choose ingredient"
+                value={ingredientId}
+                onValueChange={(id) => {
+                  onIngredientChange(id);
+                  setIngredientRecents(rememberPickerRecent("ingredients", id));
+                }}
+                recentIds={ingredientRecents}
+                items={ingredients.map((ingredient) => ({
+                  value: ingredient.id,
+                  label: ingredient.name,
+                  context: ingredient.measureKind,
+                }))}
+              />
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="log-amount">Amount</Label>
@@ -406,18 +477,14 @@ export function AddLoggedMealForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="log-unit">Unit</Label>
-            <NativeSelect
+            <Label id="log-unit-label">Unit</Label>
+            <UnitChoice
               id="log-unit"
+              aria-labelledby="log-unit-label"
+              units={units}
               value={unit}
-              onChange={(e) => setUnit(e.target.value as Unit)}
-            >
-              {units.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </NativeSelect>
+              onValueChange={setUnit}
+            />
           </div>
         </div>
       ) : null}

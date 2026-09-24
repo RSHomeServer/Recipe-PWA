@@ -28,7 +28,7 @@ import {
   useRecipesForPlan,
 } from "@/features/plan/hooks";
 import { Button } from "@/ui/button";
-import { cn } from "@/ui/lib/utils";
+import { SegmentedGroup } from "@/ui/segmented-group";
 import { groupByCategory, groupByRecipe } from "./grouping";
 import {
   useIngredientCategories,
@@ -291,33 +291,15 @@ export default function ShoppingPage() {
           }
         />
 
-        <div
-          className="inline-flex rounded-md border border-border p-1"
-          role="group"
+        <SegmentedGroup
           aria-label="Group shopping list"
-        >
-          {(
-            [
-              ["category", "By aisle"],
-              ["recipe", "By recipe"],
-            ] as const
-          ).map(([mode, label]) => (
-            <button
-              key={mode}
-              type="button"
-              className={cn(
-                "min-h-11 rounded-sm px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                groupMode === mode
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground",
-              )}
-              aria-pressed={groupMode === mode}
-              onClick={() => setGroupMode(mode)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+          value={groupMode}
+          onValueChange={(next) => setGroupMode(next as GroupMode)}
+          options={[
+            { value: "category", label: "By aisle" },
+            { value: "recipe", label: "By recipe" },
+          ]}
+        />
 
         {remainingCount != null && lineViews.length > 0 ? (
           <p

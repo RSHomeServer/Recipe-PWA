@@ -30,10 +30,15 @@ import {
 } from "@/domain";
 import { RecipeNutritionPanel } from "@/features/recipes/RecipeNutritionPanel";
 import { Button } from "@/ui/button";
+import { CommandPicker } from "@/ui/command-picker";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
-import { NativeSelect } from "@/ui/native-select";
+import {
+  readPickerRecents,
+  rememberPickerRecent,
+} from "@/ui/picker-recents";
 import { Textarea } from "@/ui/textarea";
+import { UnitChoice } from "@/ui/unit-choice";
 
 export type RecipeFormProps = {
   activeIngredients: Ingredient[];
@@ -97,6 +102,9 @@ export function RecipeForm({
 
   const [scaleOverride, setScaleOverride] = useState<number | null>(null);
   const [pickerId, setPickerId] = useState("");
+  const [ingredientRecents, setIngredientRecents] = useState(() =>
+    readPickerRecents("ingredients"),
+  );
   const [pendingImage, setPendingImage] = useState<RecipeImage | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
   const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(
@@ -317,19 +325,26 @@ export function RecipeForm({
             ) : (
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div className="min-w-0 flex-1 space-y-2">
-                  <Label htmlFor="recipe-add-ingredient">Add ingredient</Label>
-                  <NativeSelect
+                  <Label id="recipe-add-ingredient-label">Add ingredient</Label>
+                  <CommandPicker
                     id="recipe-add-ingredient"
+                    aria-labelledby="recipe-add-ingredient-label"
+                    title="Choose ingredient"
+                    placeholder="Choose ingredient…"
                     value={pickerId}
-                    onChange={(event) => setPickerId(event.target.value)}
-                  >
-                    <option value="">Choose ingredient…</option>
-                    {pickerOptions.map((ingredient) => (
-                      <option key={ingredient.id} value={ingredient.id}>
-                        {ingredient.name}
-                      </option>
-                    ))}
-                  </NativeSelect>
+                    onValueChange={(id) => {
+                      setPickerId(id);
+                      setIngredientRecents(
+                        rememberPickerRecent("ingredients", id),
+                      );
+                    }}
+                    recentIds={ingredientRecents}
+                    items={pickerOptions.map((ingredient) => ({
+                      value: ingredient.id,
+                      label: ingredient.name,
+                      context: ingredient.measureKind,
+                    }))}
+                  />
                 </div>
                 <Button
                   type="button"
@@ -406,30 +421,22 @@ export function RecipeForm({
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor={`recipe-line-unit-${index}`}>
+                          <Label id={`recipe-line-unit-${index}-label`}>
                             Unit
                           </Label>
                           <Controller
                             control={control}
                             name={`lines.${index}.displayUnit`}
                             render={({ field: unitField }) => (
-                              <NativeSelect
+                              <UnitChoice
                                 id={`recipe-line-unit-${index}`}
+                                aria-labelledby={`recipe-line-unit-${index}-label`}
+                                units={units}
                                 value={unitField.value}
-                                onChange={(event) =>
-                                  unitField.onChange(
-                                    event.target.value as Unit,
-                                  )
+                                onValueChange={(unit) =>
+                                  unitField.onChange(unit)
                                 }
-                                onBlur={unitField.onBlur}
-                                ref={unitField.ref}
-                              >
-                                {units.map((unit) => (
-                                  <option key={unit} value={unit}>
-                                    {unit}
-                                  </option>
-                                ))}
-                              </NativeSelect>
+                              />
                             )}
                           />
                         </div>
