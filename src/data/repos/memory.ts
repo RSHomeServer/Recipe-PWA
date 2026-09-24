@@ -5,6 +5,7 @@ import {
   IngredientSchema,
   LoggedMealSchema,
   MealSlotSchema,
+  MealTemplateSchema,
   PantryStockSchema,
   PlannedMealSchema,
   RecipeImageSchema,
@@ -18,6 +19,7 @@ import {
   type IngredientCategory,
   type LoggedMeal,
   type MealSlot,
+  type MealTemplate,
   type PantryStock,
   type PlannedMeal,
   type Recipe,
@@ -34,6 +36,7 @@ import type {
   IngredientRepo,
   LoggedMealRepo,
   MealSlotRepo,
+  MealTemplateRepo,
   PantryStockRepo,
   PlannedMealRepo,
   RecipeImageRepo,
@@ -63,6 +66,7 @@ export function createMemoryRepositories(
     batches: Batch[];
     pantryStock: PantryStock[];
     mealSlots: MealSlot[];
+    mealTemplates: MealTemplate[];
     plannedMeals: PlannedMeal[];
     loggedMeals: LoggedMeal[];
     shoppingOverlays: ShoppingOverlay[];
@@ -89,6 +93,9 @@ export function createMemoryRepositories(
   );
   const mealSlots = new Map(
     (seed?.mealSlots ?? []).map((r) => [r.id, r as unknown]),
+  );
+  const mealTemplates = new Map(
+    (seed?.mealTemplates ?? []).map((r) => [r.id, r as unknown]),
   );
   const plannedMeals = new Map(
     (seed?.plannedMeals ?? []).map((r) => [r.id, r as unknown]),
@@ -275,6 +282,27 @@ export function createMemoryRepositories(
     },
   };
 
+  const mealTemplateRepo: MealTemplateRepo = {
+    async all() {
+      return mapStore(mealTemplates, MealTemplateSchema, "mealTemplates");
+    },
+    async byId(id) {
+      const row = mealTemplates.get(id);
+      return row
+        ? parseRow(MealTemplateSchema, "mealTemplates", row, id)
+        : undefined;
+    },
+    async put(row) {
+      const parsed = MealTemplateSchema.parse(row);
+      mealTemplates.set(parsed.id, parsed);
+    },
+    async archive(id, archivedAt) {
+      const existing = await this.byId(id);
+      if (!existing) throw new Error(`Meal template ${id} not found`);
+      mealTemplates.set(id, { ...existing, archivedAt });
+    },
+  };
+
   const plannedMealRepo: PlannedMealRepo = {
     async all() {
       return mapStore(plannedMeals, PlannedMealSchema, "plannedMeals");
@@ -370,6 +398,7 @@ export function createMemoryRepositories(
     batches: batchRepo,
     pantryStock: pantryStockRepo,
     mealSlots: mealSlotRepo,
+    mealTemplates: mealTemplateRepo,
     plannedMeals: plannedMealRepo,
     loggedMeals: loggedMealRepo,
     shoppingOverlays: shoppingOverlayRepo,

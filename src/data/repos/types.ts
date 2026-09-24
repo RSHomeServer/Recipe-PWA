@@ -5,6 +5,7 @@ import type {
   IngredientCategory,
   LoggedMeal,
   MealSlot,
+  MealTemplate,
   PantryStock,
   PlannedMeal,
   Recipe,
@@ -72,6 +73,13 @@ export interface MealSlotRepo {
   delete(id: string): Promise<void>;
 }
 
+export interface MealTemplateRepo {
+  all(): Promise<MealTemplate[]>;
+  byId(id: string): Promise<MealTemplate | undefined>;
+  put(row: MealTemplate): Promise<void>;
+  archive(id: string, archivedAt: string): Promise<void>;
+}
+
 export interface PlannedMealRepo {
   all(): Promise<PlannedMeal[]>;
   byId(id: string): Promise<PlannedMeal | undefined>;
@@ -109,6 +117,7 @@ export interface RecipeRepositories {
   batches: BatchRepo;
   pantryStock: PantryStockRepo;
   mealSlots: MealSlotRepo;
+  mealTemplates: MealTemplateRepo;
   plannedMeals: PlannedMealRepo;
   loggedMeals: LoggedMealRepo;
   shoppingOverlays: ShoppingOverlayRepo;

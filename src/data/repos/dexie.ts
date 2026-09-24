@@ -5,6 +5,7 @@ import {
   IngredientSchema,
   LoggedMealSchema,
   MealSlotSchema,
+  MealTemplateSchema,
   PantryStockSchema,
   PlannedMealSchema,
   RecipeImageSchema,
@@ -26,6 +27,7 @@ import type {
   IngredientRepo,
   LoggedMealRepo,
   MealSlotRepo,
+  MealTemplateRepo,
   PantryStockRepo,
   PlannedMealRepo,
   RecipeImageRepo,
@@ -216,6 +218,29 @@ export function createDexieRepositories(db: Dexie): RecipeRepositories {
     },
   };
 
+  const mealTemplates: MealTemplateRepo = {
+    async all() {
+      const rows = await db.table("mealTemplates").toArray();
+      return parseRows(MealTemplateSchema, "mealTemplates", rows, (r) =>
+        (r as { id: string }).id,
+      );
+    },
+    async byId(id) {
+      const row = await db.table("mealTemplates").get(id);
+      return row
+        ? parseRow(MealTemplateSchema, "mealTemplates", row, id)
+        : undefined;
+    },
+    async put(row) {
+      await db.table("mealTemplates").put(MealTemplateSchema.parse(row));
+    },
+    async archive(id, archivedAt) {
+      const existing = await this.byId(id);
+      if (!existing) throw new Error(`Meal template ${id} not found`);
+      await db.table("mealTemplates").put({ ...existing, archivedAt });
+    },
+  };
+
   const plannedMeals: PlannedMealRepo = {
     async all() {
       const rows = await db.table("plannedMeals").toArray();
@@ -336,6 +361,7 @@ export function createDexieRepositories(db: Dexie): RecipeRepositories {
     batches,
     pantryStock,
     mealSlots,
+    mealTemplates,
     plannedMeals,
     loggedMeals,
     shoppingOverlays,
