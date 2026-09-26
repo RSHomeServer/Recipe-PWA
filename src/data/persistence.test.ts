@@ -141,6 +141,7 @@ describe("Dexie repositories", () => {
     expect(settings.id).toBe("singleton");
     expect(settings.weekStartsOn).toBe(1);
     expect(settings.starterPackVersion).toBeTruthy();
+    expect(settings.flavourPackVersion).toBeTruthy();
     expect(ingredients.length).toBeGreaterThan(500);
     expect(
       ingredients.some((ingredient) => ingredient.common),

@@ -7,9 +7,13 @@ import { z } from "zod";
 import {
   STARTER_PACK_ATTRIBUTION,
   STARTER_PACK_VERSION,
-  seedStarterPack,
+  seedBothPacks,
   useRecipeData,
 } from "@/data";
+import {
+  FLAVOUR_PACK_ATTRIBUTION,
+  FLAVOUR_PACK_VERSION,
+} from "@/data/flavour-pack";
 import { useSettings } from "@/features/shopping/hooks";
 import { PageHeader } from "@/features/shared/RoutePlaceholder";
 import { RouteStatePanel } from "@/features/shared/RouteStatePanel";
@@ -190,13 +194,25 @@ export default function SettingsPage() {
           Starter ingredients
         </h2>
         <p className="text-sm text-muted-foreground">
-          Adds any missing CoFID reference ingredients. Existing rows are never
-          overwritten — including ones you have edited. Pack version:{" "}
-          <span className="font-medium text-foreground">
-            {settings.starterPackVersion ?? "not seeded yet"}
-          </span>{" "}
-          (current build: {STARTER_PACK_VERSION}).
+          Adds any missing CoFID and USDA flavour-pack reference ingredients.
+          Existing rows are never overwritten — including ones you have edited.
         </p>
+        <ul className="space-y-1 text-sm text-muted-foreground">
+          <li>
+            CoFID pack:{" "}
+            <span className="font-medium text-foreground">
+              {settings.starterPackVersion ?? "not seeded yet"}
+            </span>{" "}
+            (current build: {STARTER_PACK_VERSION})
+          </li>
+          <li>
+            Flavour pack:{" "}
+            <span className="font-medium text-foreground">
+              {settings.flavourPackVersion ?? "not seeded yet"}
+            </span>{" "}
+            (current build: {FLAVOUR_PACK_VERSION})
+          </li>
+        </ul>
         <Button
           type="button"
           variant="outline"
@@ -205,17 +221,26 @@ export default function SettingsPage() {
             if (!db) return;
             setTopUpBusy(true);
             try {
-              const report = await seedStarterPack(db);
-              const summary = `Added ${report.added}, skipped ${report.skippedExisting} already present${
-                report.skippedInvalid > 0
-                  ? `, ${report.skippedInvalid} invalid`
-                  : ""
-              }.`;
+              const report = await seedBothPacks(db);
+              const formatPack = (
+                label: string,
+                pack: { added: number; skippedExisting: number; skippedInvalid: number },
+              ) =>
+                `${label}: added ${pack.added}, skipped ${pack.skippedExisting} already present${
+                  pack.skippedInvalid > 0
+                    ? `, ${pack.skippedInvalid} invalid`
+                    : ""
+                }`;
+              const summary = [
+                formatPack("CoFID", report.starter),
+                formatPack("Flavour", report.flavour),
+              ].join(". ");
               setLastTopUp(summary);
+              const totalAdded = report.starter.added + report.flavour.added;
               toast.success(
-                report.added > 0
-                  ? `Added ${report.added} starter ingredients`
-                  : "No missing starter ingredients",
+                totalAdded > 0
+                  ? `Added ${report.starter.added} CoFID + ${report.flavour.added} flavour ingredients`
+                  : "No missing starter or flavour ingredients",
               );
             } catch (error) {
               toast.error(
@@ -269,6 +294,29 @@ export default function SettingsPage() {
                 release.
               </span>
             ) : null}
+          </p>
+        </div>
+        <div className="space-y-2 text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">
+            {FLAVOUR_PACK_ATTRIBUTION.title}
+          </p>
+          <p>{FLAVOUR_PACK_ATTRIBUTION.body}</p>
+          <p>
+            Dataset:{" "}
+            <a
+              className="underline-offset-4 hover:underline"
+              href={FLAVOUR_PACK_ATTRIBUTION.datasetUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {FLAVOUR_PACK_ATTRIBUTION.datasetName}
+            </a>
+          </p>
+          <p>
+            Licence:{" "}
+            <span className="font-medium text-foreground">
+              {FLAVOUR_PACK_ATTRIBUTION.licenceLabel}
+            </span>
           </p>
         </div>
       </section>
