@@ -24,6 +24,16 @@ export {
   CATEGORY_VISUALS_BY_ID,
   defaultSettings,
 } from "./seeds";
+/** Flavour pack before starter-pack/db so Settings barrel imports never hit a half-init cycle. */
+export {
+  FLAVOUR_PACK_VERSION,
+  FLAVOUR_PACK_ATTRIBUTION,
+  flavourPackMeta,
+  loadFlavourPack,
+  setFlavourPackForTests,
+  type FlavourPackFile,
+  type FlavourPackMeta,
+} from "./flavour-pack";
 export {
   STARTER_PACK_VERSION,
   STARTER_PACK_ATTRIBUTION,
@@ -43,15 +53,6 @@ export {
   type StarterPackMeta,
   type CommonFirstPartition,
 } from "./starter-pack";
-export {
-  FLAVOUR_PACK_VERSION,
-  FLAVOUR_PACK_ATTRIBUTION,
-  flavourPackMeta,
-  loadFlavourPack,
-  setFlavourPackForTests,
-  type FlavourPackFile,
-  type FlavourPackMeta,
-} from "./flavour-pack";
 export { ParseOnReadError, parseRow, parseRows } from "./parse";
 export {
   SnapshotImmutabilityError,

@@ -5,13 +5,15 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
-  FLAVOUR_PACK_ATTRIBUTION,
-  FLAVOUR_PACK_VERSION,
   STARTER_PACK_ATTRIBUTION,
   STARTER_PACK_VERSION,
   seedBothPacks,
   useRecipeData,
 } from "@/data";
+import {
+  FLAVOUR_PACK_ATTRIBUTION,
+  FLAVOUR_PACK_VERSION,
+} from "@/data/flavour-pack";
 import { useSettings } from "@/features/shopping/hooks";
 import { PageHeader } from "@/features/shared/RoutePlaceholder";
 import { RouteStatePanel } from "@/features/shared/RouteStatePanel";
