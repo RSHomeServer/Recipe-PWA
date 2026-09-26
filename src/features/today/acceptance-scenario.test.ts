@@ -40,7 +40,7 @@ function ingredient(
       datasetName: "McCance and Widdowson's CoFID",
       entryCode: id.slice(0, 6),
       entryName: name,
-      licence: "OGL-UK-UNCONFIRMED",
+      licence: "OGL-UK-3.0",
       url: "https://www.gov.uk/government/publications/composition-of-foods-integrated-dataset-cofid",
       retrievedAt: "2026-09-24",
       note: null,

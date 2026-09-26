@@ -26,7 +26,7 @@ const DATASET = {
   datasetName:
     "McCance and Widdowson's The Composition of Foods Integrated Dataset 2021",
   /** Placeholder — human must confirm OGL version from GOV.UK licence footer (R2.12). */
-  licence: "OGL-UK-UNCONFIRMED",
+  licence: "OGL-UK-3.0",
   url: "https://www.gov.uk/government/publications/composition-of-foods-integrated-dataset-cofid",
   retrievedAt: "2021-03-19",
 };
@@ -272,7 +272,7 @@ async function main() {
         dataset: DATASET,
         stats: pack.stats,
         attributionNote:
-          "Licence string is a placeholder (OGL-UK-UNCONFIRMED). A human must read the GOV.UK publication page licence footer before release (R2.12).",
+          "Contains public sector information licensed under the Open Government Licence v3.0. Confirmed from the GOV.UK CoFID publication page footer and the CoFID 2021 user guide PDF (R2.12).",
       },
       null,
       2,

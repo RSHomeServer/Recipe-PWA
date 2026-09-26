@@ -27,17 +27,16 @@ export const STARTER_PACK_VERSION = starterPackMeta.version;
 
 /**
  * Attribution copy for Settings → About.
- * Licence string is intentionally marked unconfirmed (R2.12 human gate).
+ * R2.12 resolved: GOV.UK CoFID page footer + CoFID 2021 user guide PDF → OGL v3.0.
  */
 export const STARTER_PACK_ATTRIBUTION = {
   title: "Reference ingredient data",
   datasetName: starterPackMeta.dataset.datasetName,
   datasetUrl: starterPackMeta.dataset.url,
-  licenceLabel: starterPackMeta.dataset.licence,
-  licenceConfirmed: false,
+  licenceLabel: "Open Government Licence v3.0",
+  licenceConfirmed: true,
   body: [
     "Starter ingredients are transcribed by script from the published UK CoFID workbook.",
-    "Licence string below is a placeholder until a human confirms the exact Open Government Licence version and attribution wording from the GOV.UK publication page footer (R2.12).",
     starterPackMeta.attributionNote,
   ].join(" "),
 };

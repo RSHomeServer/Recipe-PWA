@@ -80,7 +80,7 @@ fixes, not a composer redesign). Recorded below as a should-fix for a future tic
 | nit | Live stopwatch timing | Confirm `< 60 s` wall-clock in a real device pass; static trace suggests first build is the only over-budget phase. |
 | nit | Charts remain `aria-hidden` with DOM table equivalents | Acceptable per §8 rule 4; keep the table for every new chart. |
 | blocker | *(none)* | — |
-| human gate | R2.12 licence string still `OGL-UK-UNCONFIRMED` | Attribution placeholder in Settings → About; a human must resolve the OGL version from the GOV.UK CoFID licence footer before release. Unchanged by this ticket. |
+| human gate | ~~R2.12 licence string~~ **Resolved** | Product owner confirmed OGL v3.0 from the GOV.UK CoFID page footer and the CoFID 2021 user guide PDF. Pack and Settings → About updated to `OGL-UK-3.0`. |
 
 ## Accessibility §9 status
 

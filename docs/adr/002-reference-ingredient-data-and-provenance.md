@@ -233,6 +233,12 @@ reach, and they are what goes in Settings → About. **R2.12 stands as a human g
 it from the GOV.UK publication page's own licence footer, not from this ADR and not from a
 search summary.
 
+> **Resolved (2026-09-26).** Product owner confirmed from the GOV.UK CoFID publication page
+> footer (*All content is available under the Open Government Licence v3.0, except where
+> otherwise stated*) and an OGL declaration in the CoFID 2021 user guide PDF. Pack meta and
+> Settings → About use `OGL-UK-3.0` with attribution: *Contains public sector information
+> licensed under the Open Government Licence v3.0.*
+
 ### 2c. If USDA is taken instead
 
 The fallback is genuinely easier on two axes and harder on one, now that both are checked:
