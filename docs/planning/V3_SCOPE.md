@@ -4,8 +4,9 @@ The build specification for Recipe PWA V3. Every requirement traces to an ADR in
 [`docs/adr`](../adr/README.md); the ADRs carry the reasoning, this document carries the work.
 
 V1 and V2 are complete and shipped (PRs #1–#25). Nothing in V3 rewrites either. V3 adds one
-thing the product cannot currently do: find and build **flavour per calorie**, so that
-seasoning a cucumber competes with opening a packet of crisps.
+thing the product cannot currently do: find and build **flavour per calorie** — a prepared
+arsenal of low-energy seasonings and snacks, discoverable from what is in stock, so that when
+a craving arrives the user already has options they like and can log.
 
 Companions: [DOMAIN_MODEL.md](./DOMAIN_MODEL.md), [NUTRITION_MODEL.md](./NUTRITION_MODEL.md),
 [UNIT_MODEL.md](./UNIT_MODEL.md), [DESIGN.md](./DESIGN.md),
@@ -30,27 +31,39 @@ What is genuinely missing is narrower than it looks, and it is mostly **data and
 
 No new Dexie table. No new entity. No change to any calculation already shipped.
 
+## Product framing (confirmed)
+
+The Flavour Lab is a **prep and discovery** tool, not an impulse-replacement race.
+
+| Phase | Job |
+| --- | --- |
+| **Prepare** | Build and save low-calorie mixes and snacks when you have time and intent |
+| **Discover** | Filter by taste / calories / sodium, and prefer options whose ingredients are already in the pantry |
+| **Use** | When craving a snack, pick a prepared option (or see what you can assemble from stock) and log what you ate and liked |
+
+Speed at craving time matters only as far as logging a prepared snack from Today stays
+ordinary product UX — it is **not** the headline success criterion, and V3 does not try to
+beat opening a packet of crisps on wall-clock time.
+
 ## The headline acceptance scenario
 
-Two budgets, because V2 measured that first-build and repeat-use behave completely differently
-and a single number hid it ([UX_CRITIQUE_V2.md](./UX_CRITIQUE_V2.md) §Acceptance scenario
-result).
+Three checks, ordered by what the feature is for. Interaction budgets for first-build are
+**usability gates**, not a claim that the lab must win against impulse snacks.
 
-> **First time.** From a fresh install, the user filters the Flavour Lab to *sour* + *spicy*
-> under 10 kcal per teaspoon, builds **Chilli Garlic Vinegar** from five pack ingredients,
-> and saves **cucumber + that vinegar** as a snack — in **under 2 minutes and fewer than 30
-> interactions**, without typing a single nutrition figure.
+> **1. Prepare.** From a fresh install, filter the Flavour Lab to *sour* + *spicy* under 10
+> kcal per teaspoon (or per 100 g where no spoon weight exists), build **Chilli Garlic
+> Vinegar** from five pack ingredients, and save **cucumber + that vinegar** as a snack —
+> without typing a single nutrition figure. The mix builder MUST follow R5.4 (rapid multi-pick
+> with default quantities) so this stays usable; see [UX_CRITIQUE_V2.md](./UX_CRITIQUE_V2.md)
+> for why one-entry-at-a-time composers fail.
 >
-> **Every time after.** From the Today screen, that snack is logged in **under 10 seconds and
-> at most 4 interactions**, and the log shows calories **and** sodium.
-
-The second budget is the one that decides whether the feature works. A snack that takes longer
-than opening a packet does not replace opening a packet, and no amount of data quality
-compensates.
-
-**Known risk, carried from V2.** The composer needed ~18 interactions to build a four-item
-meal, and the V2 critique attributed that to one-entry-at-a-time entry with a typed amount per
-line. The Flavour Lab's "build a mix" surface must not reproduce that shape — see R5.4.
+> **2. Discover from stock.** With the vinegar's ingredients (or the cucumber) in the pantry,
+> the Flavour Lab / related surfaces MUST make that prepared snack findable as something you
+> can make — the path from "what is in stock" to "what low-calorie options could I make".
+>
+> **3. Log and learn.** From Today, log that snack; the log shows calories **and** sodium so
+> the user can see what they liked and at what cost. Logging SHOULD be a short Today path
+> (ordinary product UX), not a stopwatch competition with opening a packet.
 
 ## Requirements
 
@@ -193,7 +206,7 @@ Ordered so nothing is built on an unsettled foundation.
 | 4 | **Sensory tags and predicates** | R4.1–R4.8. Vocabulary, tag map with build-time resolution, invariance test, derived mix profile, the three predicates, editor tagging. | 1, 2 | 009 |
 | 5 | **The Flavour Lab** | R5.1–R5.9. Route, filters, build-a-mix with rapid multi-pick, `Recipe.kind`, save-as-snack, copy. | 3, 4 | 010 |
 | 6 | **Example mixes and snacks** | R6.1–R6.4. Settings action, idempotent, pack ingredients only. | 5 | 010 |
-| 7 | **V3 UX and accessibility critique** | Full pass against DESIGN.md and §9, both acceptance budgets measured end to end, plus the V2 carry-overs below. | 1–6 | all |
+| 7 | **V3 UX and accessibility critique** | Full pass against DESIGN.md and §9; acceptance checks 1–3 above measured end to end (prepare / discover-from-stock / log-and-learn), plus the V2 carry-overs below. | 1–6 | all |
 
 Tickets 3 and 4 are independent of each other and can run in parallel once 2 lands.
 
@@ -202,12 +215,14 @@ Tickets 3 and 4 are independent of each other and can run in parallel once 2 lan
 Recorded in [UX_CRITIQUE_V2.md](./UX_CRITIQUE_V2.md) and belonging to ticket 7 unless a ticket
 picks one up sooner:
 
-- **Acceptance interaction budget on a fresh install.** Needs a rapid multi-pick composer with
-  default quantities. R5.4 builds exactly that for the Flavour Lab; ticket 7 should assess
-  whether the plan composer can adopt the same pattern.
+- **Plan composer interaction cost on a fresh install.** One-entry-at-a-time with a typed
+  amount per line made a four-item meal expensive. R5.4 builds rapid multi-pick for the
+  Flavour Lab mix builder; ticket 7 should assess whether the plan composer can adopt the
+  same pattern — as prep UX, not as an impulse race.
 - **Apply-a-meal from Plan pre-selects all seven days.** A default of the current day, as Today
   already uses, would cut several interactions.
-- **Live stopwatch timing** of both budgets on a real device.
+- **Live stopwatch timing** of the prepare path on a real device — useful polish signal, not
+  a pass/fail against opening a packet.
 
 ### Open human gates
 

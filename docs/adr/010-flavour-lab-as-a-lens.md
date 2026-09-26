@@ -133,11 +133,14 @@ most of what this feature is for, servings-as-portions is accurate enough and ne
   `Recipe` with `kind: "mix"`. The running total is `recipeTotal` on unsaved lines; no new
   calculation.
 - **Save as a snack** — pair a mix with a base ingredient, save a `MealTemplate`.
-- **Eat it** — the template applies to Today's snack slot through the flow ticket 9 shipped.
+- **Eat / log it** — the template applies to Today's snack slot through the flow ticket 9
+  shipped, so a prepared snack can be logged when it is used.
 
-That last step is the point of the whole feature. The user reaches for crisps because crisps
-take ten seconds; a snack that takes four taps from the Today screen is competing on the axis
-that actually decides it.
+The product framing (confirmed with the product owner for V3) is **prep and discovery**, not
+an impulse race against opening a packet. The lab exists so that when a craving arrives, the
+user already has low-calorie options built, can see what stock supports, and can log what they
+liked. Logging from Today should stay ordinary product UX; it is not the headline success
+criterion.
 
 ### 6. What it does not do
 
