@@ -38,7 +38,7 @@ function sampleIngredient(): Ingredient {
     name: "Chicken",
     categoryId: null,
     measureKind: "mass",
-    nutrition: { kcal: 165, proteinG: 31, carbsG: 0, fatG: 3.6 },
+    nutrition: { kcal: 165, proteinG: 31, carbsG: 0, fatG: 3.6, sodiumMg: null },
     notes: null,
     source: {
         kind: "userEntered",
@@ -53,6 +53,9 @@ function sampleIngredient(): Ingredient {
     },
     imageId: null,
     common: true,
+    gramsPerTsp: null,
+    gramsPerTbsp: null,
+    flavourTags: [],
     archivedAt: null,
   });
 }
@@ -70,6 +73,7 @@ function sampleRecipe(): Recipe {
         displayUnit: "g",
         optional: false,
         note: null,
+      entryHint: null,
       },
     ],
     steps: ["Cook chicken"],
@@ -78,6 +82,7 @@ function sampleRecipe(): Recipe {
     notes: null,
     createdAt: now(),
     updatedAt: now(),
+    kind: "dish",
     archivedAt: null,
   };
 }
@@ -99,10 +104,10 @@ function sampleBatch(): Batch {
           ingredientId,
           ingredientName: "Chicken",
           quantity: { amount: 500, kind: "mass" },
-          nutrition: { kcal: 825, proteinG: 155, carbsG: 0, fatG: 18 },
+          nutrition: { kcal: 825, proteinG: 155, carbsG: 0, fatG: 18, sodiumMg: null },
         },
       ],
-      total: { kcal: 825, proteinG: 155, carbsG: 0, fatG: 18 },
+      total: { kcal: 825, proteinG: 155, carbsG: 0, fatG: 18, sodiumMg: null },
     },
   });
 }
@@ -259,7 +264,7 @@ describe("Dexie repositories", () => {
 
     await repos.ingredients.put({
       ...ingredient,
-      nutrition: { kcal: 999, proteinG: 1, carbsG: 1, fatG: 1 },
+      nutrition: { kcal: 999, proteinG: 1, carbsG: 1, fatG: 1, sodiumMg: null },
     });
     expect((await repos.batches.byId(batchId))?.snapshot).toEqual(
       stored?.snapshot,
@@ -302,7 +307,7 @@ describe("JSON backup (format v1, schemaVersion tracks Dexie)", () => {
 
     const backup = await exportBackup(db);
     expect(backup.formatVersion).toBe(1);
-    expect(backup.schemaVersion).toBe(2);
+    expect(backup.schemaVersion).toBe(3);
     expect(backup.data.mealTemplates).toEqual([]);
     expect(backup.data.recipeImages[0]).toMatchObject({
       id: imageId,
@@ -342,7 +347,7 @@ describe("JSON backup (format v1, schemaVersion tracks Dexie)", () => {
             name: "Chicken",
             categoryId: null,
             measureKind: "mass",
-            nutrition: { kcal: 165, proteinG: 31, carbsG: 0, fatG: 3.6 },
+            nutrition: { kcal: 165, proteinG: 31, carbsG: 0, fatG: 3.6, sodiumMg: null },
             notes: null,
             archivedAt: null,
           },
@@ -388,6 +393,9 @@ describe("JSON backup (format v1, schemaVersion tracks Dexie)", () => {
     expect(ingredient?.common).toBe(true);
     expect(ingredient?.imageId).toBeNull();
     expect(ingredient?.nutrition.kcal).toBe(165);
+    expect(ingredient?.nutrition.sodiumMg).toBeNull();
+    expect(ingredient?.flavourTags).toEqual([]);
+    expect(ingredient?.gramsPerTsp).toBeNull();
 
     const planned = await repos.plannedMeals.byId(
       "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
@@ -398,6 +406,7 @@ describe("JSON backup (format v1, schemaVersion tracks Dexie)", () => {
     const settings = await repos.settings.get();
     expect(settings.howItWorksDismissed).toBe(false);
     expect(settings.starterPackVersion).toBeNull();
+    expect(settings.flavourPackVersion).toBeNull();
   });
 
   it("refuses newer schemaVersion and writes nothing on invalid payload", async () => {
@@ -484,9 +493,10 @@ describe("Dexie schema v2 migration", () => {
     });
     v1.close();
 
+    const v2Only = recipeSchemaVersions.filter((v) => v.version <= 2);
     const v2 = createSongaraDb({
       name,
-      versions: recipeSchemaVersions,
+      versions: v2Only,
     });
     await v2.open();
     expect(v2.verno).toBe(2);
@@ -530,5 +540,267 @@ describe("Dexie schema v2 migration", () => {
     });
 
     v2.close();
+  });
+});
+
+describe("Dexie schema v3 migration", () => {
+  const names: string[] = [];
+
+  afterEach(async () => {
+    for (const name of names.splice(0)) {
+      await deleteRecipeDb(name);
+    }
+  });
+
+  it("declares complete v3 indexes and backfills reference sodium only (R2.6)", async () => {
+    const { createSongaraDb } = await import("@songara/pwa-base/preview/dexie");
+    const {
+      recipeSchemaV2Stores,
+      recipeSchemaVersions,
+      SEED_CATEGORY_IDS,
+    } = await import("./index");
+    const sodiumIndex = (
+      await import("./starter-pack/sodium-index.json")
+    ).default as Record<string, number>;
+
+    const name = testDbName(`v3${Date.now()}${Math.random()}`);
+    names.push(name);
+
+    const refCode = Object.keys(sodiumIndex)[0]!;
+    const [, entryCode] = refCode.split("::");
+    const expectedSodium = sodiumIndex[refCode]!;
+
+    const v2 = createSongaraDb({
+      name,
+      versions: [
+        { version: 1, stores: { ...recipeSchemaV2Stores } },
+        {
+          version: 2,
+          stores: {
+            mealTemplates: recipeSchemaV2Stores.mealTemplates,
+            plannedMeals: recipeSchemaV2Stores.plannedMeals,
+            loggedMeals: recipeSchemaV2Stores.loggedMeals,
+          },
+        },
+      ],
+    });
+    await v2.open();
+
+    const macros = { kcal: 165, proteinG: 31, carbsG: 0, fatG: 3.6 };
+    await v2.table("ingredients").bulkPut([
+      {
+        id: ingredientId,
+        name: "Chicken (reference)",
+        categoryId: SEED_CATEGORY_IDS.produce,
+        measureKind: "mass",
+        nutrition: { ...macros },
+        notes: null,
+        archivedAt: null,
+        source: {
+          kind: "reference",
+          datasetId: "cofid-2021",
+          datasetName: "CoFID",
+          entryCode,
+          entryName: "Chicken",
+          licence: "OGL-UK-3.0",
+          url: "https://example.test",
+          retrievedAt: "2021-03-19",
+          note: null,
+        },
+        imageId: null,
+        common: true,
+      },
+      {
+        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        name: "User sauce",
+        categoryId: null,
+        measureKind: "mass",
+        nutrition: { ...macros, kcal: 50 },
+        notes: null,
+        archivedAt: null,
+        source: {
+          kind: "userEntered",
+          datasetId: null,
+          datasetName: null,
+          entryCode: null,
+          entryName: null,
+          licence: null,
+          url: null,
+          retrievedAt: null,
+          note: null,
+        },
+        imageId: null,
+        common: true,
+      },
+      {
+        id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        name: "Packaging salt",
+        categoryId: null,
+        measureKind: "mass",
+        nutrition: { ...macros, kcal: 0 },
+        notes: null,
+        archivedAt: null,
+        source: {
+          kind: "packaging",
+          datasetId: null,
+          datasetName: null,
+          entryCode: null,
+          entryName: null,
+          licence: null,
+          url: null,
+          retrievedAt: null,
+          note: null,
+        },
+        imageId: null,
+        common: true,
+      },
+      {
+        id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+        name: "Diverged chicken",
+        categoryId: null,
+        measureKind: "mass",
+        nutrition: { ...macros, kcal: 200 },
+        notes: null,
+        archivedAt: null,
+        source: {
+          kind: "userEntered",
+          datasetId: "cofid-2021",
+          datasetName: "CoFID",
+          entryCode,
+          entryName: "Chicken",
+          licence: "OGL-UK-3.0",
+          url: "https://example.test",
+          retrievedAt: "2021-03-19",
+          note: null,
+        },
+        imageId: null,
+        common: true,
+      },
+    ]);
+
+    const preSnapshot = {
+      recipeName: "Old batch",
+      lines: [
+        {
+          ingredientId,
+          ingredientName: "Chicken (reference)",
+          quantity: { amount: 100, kind: "mass" },
+          nutrition: { ...macros },
+        },
+      ],
+      total: { ...macros },
+    };
+    await v2.table("batches").put({
+      id: batchId,
+      recipeId,
+      scale: 1,
+      portionsNominal: 2,
+      cookedAt: now(),
+      label: null,
+      closedAt: null,
+      notes: null,
+      snapshot: preSnapshot,
+    });
+    await v2.table("recipes").put({
+      id: recipeId,
+      name: "Bowl",
+      servings: 2,
+      lines: [
+        {
+          id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          ingredientId,
+          quantity: { amount: 100, kind: "mass" },
+          displayUnit: "g",
+          optional: false,
+          note: null,
+        },
+      ],
+      steps: [],
+      tags: [],
+      imageId: null,
+      notes: null,
+      createdAt: now(),
+      updatedAt: now(),
+      archivedAt: null,
+    });
+    await v2.table("settings").put({
+      id: "singleton",
+      dailyCalorieTarget: null,
+      weekStartsOn: 1,
+      themePreference: "system",
+      shoppingWindow: null,
+      howItWorksDismissed: false,
+      starterPackVersion: null,
+    });
+    v2.close();
+
+    const v3 = createSongaraDb({
+      name,
+      versions: recipeSchemaVersions,
+    });
+    await v3.open();
+    expect(v3.verno).toBe(3);
+
+    const ingredientIndexes = v3
+      .table("ingredients")
+      .schema.indexes.map((idx) => idx.keyPath);
+    const recipeIndexes = v3
+      .table("recipes")
+      .schema.indexes.map((idx) => idx.keyPath);
+    expect(ingredientIndexes).toContain("flavourTags");
+    expect(recipeIndexes).toContain("kind");
+
+    const reference = await v3.table("ingredients").get(ingredientId);
+    expect(reference).toMatchObject({
+      nutrition: { ...macros, sodiumMg: expectedSodium },
+      gramsPerTsp: null,
+      gramsPerTbsp: null,
+      flavourTags: [],
+    });
+
+    const userEntered = await v3
+      .table("ingredients")
+      .get("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+    expect(userEntered?.nutrition).toEqual({
+      ...macros,
+      kcal: 50,
+      sodiumMg: null,
+    });
+
+    const packaging = await v3
+      .table("ingredients")
+      .get("cccccccc-cccc-4ccc-8ccc-cccccccccccc");
+    expect(packaging?.nutrition).toEqual({
+      ...macros,
+      kcal: 0,
+      sodiumMg: null,
+    });
+
+    const diverged = await v3
+      .table("ingredients")
+      .get("dddddddd-dddd-4ddd-8ddd-dddddddddddd");
+    expect(diverged?.nutrition).toEqual({
+      ...macros,
+      kcal: 200,
+      sodiumMg: null,
+    });
+
+    const recipe = await v3.table("recipes").get(recipeId);
+    expect(recipe).toMatchObject({
+      kind: "dish",
+      lines: [{ entryHint: null }],
+    });
+
+    const batch = await v3.table("batches").get(batchId);
+    expect(batch?.snapshot.total).toEqual({ ...macros, sodiumMg: null });
+    expect(batch?.snapshot.lines[0]?.nutrition).toEqual({
+      ...macros,
+      sodiumMg: null,
+    });
+
+    const settings = await v3.table("settings").get("singleton");
+    expect(settings).toMatchObject({ flavourPackVersion: null });
+
+    v3.close();
   });
 });

@@ -32,7 +32,7 @@ function ingredient(
     name,
     categoryId: null,
     measureKind,
-    nutrition: { kcal: 100, proteinG: 5, carbsG: 10, fatG: 2 },
+    nutrition: { kcal: 100, proteinG: 5, carbsG: 10, fatG: 2, sodiumMg: null },
     notes: null,
     source: {
       kind: "reference",
@@ -47,6 +47,9 @@ function ingredient(
     },
     imageId: null,
     common: true,
+    gramsPerTsp: null,
+    gramsPerTbsp: null,
+    flavourTags: [],
     archivedAt: null,
   };
 }

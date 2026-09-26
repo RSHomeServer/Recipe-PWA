@@ -39,6 +39,7 @@ function macroSegments(nutrition: {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  sodiumMg: number | null;
 }) {
   const protein = Math.round(macroEnergyShare(nutrition, "proteinG") * 100);
   const carbs = Math.round(macroEnergyShare(nutrition, "carbsG") * 100);
@@ -137,6 +138,7 @@ export function RecipeNutritionPanel({
               protein={total.proteinG}
               carbs={total.carbsG}
               fat={total.fatG}
+              sodiumMg={total.sodiumMg}
               variant="block"
             />
           </div>
@@ -149,6 +151,7 @@ export function RecipeNutritionPanel({
               protein={perServing.proteinG}
               carbs={perServing.carbsG}
               fat={perServing.fatG}
+              sodiumMg={perServing.sodiumMg}
               variant="block"
             />
           </div>

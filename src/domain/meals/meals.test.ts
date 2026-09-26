@@ -40,7 +40,7 @@ const chicken: Ingredient = {
   name: "Chicken",
   categoryId: null,
   measureKind: "mass",
-  nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6 },
+  nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6, sodiumMg: null },
   notes: null,
   source: {
     kind: "userEntered",
@@ -55,6 +55,9 @@ const chicken: Ingredient = {
   },
   imageId: null,
   common: true,
+  gramsPerTsp: null,
+  gramsPerTbsp: null,
+  flavourTags: [],
   archivedAt: null,
 };
 
@@ -63,7 +66,7 @@ const rice: Ingredient = {
   name: "Rice",
   categoryId: null,
   measureKind: "mass",
-  nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3 },
+  nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3, sodiumMg: null },
   notes: null,
   source: {
     kind: "userEntered",
@@ -78,6 +81,9 @@ const rice: Ingredient = {
   },
   imageId: null,
   common: true,
+  gramsPerTsp: null,
+  gramsPerTbsp: null,
+  flavourTags: [],
   archivedAt: null,
 };
 
@@ -86,7 +92,7 @@ const peas: Ingredient = {
   name: "Peas",
   categoryId: null,
   measureKind: "mass",
-  nutrition: { kcal: 80, proteinG: 5, carbsG: 14, fatG: 0.4 },
+  nutrition: { kcal: 80, proteinG: 5, carbsG: 14, fatG: 0.4, sodiumMg: null },
   notes: null,
   source: {
     kind: "userEntered",
@@ -101,6 +107,9 @@ const peas: Ingredient = {
   },
   imageId: null,
   common: true,
+  gramsPerTsp: null,
+  gramsPerTbsp: null,
+  flavourTags: [],
   archivedAt: null,
 };
 
@@ -109,7 +118,7 @@ const sauce: Ingredient = {
   name: "BBQ sauce",
   categoryId: null,
   measureKind: "volume",
-  nutrition: { kcal: 50, proteinG: 0, carbsG: 12, fatG: 0 },
+  nutrition: { kcal: 50, proteinG: 0, carbsG: 12, fatG: 0, sodiumMg: null },
   notes: null,
   source: {
     kind: "userEntered",
@@ -124,6 +133,9 @@ const sauce: Ingredient = {
   },
   imageId: null,
   common: true,
+  gramsPerTsp: null,
+  gramsPerTbsp: null,
+  flavourTags: [],
   archivedAt: null,
 };
 
@@ -139,6 +151,7 @@ const recipe: Recipe = {
       displayUnit: "g",
       optional: false,
       note: null,
+    entryHint: null,
     },
     {
       id: "22222222-2222-4222-8222-222222222222",
@@ -147,6 +160,7 @@ const recipe: Recipe = {
       displayUnit: "g",
       optional: false,
       note: null,
+    entryHint: null,
     },
   ],
   steps: ["Cook"],
@@ -155,6 +169,7 @@ const recipe: Recipe = {
   notes: null,
   createdAt: "2026-09-22T12:00:00.000Z",
   updatedAt: "2026-09-22T12:00:00.000Z",
+  kind: "dish",
   archivedAt: null,
 };
 
@@ -212,6 +227,7 @@ function makeTemplate(overrides?: Partial<MealTemplate>): MealTemplate {
     defaultSlotId: slotId,
     createdAt: "2026-09-24T12:00:00.000Z",
     updatedAt: "2026-09-24T12:00:00.000Z",
+    kind: "dish",
     archivedAt: null,
     ...overrides,
   });
@@ -242,7 +258,7 @@ describe("MealTemplate schema (R4.1)", () => {
         food: {
           name: "Snack",
           quantity: 1,
-          nutrition: { kcal: 100, proteinG: 0, carbsG: 0, fatG: 0 },
+          nutrition: { kcal: 100, proteinG: 0, carbsG: 0, fatG: 0, sodiumMg: null },
         },
       }).success,
     ).toBe(false);
@@ -586,7 +602,7 @@ describe("deriveRecents (R4.10 / ADR-004 verification 8)", () => {
           food: {
             name: "Snack",
             quantity: 1,
-            nutrition: { kcal: 100, proteinG: 0, carbsG: 20, fatG: 0 },
+            nutrition: { kcal: 100, proteinG: 0, carbsG: 20, fatG: 0, sodiumMg: null },
           },
         },
       ),

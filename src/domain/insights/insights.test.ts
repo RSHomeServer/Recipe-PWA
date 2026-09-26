@@ -25,7 +25,7 @@ const chicken: Ingredient = {
   name: "Chicken",
   categoryId: null,
   measureKind: "mass",
-  nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6 },
+  nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6, sodiumMg: null },
   notes: null,
   source: {
     kind: "userEntered",
@@ -40,6 +40,9 @@ const chicken: Ingredient = {
   },
   imageId: null,
   common: true,
+  gramsPerTsp: null,
+  gramsPerTbsp: null,
+  flavourTags: [],
   archivedAt: null,
 };
 
@@ -48,7 +51,7 @@ const rice: Ingredient = {
   name: "Rice",
   categoryId: null,
   measureKind: "mass",
-  nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3 },
+  nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3, sodiumMg: null },
   notes: null,
   source: {
     kind: "userEntered",
@@ -63,6 +66,9 @@ const rice: Ingredient = {
   },
   imageId: null,
   common: true,
+  gramsPerTsp: null,
+  gramsPerTbsp: null,
+  flavourTags: [],
   archivedAt: null,
 };
 
@@ -78,6 +84,7 @@ const recipe: Recipe = {
       displayUnit: "g",
       optional: false,
       note: null,
+    entryHint: null,
     },
     {
       id: "dddddddd-dddd-4ddd-8ddd-ddddddddddde",
@@ -86,6 +93,7 @@ const recipe: Recipe = {
       displayUnit: "g",
       optional: false,
       note: null,
+    entryHint: null,
     },
     {
       id: "dddddddd-dddd-4ddd-8ddd-dddddddddddf",
@@ -94,6 +102,7 @@ const recipe: Recipe = {
       displayUnit: "g",
       optional: true,
       note: "garnish",
+    entryHint: null,
     },
   ],
   steps: ["Cook"],
@@ -102,6 +111,7 @@ const recipe: Recipe = {
   notes: null,
   createdAt: now,
   updatedAt: now,
+  kind: "dish",
   archivedAt: null,
 };
 
@@ -121,16 +131,16 @@ const batch: Batch = {
         ingredientId: chicken.id,
         ingredientName: chicken.name,
         quantity: { amount: 500, kind: "mass" },
-        nutrition: { kcal: 600, proteinG: 115, carbsG: 0, fatG: 13 },
+        nutrition: { kcal: 600, proteinG: 115, carbsG: 0, fatG: 13, sodiumMg: null },
       },
       {
         ingredientId: rice.id,
         ingredientName: rice.name,
         quantity: { amount: 300, kind: "mass" },
-        nutrition: { kcal: 390, proteinG: 8.1, carbsG: 84, fatG: 0.9 },
+        nutrition: { kcal: 390, proteinG: 8.1, carbsG: 84, fatG: 0.9, sodiumMg: null },
       },
     ],
-    total: { kcal: 990, proteinG: 123.1, carbsG: 84, fatG: 13.9 },
+    total: { kcal: 990, proteinG: 123.1, carbsG: 84, fatG: 13.9, sodiumMg: null },
   },
 };
 
@@ -215,7 +225,7 @@ describe("expand", () => {
         food: {
           name: "Cafe wrap",
           quantity: 2,
-          nutrition: { kcal: 250, proteinG: 10, carbsG: 30, fatG: 8 },
+          nutrition: { kcal: 250, proteinG: 10, carbsG: 30, fatG: 8, sodiumMg: null },
         },
       },
     });
@@ -248,7 +258,7 @@ describe("history immutability (batch snapshot path)", () => {
     };
     const editedChicken: Ingredient = {
       ...chicken,
-      nutrition: { kcal: 999, proteinG: 50, carbsG: 0, fatG: 20 },
+      nutrition: { kcal: 999, proteinG: 50, carbsG: 0, fatG: 20, sodiumMg: null },
     };
 
     const after = expand(meal, ctx([editedRecipe], [batch], [editedChicken, rice]));
@@ -289,7 +299,7 @@ describe("folds and reconciliation", () => {
         food: {
           name: "Takeaway",
           quantity: 1,
-          nutrition: { kcal: 800, proteinG: 20, carbsG: 90, fatG: 30 },
+          nutrition: { kcal: 800, proteinG: 20, carbsG: 90, fatG: 30, sodiumMg: null },
         },
       },
     }),

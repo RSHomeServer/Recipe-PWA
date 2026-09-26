@@ -12,9 +12,13 @@ import {
   formatKcal,
   formatMacroG,
   formatPct,
+  formatSaltG,
   formatWeekRangeLabel,
+  describeSodium,
+  saltGramsFromSodiumMg,
   macroEnergyShare,
   todayIso,
+  UK_ADULT_SODIUM_MG_PER_DAY,
   type FoldBucket,
   type Nutrition,
   type RankedBucket,
@@ -58,6 +62,12 @@ function macroSegments(n: Nutrition) {
 }
 
 function NutritionFigures({ n }: { n: Nutrition }) {
+  const sodium = describeSodium({ sodiumMg: n.sodiumMg });
+  const saltLabel =
+    sodium.kind === "unknown"
+      ? null
+      : `${formatSaltG(sodium.saltG)} g salt-equivalent`;
+
   return (
     <dl className="num flex flex-wrap gap-x-6 gap-y-2 text-base">
       <div>
@@ -75,6 +85,17 @@ function NutritionFigures({ n }: { n: Nutrition }) {
       <div>
         <dt className="text-sm text-muted-foreground">Fat</dt>
         <dd>{formatMacroG(n.fatG)} g</dd>
+      </div>
+      <div>
+        <dt className="text-sm text-muted-foreground">Sodium</dt>
+        <dd>
+          {sodium.label}
+          {saltLabel ? (
+            <span className="block text-sm font-normal text-muted-foreground">
+              {saltLabel}
+            </span>
+          ) : null}
+        </dd>
       </div>
     </dl>
   );
@@ -247,6 +268,35 @@ export default function InsightsPage() {
       <Section title="What did I eat today?">
         <NutritionFigures n={data.todayNutrition} />
         <MacroBar segments={macroSegments(data.todayNutrition)} />
+        {(() => {
+          const sodium = describeSodium({
+            sodiumMg: data.todayNutrition.sodiumMg,
+          });
+          const knownMg =
+            sodium.kind === "unknown" ? null : sodium.kind === "partial"
+              ? sodium.knownSodiumMg
+              : sodium.sodiumMg;
+          return (
+            <p className="text-base text-muted-foreground">
+              Daily sodium{" "}
+              <span className="num text-foreground">{sodium.label}</span>
+              {knownMg != null ? (
+                <>
+                  {" "}
+                  · UK adult reference ~{formatKcal(UK_ADULT_SODIUM_MG_PER_DAY)}{" "}
+                  mg/day ({formatSaltG(saltGramsFromSodiumMg(UK_ADULT_SODIUM_MG_PER_DAY))} g
+                  salt) shown as context, not a limit.
+                </>
+              ) : (
+                <>
+                  {" "}
+                  · UK adult reference ~{formatKcal(UK_ADULT_SODIUM_MG_PER_DAY)}{" "}
+                  mg/day shown as context when sodium is known.
+                </>
+              )}
+            </p>
+          );
+        })()}
         <table className="w-full max-w-md text-left text-base">
           <caption className="sr-only">Today&apos;s macros</caption>
           <thead>

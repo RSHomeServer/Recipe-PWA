@@ -16,7 +16,7 @@ import {
   categoryIdForGroup,
   measureKindForGroup,
 } from "./group-to-category.mjs";
-import { parseRequiredMacros } from "./parse-macros.mjs";
+import { parseRequiredMacros, parseSodiumMg } from "./parse-macros.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "../..");
@@ -31,7 +31,7 @@ const DATASET = {
   retrievedAt: "2021-03-19",
 };
 
-export const STARTER_PACK_VERSION = "cofid-2021-v1";
+export const STARTER_PACK_VERSION = "cofid-2021-v2";
 
 const DEFAULT_XLSX = path.join(root, "data/cofid/CoFID_2021.xlsx");
 const DEFAULT_OUT = path.join(root, "src/data/starter-pack");
@@ -55,7 +55,7 @@ function parseArgs(argv) {
  * Locate macro columns by acronym row (row index 1).
  * @param {unknown[][]} rows
  */
-function findColumns(rows) {
+function findColumns(rows, sheetLabel) {
   const acronyms = rows[1] ?? [];
   const headers = rows[0] ?? [];
 
@@ -64,7 +64,7 @@ function findColumns(rows) {
       (cell) => String(cell ?? "").trim().toUpperCase() === name,
     );
     if (idx < 0) {
-      throw new Error(`Proximates sheet missing acronym column ${name}`);
+      throw new Error(`${sheetLabel} sheet missing acronym column ${name}`);
     }
     return idx;
   };
@@ -74,7 +74,7 @@ function findColumns(rows) {
       (cell) => String(cell ?? "").trim().toLowerCase() === name.toLowerCase(),
     );
     if (idx < 0) {
-      throw new Error(`Proximates sheet missing header ${name}`);
+      throw new Error(`${sheetLabel} sheet missing header ${name}`);
     }
     return idx;
   };
@@ -87,6 +87,8 @@ function findColumns(rows) {
     fat: findAcronym("FAT"),
     cho: findAcronym("CHO"),
     kcals: findAcronym("KCALS"),
+    findAcronym,
+    findHeader,
   };
 }
 
@@ -103,6 +105,14 @@ export function transcodeWorkbook(xlsxPath) {
       `No Proximates worksheet in ${xlsxPath}; sheets: ${workbook.SheetNames.join(", ")}`,
     );
   }
+  const inorganicsName = workbook.SheetNames.find((name) =>
+    /inorganic/i.test(name),
+  );
+  if (!inorganicsName) {
+    throw new Error(
+      `No Inorganics worksheet in ${xlsxPath}; sheets: ${workbook.SheetNames.join(", ")}`,
+    );
+  }
 
   const sheet = workbook.Sheets[sheetName];
   const rows = /** @type {unknown[][]} */ (
@@ -113,22 +123,50 @@ export function transcodeWorkbook(xlsxPath) {
       blankrows: false,
     })
   );
+  const inorganicsRows = /** @type {unknown[][]} */ (
+    XLSX.utils.sheet_to_json(workbook.Sheets[inorganicsName], {
+      header: 1,
+      defval: null,
+      raw: true,
+      blankrows: false,
+    })
+  );
 
   if (rows.length < 4) {
     throw new Error("Proximates sheet has no data rows (expected headers in rows 1–3)");
   }
+  if (inorganicsRows.length !== rows.length) {
+    throw new Error(
+      `Inorganics row count (${inorganicsRows.length}) does not match Proximates (${rows.length})`,
+    );
+  }
 
-  const cols = findColumns(rows);
+  const cols = findColumns(rows, "Proximates");
+  const inorgAcronyms = inorganicsRows[1] ?? [];
+  const sodiumCol = inorgAcronyms.findIndex(
+    (cell) => String(cell ?? "").trim().toUpperCase() === "NA",
+  );
+  if (sodiumCol < 0) {
+    throw new Error("Inorganics sheet missing acronym column NA");
+  }
   const dataRows = rows.slice(3);
+  const inorganicsData = inorganicsRows.slice(3);
 
   /** @type {object[]} */
   const ingredients = [];
+  /** @type {Record<string, number>} */
+  const sodiumIndex = {};
   let excludedN = 0;
   let incomplete = 0;
   let duplicateCodes = 0;
+  let sodiumKnown = 0;
+  let sodiumNull = 0;
+  let sodiumZero = 0;
   const seenCodes = new Set();
 
-  for (const row of dataRows) {
+  for (let i = 0; i < dataRows.length; i += 1) {
+    const row = dataRows[i];
+    const inorgRow = inorganicsData[i] ?? [];
     const entryCode = String(row[cols.code] ?? "").trim();
     const entryName = String(row[cols.name] ?? "").trim();
     const group = String(row[cols.group] ?? "").trim();
@@ -159,7 +197,15 @@ export function transcodeWorkbook(xlsxPath) {
       continue;
     }
 
+    const sodiumMg = parseSodiumMg(inorgRow[sodiumCol]);
+    if (sodiumMg === null) sodiumNull += 1;
+    else if (sodiumMg === 0) sodiumZero += 1;
+    else sodiumKnown += 1;
+
     seenCodes.add(entryCode);
+    const key = `${DATASET.datasetId}::${entryCode}`;
+    if (sodiumMg !== null) sodiumIndex[key] = sodiumMg;
+
     ingredients.push({
       id: deterministicId(`cofid:${entryCode}`),
       name: entryName,
@@ -170,6 +216,7 @@ export function transcodeWorkbook(xlsxPath) {
         proteinG: macros.proteinG,
         carbsG: macros.carbsG,
         fatG: macros.fatG,
+        sodiumMg,
       },
       notes: null,
       archivedAt: null,
@@ -186,19 +233,27 @@ export function transcodeWorkbook(xlsxPath) {
       },
       imageId: null,
       common: false,
+      gramsPerTsp: null,
+      gramsPerTbsp: null,
+      flavourTags: [],
       _group: group,
     });
   }
 
   return {
     ingredients,
+    sodiumIndex,
     stats: {
       sheetName,
+      inorganicsSheetName: inorganicsName,
       dataRows: dataRows.length,
       seeded: ingredients.length,
       excludedN,
       incomplete,
       duplicateCodes,
+      sodiumKnown,
+      sodiumNull,
+      sodiumZero,
     },
   };
 }
@@ -241,7 +296,7 @@ async function main() {
     throw new Error(`${COMMON_CODES_PATH} must contain a "codes" array`);
   }
 
-  const { ingredients, stats } = transcodeWorkbook(opts.xlsx);
+  const { ingredients, sodiumIndex, stats } = transcodeWorkbook(opts.xlsx);
   const withCommon = applyCommonFlags(ingredients, commonRaw.codes);
 
   const pack = {
@@ -263,6 +318,13 @@ async function main() {
   // Minified runtime asset — fetched at seed time, not inlined into the JS bundle.
   await writeFile(packPath, `${JSON.stringify(pack)}\n`, "utf8");
 
+  const sodiumIndexPath = path.join(opts.outDir, "sodium-index.json");
+  await writeFile(
+    sodiumIndexPath,
+    `${JSON.stringify(sodiumIndex)}\n`,
+    "utf8",
+  );
+
   const metaPath = path.join(opts.outDir, "meta.json");
   await writeFile(
     metaPath,
@@ -283,6 +345,7 @@ async function main() {
   console.log(
     `Wrote ${withCommon.length} ingredients (${pack.stats.commonCount} common) → ${packPath}`,
   );
+  console.log(`Wrote sodium index (${Object.keys(sodiumIndex).length} known) → ${sodiumIndexPath}`);
   console.log(JSON.stringify(pack.stats, null, 2));
 }
 

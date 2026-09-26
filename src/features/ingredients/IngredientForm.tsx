@@ -193,6 +193,7 @@ export function IngredientForm({
   const proteinErrorId = "ingredient-protein-error";
   const carbsErrorId = "ingredient-carbs-error";
   const fatErrorId = "ingredient-fat-error";
+  const sodiumErrorId = "ingredient-sodium-error";
 
   return (
     <form
@@ -449,6 +450,37 @@ export function IngredientForm({
             <FieldError
               id={fatErrorId}
               message={errors.nutrition?.fatG?.message}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="ingredient-sodium">Sodium (mg)</Label>
+            <Input
+              id="ingredient-sodium"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="any"
+              placeholder="Unknown"
+              aria-invalid={errors.nutrition?.sodiumMg ? true : undefined}
+              aria-describedby={
+                errors.nutrition?.sodiumMg ? sodiumErrorId : undefined
+              }
+              {...register("nutrition.sodiumMg", {
+                setValueAs: (value) => {
+                  if (value === "" || value === null || value === undefined) {
+                    return null;
+                  }
+                  const n = typeof value === "number" ? value : Number(value);
+                  return Number.isNaN(n) ? null : n;
+                },
+              })}
+            />
+            <p className="text-sm text-muted-foreground">
+              Leave blank when unknown — never treated as zero.
+            </p>
+            <FieldError
+              id={sodiumErrorId}
+              message={errors.nutrition?.sodiumMg?.message}
             />
           </div>
         </div>

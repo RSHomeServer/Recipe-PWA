@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { NutritionSchema } from "../nutrition/schemas";
+import { NutritionSchema, normalizeNutrition } from "../nutrition/schemas";
 import { MeasureKindSchema } from "../units/schemas";
 import {
   IdSchema,
@@ -55,6 +55,27 @@ export function defaultUserEnteredSource(
   };
 }
 
+/** V3 — ADR-009. Closed sensory vocabulary; empty valid, null not. */
+export const FlavourTagSchema = z.enum([
+  "sweet",
+  "sour",
+  "salty",
+  "umami",
+  "spicy",
+  "bitter",
+  "smoky",
+  "aromatic",
+  "earthy",
+  "fresh",
+  "creamy",
+  "rich",
+  "nutty",
+  "fruity",
+  "floral",
+  "fermented",
+]);
+export type FlavourTag = z.infer<typeof FlavourTagSchema>;
+
 export const IngredientSchema = z.object({
   id: IdSchema,
   name: z.string().min(1),
@@ -66,6 +87,11 @@ export const IngredientSchema = z.object({
   source: IngredientSourceSchema,
   imageId: IdSchema.nullable(),
   common: z.boolean(),
+  /** V3 — ADR-008. Cited portion weight; null when unpublished. */
+  gramsPerTsp: z.number().finite().positive().nullable(),
+  gramsPerTbsp: z.number().finite().positive().nullable(),
+  /** V3 — ADR-009. May be empty; never null. */
+  flavourTags: z.array(FlavourTagSchema),
 });
 export type Ingredient = z.infer<typeof IngredientSchema>;
 
@@ -109,13 +135,14 @@ export function nutritionEqual(
     a.kcal === b.kcal &&
     a.proteinG === b.proteinG &&
     a.carbsG === b.carbsG &&
-    a.fatG === b.fatG
+    a.fatG === b.fatG &&
+    a.sodiumMg === b.sodiumMg
   );
 }
 
 /**
- * Fill V1-shaped ingredient rows for migration / backup import.
- * Does not invent nutrition or fabricate provenance.
+ * Fill V1/V2-shaped ingredient rows for migration / backup import.
+ * Does not invent nutrition figures or fabricate provenance.
  */
 export function normalizeIngredientRow(row: unknown): unknown {
   if (!row || typeof row !== "object") return row;
@@ -128,6 +155,12 @@ export function normalizeIngredientRow(row: unknown): unknown {
   if (!("common" in next) || typeof next.common !== "boolean") {
     next.common = true;
   }
+  if (next.nutrition != null) {
+    next.nutrition = normalizeNutrition(next.nutrition);
+  }
+  if (!("gramsPerTsp" in next)) next.gramsPerTsp = null;
+  if (!("gramsPerTbsp" in next)) next.gramsPerTbsp = null;
+  if (!Array.isArray(next.flavourTags)) next.flavourTags = [];
   return next;
 }
 

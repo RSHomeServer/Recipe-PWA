@@ -20,7 +20,7 @@ const chicken: Ingredient = {
   name: "Chicken",
   categoryId: null,
   measureKind: "mass",
-  nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6 },
+  nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6, sodiumMg: null },
   notes: null,
   source: {
     kind: "userEntered",
@@ -35,6 +35,9 @@ const chicken: Ingredient = {
   },
   imageId: null,
   common: true,
+  gramsPerTsp: null,
+  gramsPerTbsp: null,
+  flavourTags: [],
   archivedAt: null,
 };
 
@@ -50,6 +53,7 @@ const recipe: Recipe = {
       displayUnit: "g",
       optional: false,
       note: null,
+    entryHint: null,
     },
   ],
   steps: ["Cook"],
@@ -58,6 +62,7 @@ const recipe: Recipe = {
   notes: null,
   createdAt: now,
   updatedAt: now,
+  kind: "dish",
   archivedAt: null,
 };
 
@@ -77,10 +82,10 @@ const batch: Batch = {
         ingredientId: chicken.id,
         ingredientName: chicken.name,
         quantity: { amount: 500, kind: "mass" },
-        nutrition: { kcal: 600, proteinG: 115, carbsG: 0, fatG: 13 },
+        nutrition: { kcal: 600, proteinG: 115, carbsG: 0, fatG: 13, sodiumMg: null },
       },
     ],
-    total: { kcal: 600, proteinG: 115, carbsG: 0, fatG: 13 },
+    total: { kcal: 600, proteinG: 115, carbsG: 0, fatG: 13, sodiumMg: null },
   },
 };
 
@@ -133,7 +138,7 @@ describe("entryNutrition", () => {
         food: {
           name: "Wrap",
           quantity: 2,
-          nutrition: { kcal: 250, proteinG: 10, carbsG: 30, fatG: 8 },
+          nutrition: { kcal: 250, proteinG: 10, carbsG: 30, fatG: 8, sodiumMg: null },
         },
       },
       ctx,
@@ -247,7 +252,7 @@ describe("pantry side effects", () => {
         food: {
           name: "Bar",
           quantity: 1,
-          nutrition: { kcal: 100, proteinG: 1, carbsG: 1, fatG: 1 },
+          nutrition: { kcal: 100, proteinG: 1, carbsG: 1, fatG: 1, sodiumMg: null },
         },
       }),
     ).toEqual({ kind: "none" });

@@ -26,12 +26,15 @@ function baseIngredient(
   return IngredientSchema.parse({
     categoryId: null,
     measureKind: "mass",
-    nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6 },
+    nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6, sodiumMg: null },
     notes: null,
     archivedAt: null,
     source: defaultUserEnteredSource(),
     imageId: null,
     common: true,
+    gramsPerTsp: null,
+    gramsPerTbsp: null,
+    flavourTags: [],
     ...overrides,
   });
 }
@@ -39,13 +42,13 @@ function baseIngredient(
 const chicken = baseIngredient({
   id: chickenId,
   name: "Chicken",
-  nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6 },
+  nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6, sodiumMg: null },
 });
 
 const rice = baseIngredient({
   id: riceId,
   name: "Rice",
-  nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3 },
+  nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3, sodiumMg: null },
 });
 
 const recipe: Recipe = {
@@ -60,6 +63,7 @@ const recipe: Recipe = {
       displayUnit: "g",
       optional: false,
       note: null,
+    entryHint: null,
     },
     {
       id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
@@ -68,6 +72,7 @@ const recipe: Recipe = {
       displayUnit: "g",
       optional: false,
       note: null,
+    entryHint: null,
     },
   ],
   steps: [],
@@ -76,6 +81,7 @@ const recipe: Recipe = {
   notes: null,
   createdAt: "2026-09-24T00:00:00.000Z",
   updatedAt: "2026-09-24T00:00:00.000Z",
+  kind: "dish",
   archivedAt: null,
 };
 
@@ -184,12 +190,15 @@ describe("reference divergence (R2.4)", () => {
       note: null,
     },
     common: false,
+  gramsPerTsp: null,
+  gramsPerTbsp: null,
+  flavourTags: [],
   });
 
   it("flips kind to userEntered while preserving origin fields", () => {
     const next = prepareIngredientPut(referenceChicken, {
       ...referenceChicken,
-      nutrition: { kcal: 200, proteinG: 20, carbsG: 0, fatG: 10 },
+      nutrition: { kcal: 200, proteinG: 20, carbsG: 0, fatG: 10, sodiumMg: null },
     });
     expect(next.source.kind).toBe("userEntered");
     expect(next.source.datasetId).toBe("cofid-2021");

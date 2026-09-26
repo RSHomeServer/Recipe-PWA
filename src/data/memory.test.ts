@@ -28,7 +28,7 @@ describe("in-memory repositories", () => {
       snapshot: {
         recipeName: "X",
         lines: [],
-        total: { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+        total: { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0, sodiumMg: null },
       },
     });
 
@@ -48,7 +48,7 @@ describe("in-memory repositories", () => {
       name: "Rice",
       categoryId: null,
       measureKind: "mass",
-      nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3 },
+      nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3, sodiumMg: null },
       notes: null,
       source: {
             kind: "userEntered",
@@ -63,6 +63,9 @@ describe("in-memory repositories", () => {
       },
       imageId: null,
       common: true,
+      gramsPerTsp: null,
+      gramsPerTbsp: null,
+      flavourTags: [],
       archivedAt: null,
     });
     await repos.ingredients.put(ingredient);
@@ -76,6 +79,7 @@ describe("in-memory repositories", () => {
       shoppingWindow: null,
       howItWorksDismissed: false,
       starterPackVersion: null,
+      flavourPackVersion: null,
     });
     await repos.settings.put(settings);
     expect(await repos.settings.get()).toEqual(settings);
@@ -92,7 +96,7 @@ describe("in-memory repositories", () => {
           food: {
             name: "Takeaway",
             quantity: 1,
-            nutrition: { kcal: 800, proteinG: 20, carbsG: 80, fatG: 40 },
+            nutrition: { kcal: 800, proteinG: 20, carbsG: 80, fatG: 40, sodiumMg: null },
           },
         },
         position: 0,

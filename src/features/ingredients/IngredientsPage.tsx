@@ -226,6 +226,7 @@ export default function IngredientsPage() {
                           protein={ingredient.nutrition.proteinG}
                           carbs={ingredient.nutrition.carbsG}
                           fat={ingredient.nutrition.fatG}
+                          sodiumMg={ingredient.nutrition.sodiumMg}
                           variant="inline"
                         />
                       </div>

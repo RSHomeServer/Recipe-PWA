@@ -7,6 +7,7 @@ export const ZERO: Nutrition = {
   proteinG: 0,
   carbsG: 0,
   fatG: 0,
+  sodiumMg: 0,
 };
 
 /** Fixed nutrition basis implied by measure kind (decision 3). */
@@ -20,6 +21,7 @@ export function scale(n: Nutrition, f: number): Nutrition {
     proteinG: n.proteinG * f,
     carbsG: n.carbsG * f,
     fatG: n.fatG * f,
+    sodiumMg: n.sodiumMg === null ? null : n.sodiumMg * f,
   };
 }
 
@@ -30,6 +32,10 @@ export function sum(ns: readonly Nutrition[]): Nutrition {
       proteinG: acc.proteinG + n.proteinG,
       carbsG: acc.carbsG + n.carbsG,
       fatG: acc.fatG + n.fatG,
+      sodiumMg:
+        acc.sodiumMg === null || n.sodiumMg === null
+          ? null
+          : acc.sodiumMg + n.sodiumMg,
     }),
     ZERO,
   );

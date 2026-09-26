@@ -164,6 +164,12 @@ export function AddLoggedMealForm({
       ? String(editing.entry.food.nutrition.fatG)
       : "",
   );
+  const [customSodium, setCustomSodium] = useState(
+    editing?.entry.kind === "customFood" &&
+      editing.entry.food.nutrition.sodiumMg != null
+      ? String(editing.entry.food.nutrition.sodiumMg)
+      : "",
+  );
   const [note, setNote] = useState(editing?.note ?? "");
   const [busy, setBusy] = useState(false);
 
@@ -226,6 +232,11 @@ export function AddLoggedMealForm({
     const proteinG = Number(customProtein);
     const carbsG = Number(customCarbs);
     const fatG = Number(customFat);
+    const sodiumRaw = customSodium.trim();
+    const sodiumMg =
+      sodiumRaw === ""
+        ? null
+        : Number(sodiumRaw);
     if (
       !customName.trim() ||
       !Number.isFinite(qty) ||
@@ -233,7 +244,8 @@ export function AddLoggedMealForm({
       !Number.isFinite(kcal) ||
       !Number.isFinite(proteinG) ||
       !Number.isFinite(carbsG) ||
-      !Number.isFinite(fatG)
+      !Number.isFinite(fatG) ||
+      (sodiumMg !== null && (!Number.isFinite(sodiumMg) || sodiumMg < 0))
     ) {
       toast.error("Enter a name and nutrition figures for the custom food");
       return null;
@@ -243,7 +255,7 @@ export function AddLoggedMealForm({
       food: {
         name: customName.trim(),
         quantity: qty,
-        nutrition: { kcal, proteinG, carbsG, fatG },
+        nutrition: { kcal, proteinG, carbsG, fatG, sodiumMg },
       },
     };
   };
@@ -557,6 +569,18 @@ export function AddLoggedMealForm({
                 step="any"
                 value={customFat}
                 onChange={(e) => setCustomFat(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="log-custom-na">Sodium mg (optional)</Label>
+              <Input
+                id="log-custom-na"
+                type="number"
+                step="any"
+                min={0}
+                placeholder="Unknown"
+                value={customSodium}
+                onChange={(e) => setCustomSodium(e.target.value)}
               />
             </div>
           </div>

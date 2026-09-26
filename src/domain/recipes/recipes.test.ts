@@ -18,7 +18,7 @@ function chicken(): Ingredient {
     name: "Chicken",
     categoryId: null,
     measureKind: "mass",
-    nutrition: { kcal: 120, proteinG: 22, carbsG: 0, fatG: 3 },
+    nutrition: { kcal: 120, proteinG: 22, carbsG: 0, fatG: 3, sodiumMg: null },
     notes: null,
     source: {
         kind: "userEntered",
@@ -33,6 +33,9 @@ function chicken(): Ingredient {
     },
     imageId: null,
     common: true,
+    gramsPerTsp: null,
+    gramsPerTbsp: null,
+    flavourTags: [],
     archivedAt: null,
   });
 }
@@ -43,7 +46,7 @@ function rice(): Ingredient {
     name: "Rice",
     categoryId: null,
     measureKind: "mass",
-    nutrition: { kcal: 350, proteinG: 7, carbsG: 78, fatG: 1 },
+    nutrition: { kcal: 350, proteinG: 7, carbsG: 78, fatG: 1, sodiumMg: null },
     notes: null,
     source: {
       kind: "userEntered",
@@ -58,6 +61,9 @@ function rice(): Ingredient {
     },
     imageId: null,
     common: true,
+    gramsPerTsp: null,
+    gramsPerTbsp: null,
+    flavourTags: [],
     archivedAt: null,
   });
 }
@@ -108,6 +114,7 @@ describe("buildRecipeFields", () => {
             displayUnit: "kg",
             optional: false,
             note: "diced",
+          entryHint: null,
           },
           {
             id: lineB,
@@ -116,6 +123,7 @@ describe("buildRecipeFields", () => {
             displayUnit: "g",
             optional: true,
             note: "extra",
+          entryHint: null,
           },
           {
             id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
@@ -124,6 +132,7 @@ describe("buildRecipeFields", () => {
             displayUnit: "g",
             optional: false,
             note: "",
+          entryHint: null,
           },
         ],
         steps: ["Cook"],
@@ -157,6 +166,7 @@ describe("buildRecipeFields", () => {
             displayUnit: "ml",
             optional: false,
             note: "",
+          entryHint: null,
           },
         ],
         steps: [],

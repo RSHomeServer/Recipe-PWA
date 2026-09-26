@@ -234,6 +234,7 @@ export default function RecipesPage() {
                             protein={perServing.proteinG}
                             carbs={perServing.carbsG}
                             fat={perServing.fatG}
+                            sodiumMg={perServing.sodiumMg}
                             variant="inline"
                           />
                         ) : (

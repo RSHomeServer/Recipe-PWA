@@ -18,7 +18,7 @@ function ingredient(
 ): Ingredient {
   return {
     categoryId: null,
-    nutrition: { kcal: 100, proteinG: 10, carbsG: 10, fatG: 1 },
+    nutrition: { kcal: 100, proteinG: 10, carbsG: 10, fatG: 1, sodiumMg: null },
     notes: null,
     archivedAt: null,
     source: {
@@ -34,6 +34,9 @@ function ingredient(
     },
     imageId: null,
     common: true,
+    gramsPerTsp: null,
+    gramsPerTbsp: null,
+    flavourTags: [],
     ...overrides,
   };
 }
@@ -49,6 +52,7 @@ function recipe(
     notes: null,
     createdAt: NOW,
     updatedAt: NOW,
+    kind: "dish",
     archivedAt: null,
     ...overrides,
   };
@@ -169,6 +173,7 @@ describe("recipe availability", () => {
         displayUnit: "g",
         optional: false,
         note: null,
+      entryHint: null,
       },
       {
         id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
@@ -177,6 +182,7 @@ describe("recipe availability", () => {
         displayUnit: "g",
         optional: false,
         note: null,
+      entryHint: null,
       },
       {
         id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
@@ -185,6 +191,7 @@ describe("recipe availability", () => {
         displayUnit: "ml",
         optional: false,
         note: null,
+      entryHint: null,
       },
       {
         id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
@@ -193,6 +200,7 @@ describe("recipe availability", () => {
         displayUnit: "g",
         optional: true,
         note: null,
+      entryHint: null,
       },
     ],
   });
