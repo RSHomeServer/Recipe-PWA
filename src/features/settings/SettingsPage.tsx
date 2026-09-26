@@ -258,7 +258,7 @@ export default function SettingsPage() {
             </a>
           </p>
           <p>
-            Licence (placeholder — unconfirmed):{" "}
+            Licence:{" "}
             <span className="font-medium text-foreground">
               {STARTER_PACK_ATTRIBUTION.licenceLabel}
             </span>
