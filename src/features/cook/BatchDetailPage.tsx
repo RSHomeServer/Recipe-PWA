@@ -141,6 +141,7 @@ export default function BatchDetailPage() {
             protein={portion.proteinG}
             carbs={portion.carbsG}
             fat={portion.fatG}
+            sodiumMg={portion.sodiumMg}
             variant="row"
           />
           <p className="text-sm font-medium text-muted-foreground">
@@ -151,6 +152,7 @@ export default function BatchDetailPage() {
             protein={total.proteinG}
             carbs={total.carbsG}
             fat={total.fatG}
+            sodiumMg={total.sodiumMg}
             variant="row"
           />
         </div>

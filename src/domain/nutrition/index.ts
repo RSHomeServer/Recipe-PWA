@@ -6,6 +6,8 @@ export {
   BatchSnapshotLineSchema,
   BatchSnapshotSchema,
   BatchNutritionInputSchema,
+  normalizeNutrition,
+  normalizeNutritionDeep,
 } from "./schemas";
 export type {
   Nutrition,
@@ -41,6 +43,12 @@ export {
   formatMacroG,
   formatPct,
   formatNutrition,
+  formatSodiumMg,
+  formatSaltG,
+  saltGramsFromSodiumMg,
+  describeSodium,
+  describeSodiumFromContributors,
   macroEnergyShare,
+  UK_ADULT_SODIUM_MG_PER_DAY,
 } from "./format";
-export type { FormattedNutrition } from "./format";
+export type { FormattedNutrition, SodiumDisplay } from "./format";

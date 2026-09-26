@@ -59,6 +59,7 @@ export function LogEntryRow({
             protein={Number(nutrition.nutrition.proteinG.toFixed(1))}
             carbs={Number(nutrition.nutrition.carbsG.toFixed(1))}
             fat={Number(nutrition.nutrition.fatG.toFixed(1))}
+            sodiumMg={nutrition.nutrition.sodiumMg}
             variant="inline"
           />
         ) : (

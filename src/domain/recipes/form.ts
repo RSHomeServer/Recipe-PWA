@@ -71,6 +71,7 @@ export function buildRecipeFields(
       displayUnit: Unit;
       optional: boolean;
       note: string | null;
+      entryHint: RecipeLine["entryHint"];
     }
   >();
 
@@ -125,6 +126,7 @@ export function buildRecipeFields(
       displayUnit: draft.displayUnit,
       optional: draft.optional,
       note,
+      entryHint: null,
     });
   }
 
@@ -142,7 +144,10 @@ export function buildRecipeFields(
     fields: {
       name: values.name,
       servings: values.servings,
-      lines: [...byIngredient.values()],
+      lines: [...byIngredient.values()].map((line) => ({
+        ...line,
+        entryHint: line.entryHint ?? null,
+      })),
       steps,
       tags,
       notes: (() => {

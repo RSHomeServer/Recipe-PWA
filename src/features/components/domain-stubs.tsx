@@ -31,6 +31,8 @@ export type NutritionSummaryProps = {
   protein: number;
   carbs: number;
   fat: number;
+  /** When undefined, sodium is omitted. null → "Sodium not known". */
+  sodiumMg?: number | null;
   variant?: "inline" | "row" | "block";
   className?: string;
 };
@@ -40,9 +42,17 @@ export function NutritionSummary({
   protein,
   carbs,
   fat,
+  sodiumMg,
   variant = "inline",
   className,
 }: NutritionSummaryProps) {
+  const sodiumLabel =
+    sodiumMg === undefined
+      ? null
+      : sodiumMg === null
+        ? "Sodium not known"
+        : `${Math.round(sodiumMg)} mg Na`;
+
   const figures = (
     <>
       <span className="num font-medium">{kcal} kcal</span>
@@ -52,6 +62,12 @@ export function NutritionSummary({
       <span className="num text-[var(--color-macro-carbs)]">C {carbs.toFixed(1)} g</span>
       <span className="text-muted-foreground">·</span>
       <span className="num text-[var(--color-macro-fat)]">F {fat.toFixed(1)} g</span>
+      {sodiumLabel ? (
+        <>
+          <span className="text-muted-foreground">·</span>
+          <span className="num text-muted-foreground">{sodiumLabel}</span>
+        </>
+      ) : null}
     </>
   );
 

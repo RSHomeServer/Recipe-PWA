@@ -91,7 +91,7 @@ export function useInsightsData(today: string): InsightsData | undefined {
         existing ?? {
           key: date,
           label: date,
-          nutrition: { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+          nutrition: { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0, sodiumMg: 0 },
         }
       );
     });
@@ -105,7 +105,7 @@ export function useInsightsData(today: string): InsightsData | undefined {
           found ?? {
             key: slot.id,
             label: slot.name,
-            nutrition: { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+            nutrition: { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0, sodiumMg: 0 },
           }
         );
       })

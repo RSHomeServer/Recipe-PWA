@@ -107,6 +107,7 @@ export default function RecipeDetailPage() {
       const row: Recipe = {
         id: createId(),
         ...fields,
+        kind: "dish",
         imageId,
         createdAt: now,
         updatedAt: now,

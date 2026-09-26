@@ -26,7 +26,7 @@ function sampleIngredient(): Ingredient {
     name: "Chicken",
     categoryId: null,
     measureKind: "mass",
-    nutrition: { kcal: 120, proteinG: 22, carbsG: 0, fatG: 3 },
+    nutrition: { kcal: 120, proteinG: 22, carbsG: 0, fatG: 3, sodiumMg: null },
     notes: null,
     source: {
         kind: "userEntered",
@@ -41,6 +41,9 @@ function sampleIngredient(): Ingredient {
     },
     imageId: null,
     common: true,
+    gramsPerTsp: null,
+    gramsPerTbsp: null,
+    flavourTags: [],
     archivedAt: null,
   });
 }
@@ -59,7 +62,7 @@ describe("IngredientFormSchema", () => {
       name: "  Rice  ",
       categoryId: null,
       measureKind: "mass",
-      nutrition: { kcal: 350, proteinG: 7, carbsG: 78, fatG: 1 },
+      nutrition: { kcal: 350, proteinG: 7, carbsG: 78, fatG: 1, sodiumMg: null },
       notes: "   ",
     });
     expect(parsed.name).toBe("Rice");
@@ -107,6 +110,7 @@ describe("isIngredientReferenced", () => {
           displayUnit: "g",
           optional: false,
           note: null,
+        entryHint: null,
         },
       ],
       steps: [],
@@ -115,6 +119,7 @@ describe("isIngredientReferenced", () => {
       notes: null,
       createdAt: "2026-09-22T12:00:00.000Z",
       updatedAt: "2026-09-22T12:00:00.000Z",
+      kind: "dish",
       archivedAt: null,
     });
     expect(

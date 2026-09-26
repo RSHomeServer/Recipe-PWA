@@ -14,11 +14,31 @@ const root = path.resolve(__dirname, "../..");
 const packPath = path.join(root, "public/starter-pack/pack.json");
 const commonPath = path.join(root, "src/data/starter-pack/common-codes.json");
 
+const FlavourTagSchema = z.enum([
+  "sweet",
+  "sour",
+  "salty",
+  "umami",
+  "spicy",
+  "bitter",
+  "smoky",
+  "aromatic",
+  "earthy",
+  "fresh",
+  "creamy",
+  "rich",
+  "nutty",
+  "fruity",
+  "floral",
+  "fermented",
+]);
+
 const NutritionSchema = z.object({
   kcal: z.number().finite().nonnegative(),
   proteinG: z.number().finite().nonnegative(),
   carbsG: z.number().finite().nonnegative(),
   fatG: z.number().finite().nonnegative(),
+  sodiumMg: z.number().finite().nonnegative().nullable(),
 });
 
 const IngredientSourceSchema = z.object({
@@ -47,6 +67,9 @@ const IngredientSchema = z.object({
   source: IngredientSourceSchema,
   imageId: z.string().uuid().nullable(),
   common: z.boolean(),
+  gramsPerTsp: z.number().finite().positive().nullable(),
+  gramsPerTbsp: z.number().finite().positive().nullable(),
+  flavourTags: z.array(FlavourTagSchema),
 });
 
 async function main() {
@@ -59,6 +82,8 @@ async function main() {
 
   const codes = new Set();
   let errors = 0;
+  let sodiumNull = 0;
+  let sodiumZero = 0;
   for (const row of pack.ingredients) {
     const parsed = IngredientSchema.safeParse(row);
     if (!parsed.success) {
@@ -73,6 +98,8 @@ async function main() {
         `Pack must not contain count ingredients (R2.5e): ${parsed.data.source.entryCode}`,
       );
     }
+    if (parsed.data.nutrition.sodiumMg === null) sodiumNull += 1;
+    else if (parsed.data.nutrition.sodiumMg === 0) sodiumZero += 1;
     const code = parsed.data.source.entryCode;
     if (code) codes.add(code);
   }
@@ -98,7 +125,7 @@ async function main() {
   }
 
   console.log(
-    `OK: ${pack.ingredients.length} ingredients, ${common.codes.length} common, ${volume.length} volume`,
+    `OK: ${pack.ingredients.length} ingredients, ${common.codes.length} common, ${volume.length} volume, sodium null=${sodiumNull} zero=${sodiumZero}`,
   );
 }
 

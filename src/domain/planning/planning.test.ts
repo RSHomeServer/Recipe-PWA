@@ -10,7 +10,7 @@ const chicken: Ingredient = {
   name: "Chicken",
   categoryId: null,
   measureKind: "mass",
-  nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6 },
+  nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6, sodiumMg: null },
   notes: null,
   source: {
     kind: "userEntered",
@@ -25,6 +25,9 @@ const chicken: Ingredient = {
   },
   imageId: null,
   common: true,
+  gramsPerTsp: null,
+  gramsPerTbsp: null,
+  flavourTags: [],
   archivedAt: null,
 };
 
@@ -33,7 +36,7 @@ const rice: Ingredient = {
   name: "Rice",
   categoryId: null,
   measureKind: "mass",
-  nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3 },
+  nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3, sodiumMg: null },
   notes: null,
   source: {
     kind: "userEntered",
@@ -48,6 +51,9 @@ const rice: Ingredient = {
   },
   imageId: null,
   common: true,
+  gramsPerTsp: null,
+  gramsPerTbsp: null,
+  flavourTags: [],
   archivedAt: null,
 };
 
@@ -56,7 +62,7 @@ const salt: Ingredient = {
   name: "Salt",
   categoryId: null,
   measureKind: "mass",
-  nutrition: { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+  nutrition: { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0, sodiumMg: 0 },
   notes: null,
   source: {
     kind: "userEntered",
@@ -71,6 +77,9 @@ const salt: Ingredient = {
   },
   imageId: null,
   common: true,
+  gramsPerTsp: null,
+  gramsPerTbsp: null,
+  flavourTags: [],
   archivedAt: null,
 };
 
@@ -79,7 +88,7 @@ const yoghurt: Ingredient = {
   name: "Yoghurt",
   categoryId: null,
   measureKind: "volume",
-  nutrition: { kcal: 60, proteinG: 4, carbsG: 5, fatG: 3 },
+  nutrition: { kcal: 60, proteinG: 4, carbsG: 5, fatG: 3, sodiumMg: null },
   notes: null,
   source: {
     kind: "userEntered",
@@ -94,6 +103,9 @@ const yoghurt: Ingredient = {
   },
   imageId: null,
   common: true,
+  gramsPerTsp: null,
+  gramsPerTbsp: null,
+  flavourTags: [],
   archivedAt: null,
 };
 
@@ -109,6 +121,7 @@ const recipe: Recipe = {
       displayUnit: "g",
       optional: false,
       note: null,
+    entryHint: null,
     },
     {
       id: "22222222-2222-4222-8222-222222222222",
@@ -117,6 +130,7 @@ const recipe: Recipe = {
       displayUnit: "g",
       optional: false,
       note: null,
+    entryHint: null,
     },
     {
       id: "33333333-3333-4333-8333-333333333333",
@@ -125,6 +139,7 @@ const recipe: Recipe = {
       displayUnit: "g",
       optional: true,
       note: null,
+    entryHint: null,
     },
   ],
   steps: ["Cook"],
@@ -133,6 +148,7 @@ const recipe: Recipe = {
   notes: null,
   createdAt: "2026-09-22T12:00:00.000Z",
   updatedAt: "2026-09-22T12:00:00.000Z",
+  kind: "dish",
   archivedAt: null,
 };
 

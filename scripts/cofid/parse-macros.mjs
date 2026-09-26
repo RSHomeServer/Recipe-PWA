@@ -1,6 +1,7 @@
 /**
- * CoFID sentinel and numeric parsing (ADR-002 §2a / R2.5d).
- * Tr → 0; N → exclude the whole entry (never map N→0).
+ * CoFID sentinel and numeric parsing (ADR-002 §2a / R2.5d, ADR-007 / R2.5).
+ * Macros: Tr → 0; N → exclude the whole entry (never map N→0).
+ * Sodium: Tr → 0; N → null (food still seeded); blank → null.
  */
 
 /**
@@ -87,4 +88,17 @@ export function parseRequiredMacros(cells) {
     fatG: out.fatG,
     carbsG: out.carbsG,
   };
+}
+
+/**
+ * Parse nullable sodium (mg/100 g). Unlike macros, `N` and blank are null
+ * and do not exclude the food (ADR-007 / R2.5).
+ * @param {unknown} value
+ * @returns {number | null}
+ */
+export function parseSodiumMg(value) {
+  const kind = classifyMacroCell(value);
+  if (kind === "empty" || kind === "N") return null;
+  if (kind === "Tr") return 0;
+  return parseMacroNumber(value);
 }

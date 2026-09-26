@@ -25,7 +25,7 @@ const chicken: Ingredient = {
   name: "Chicken",
   categoryId: null,
   measureKind: "mass",
-  nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6 },
+  nutrition: { kcal: 120, proteinG: 23, carbsG: 0, fatG: 2.6, sodiumMg: null },
   notes: null,
   source: {
     kind: "userEntered",
@@ -40,6 +40,9 @@ const chicken: Ingredient = {
   },
   imageId: null,
   common: true,
+  gramsPerTsp: null,
+  gramsPerTbsp: null,
+  flavourTags: [],
   archivedAt: null,
 };
 
@@ -48,7 +51,7 @@ const rice: Ingredient = {
   name: "Rice",
   categoryId: null,
   measureKind: "mass",
-  nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3 },
+  nutrition: { kcal: 130, proteinG: 2.7, carbsG: 28, fatG: 0.3, sodiumMg: null },
   notes: null,
   source: {
     kind: "userEntered",
@@ -63,6 +66,9 @@ const rice: Ingredient = {
   },
   imageId: null,
   common: true,
+  gramsPerTsp: null,
+  gramsPerTbsp: null,
+  flavourTags: [],
   archivedAt: null,
 };
 
@@ -78,6 +84,7 @@ const recipe: Recipe = {
       displayUnit: "g",
       optional: false,
       note: null,
+    entryHint: null,
     },
     {
       id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
@@ -86,6 +93,7 @@ const recipe: Recipe = {
       displayUnit: "g",
       optional: false,
       note: null,
+    entryHint: null,
     },
   ],
   steps: ["Cook"],
@@ -94,6 +102,7 @@ const recipe: Recipe = {
   notes: null,
   createdAt: now,
   updatedAt: now,
+  kind: "dish",
   archivedAt: null,
 };
 
@@ -284,7 +293,7 @@ describe("history immutability of createSnapshot", () => {
 
     const editedChicken: Ingredient = {
       ...chicken,
-      nutrition: { kcal: 999, proteinG: 1, carbsG: 1, fatG: 1 },
+      nutrition: { kcal: 999, proteinG: 1, carbsG: 1, fatG: 1, sodiumMg: null },
     };
     const nextById = { ...byId, [chicken.id]: editedChicken };
     const future = createSnapshot(recipe, nextById, seedActualLines(recipe, 1));

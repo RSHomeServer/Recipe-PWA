@@ -112,6 +112,8 @@ export function weeklyAverage(cs: readonly Contribution[]): {
       proteinG: total.proteinG / daysWithLogs,
       carbsG: total.carbsG / daysWithLogs,
       fatG: total.fatG / daysWithLogs,
+      sodiumMg:
+        total.sodiumMg === null ? null : total.sodiumMg / daysWithLogs,
     },
     daysWithLogs,
     total,

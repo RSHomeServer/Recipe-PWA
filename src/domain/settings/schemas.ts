@@ -17,6 +17,8 @@ export const SettingsSchema = z.object({
   howItWorksDismissed: z.boolean(),
   /** Starter-pack seed watermark; null until first successful seed (ADR-002). */
   starterPackVersion: z.string().nullable(),
+  /** Flavour-pack seed watermark; null until first successful seed (ADR-006). */
+  flavourPackVersion: z.string().nullable(),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -28,9 +30,10 @@ export const DEFAULT_SETTINGS: Settings = {
   shoppingWindow: null,
   howItWorksDismissed: false,
   starterPackVersion: null,
+  flavourPackVersion: null,
 };
 
-/** Normalize legacy settings rows that predate V1 shoppingWindow / V2 fields. */
+/** Normalize legacy settings rows that predate V1 shoppingWindow / V2–V3 fields. */
 export function normalizeSettingsRow(row: unknown): unknown {
   if (!row || typeof row !== "object") return row;
   const record = row as Record<string, unknown>;
@@ -38,5 +41,6 @@ export function normalizeSettingsRow(row: unknown): unknown {
   if (!("shoppingWindow" in next)) next.shoppingWindow = null;
   if (!("howItWorksDismissed" in next)) next.howItWorksDismissed = false;
   if (!("starterPackVersion" in next)) next.starterPackVersion = null;
+  if (!("flavourPackVersion" in next)) next.flavourPackVersion = null;
   return next;
 }

@@ -177,6 +177,7 @@ export default function CookPage() {
                       protein={portion.proteinG}
                       carbs={portion.carbsG}
                       fat={portion.fatG}
+                      sodiumMg={portion.sodiumMg}
                       className="text-sm"
                     />
                   </div>
