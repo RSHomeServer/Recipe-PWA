@@ -31,14 +31,27 @@ export {
   loadStarterPack,
   setStarterPackForTests,
   seedStarterPack,
+  seedFlavourPack,
+  seedBothPacks,
   ensureStarterPackSeeded,
   partitionCommonFirst,
   sortIngredientsCommonFirst,
   type StarterPackSeedReport,
+  type PackSeedReport,
+  type DualPackSeedReport,
   type StarterPackFile,
   type StarterPackMeta,
   type CommonFirstPartition,
 } from "./starter-pack";
+export {
+  FLAVOUR_PACK_VERSION,
+  FLAVOUR_PACK_ATTRIBUTION,
+  flavourPackMeta,
+  loadFlavourPack,
+  setFlavourPackForTests,
+  type FlavourPackFile,
+  type FlavourPackMeta,
+} from "./flavour-pack";
 export { ParseOnReadError, parseRow, parseRows } from "./parse";
 export {
   SnapshotImmutabilityError,

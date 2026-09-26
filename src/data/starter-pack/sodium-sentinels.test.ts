@@ -1,8 +1,18 @@
 import { describe, expect, it } from "vitest";
-import {
-  parseRequiredMacros,
-  parseSodiumMg,
-} from "../../../scripts/cofid/parse-macros.mjs";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const { parseRequiredMacros, parseSodiumMg } = require(
+  "../../../scripts/cofid/parse-macros.mjs",
+) as {
+  parseSodiumMg: (raw: unknown) => number | null;
+  parseRequiredMacros: (input: {
+    kcals: unknown;
+    prot: unknown;
+    fat: unknown;
+    cho: unknown;
+  }) => { status: string };
+};
 
 describe("CoFID sodium sentinels (R2.5 / ADR-007)", () => {
   it("maps Tr → 0, N → null, blank → null", () => {
