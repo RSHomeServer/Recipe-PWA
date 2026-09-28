@@ -91,5 +91,12 @@ export default defineConfig({
     port: 5305,
     strictPort: true,
     allowedHosts: [".dev.songara.uk"],
+    // Dev site is reverse-proxied (Caddy HTTP → Vite). Without this, the client
+    // tries ws://localhost:5305 from the public host and HMR fails.
+    hmr: {
+      host: "recipe.dev.songara.uk",
+      protocol: "ws",
+      clientPort: 80,
+    },
   },
 });

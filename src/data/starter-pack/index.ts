@@ -9,8 +9,12 @@ export {
 } from "./meta";
 export {
   seedStarterPack,
+  seedFlavourPack,
+  seedBothPacks,
   ensureStarterPackSeeded,
   type StarterPackSeedReport,
+  type PackSeedReport,
+  type DualPackSeedReport,
 } from "./seed";
 export {
   partitionCommonFirst,

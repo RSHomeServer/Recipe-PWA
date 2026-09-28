@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "notes": "FDC ids that duplicate a CoFID-seeded food. An allow-listed id present here fails the build (R1.3). CoFID wins — keep these off the allow-list.",
+  "overlaps": [
+    { "fdcId": 171325, "cofidCode": "13-830", "note": "Garlic powder" },
+    { "fdcId": 170929, "cofidCode": "17-362", "note": "Mustard seed / mustard powder" },
+    { "fdcId": 170932, "cofidCode": "13-847", "note": "Cayenne / red pepper" },
+    { "fdcId": 170926, "cofidCode": "13-832", "note": "Ground ginger" },
+    { "fdcId": 170924, "cofidCode": "13-876", "note": "Curry powder" },
+    { "fdcId": 170934, "cofidCode": "13-852", "note": "Saffron" },
+    { "fdcId": 173468, "cofidCode": "17-367", "note": "Table salt" },
+    { "fdcId": 172237, "cofidCode": "17-339", "note": "Distilled vinegar (CoFID generic Vinegar)" },
+    { "fdcId": 171610, "cofidCode": "17-723", "note": "Worcestershire sauce" },
+    { "fdcId": 171595, "cofidCode": "17-719", "note": "Tomato chilli sauce" },
+    { "fdcId": 167717, "cofidCode": "17-517", "note": "Yeast extract spread" },
+    { "fdcId": 174277, "cofidCode": "17-721", "note": "Soy sauce (shoyu)" },
+    { "fdcId": 174278, "cofidCode": "17-721", "note": "Soy sauce (tamari)" },
+    { "fdcId": 174279, "cofidCode": "17-721", "note": "Soy sauce (HVP)" },
+    { "fdcId": 172473, "cofidCode": "17-721", "note": "Low-sodium soy sauce" },
+    { "fdcId": 172474, "cofidCode": "17-721", "note": "Reduced-sodium soy sauce" },
+    { "fdcId": 171317, "cofidCode": "13-805", "note": "Dried basil" },
+    { "fdcId": 170917, "cofidCode": "13-806", "note": "Bay leaf" },
+    { "fdcId": 170921, "cofidCode": "13-818", "note": "Dried coriander leaf" },
+    { "fdcId": 171322, "cofidCode": "13-825", "note": "Dried dill weed" },
+    { "fdcId": 170928, "cofidCode": "13-835", "note": "Dried marjoram" },
+    { "fdcId": 170930, "cofidCode": "13-845", "note": "Dried parsley" },
+    { "fdcId": 171333, "cofidCode": "13-882", "note": "Dried rosemary" },
+    { "fdcId": 170935, "cofidCode": "13-854", "note": "Ground sage" },
+    { "fdcId": 170937, "cofidCode": "13-858", "note": "Dried tarragon" },
+    { "fdcId": 170938, "cofidCode": "13-883", "note": "Dried thyme" },
+    { "fdcId": 173472, "cofidCode": "17-314", "note": "Prepared horseradish / horseradish sauce" }
+  ]
+}
