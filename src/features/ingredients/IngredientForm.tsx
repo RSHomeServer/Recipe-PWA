@@ -7,6 +7,7 @@ import {
   emptyIngredientFormValues,
   hasDivergedFromReference,
   IngredientFormSchema,
+  kcalPerSpoon,
   nutritionBasisLabel,
   resizeRecipeImage,
   type Ingredient,
@@ -137,6 +138,9 @@ export function IngredientForm({
   const measureKind = useWatch({ control, name: "measureKind" }) ?? "mass";
   const watchedCategoryId = useWatch({ control, name: "categoryId" });
   const watchedName = useWatch({ control, name: "name" }) ?? "";
+  const watchedKcal = useWatch({ control, name: "nutrition.kcal" }) ?? 0;
+  const watchedGramsPerTsp = useWatch({ control, name: "gramsPerTsp" });
+  const watchedGramsPerTbsp = useWatch({ control, name: "gramsPerTbsp" });
   const basisLabel = nutritionBasisLabel(measureKind);
   const selectedCategory = useMemo(() => {
     if (watchedCategoryId == null || watchedCategoryId === "") return undefined;
@@ -547,6 +551,48 @@ export function IngredientForm({
               />
             </div>
           </div>
+          {typeof watchedGramsPerTsp === "number" && watchedGramsPerTsp > 0 ? (
+            <p className="text-sm text-muted-foreground">
+              ≈{" "}
+              {kcalPerSpoon(
+                {
+                  measureKind: "mass",
+                  nutrition: {
+                    kcal: Number(watchedKcal) || 0,
+                    proteinG: 0,
+                    carbsG: 0,
+                    fatG: 0,
+                    sodiumMg: null,
+                  },
+                  gramsPerTsp: watchedGramsPerTsp,
+                  gramsPerTbsp: null,
+                },
+                "tsp",
+              )?.toFixed(1)}{" "}
+              kcal per tsp (display only — not stored)
+            </p>
+          ) : null}
+          {typeof watchedGramsPerTbsp === "number" && watchedGramsPerTbsp > 0 ? (
+            <p className="text-sm text-muted-foreground">
+              ≈{" "}
+              {kcalPerSpoon(
+                {
+                  measureKind: "mass",
+                  nutrition: {
+                    kcal: Number(watchedKcal) || 0,
+                    proteinG: 0,
+                    carbsG: 0,
+                    fatG: 0,
+                    sodiumMg: null,
+                  },
+                  gramsPerTsp: null,
+                  gramsPerTbsp: watchedGramsPerTbsp,
+                },
+                "tbsp",
+              )?.toFixed(1)}{" "}
+              kcal per tbsp (display only — not stored)
+            </p>
+          ) : null}
         </fieldset>
       ) : null}
 
