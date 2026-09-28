@@ -315,3 +315,69 @@ describe("pack paprika smoky (Architect note)", () => {
     expect(paprika?.flavourTags).toContain("smoky");
   });
 });
+
+describe("Recipe.kind invariance (R5.6)", () => {
+  it("keeps derived results byte-identical when kind is dish or mix", () => {
+    const baseline = deriveBundle([chicken, rice]);
+    for (const kind of ["dish", "mix"] as const) {
+      const mutated: Recipe = { ...recipe, kind };
+      const byId = Object.fromEntries(
+        [chicken, rice].map((i) => [i.id, i]),
+      );
+      const ingredientsById = new Map([chicken, rice].map((i) => [i.id, i]));
+      const stockByIngredientId = new Map([
+        [
+          chickenId,
+          {
+            ingredientId: chickenId,
+            quantity: { amount: 1000, kind: "mass" as const },
+            updatedAt: "2026-09-24T00:00:00.000Z",
+          },
+        ],
+        [
+          riceId,
+          {
+            ingredientId: riceId,
+            quantity: { amount: 500, kind: "mass" as const },
+            updatedAt: "2026-09-24T00:00:00.000Z",
+          },
+        ],
+      ]);
+      const total = recipeTotal(mutated, byId);
+      const availability = recipeAvailability(
+        mutated,
+        stockByIngredientId,
+        ingredientsById,
+      );
+      const req = requirements(
+        [
+          {
+            id: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+            date: "2026-09-24",
+            slotId: "22222222-2222-4222-8222-222222222203",
+            entry: {
+              kind: "recipeServings",
+              recipeId: mutated.id,
+              servings: 2,
+            },
+            position: 0,
+            note: null,
+            group: null,
+          },
+        ],
+        { from: "2026-09-24", to: "2026-09-24" },
+        {
+          recipesById: new Map([[mutated.id, mutated]]),
+          ingredientsById,
+        },
+      );
+      const shop = shoppingList(req, [...stockByIngredientId.values()], null);
+      expect({ total, availability, req, shop }).toEqual({
+        total: baseline.total,
+        availability: baseline.availability,
+        req: baseline.req,
+        shop: baseline.shop,
+      });
+    }
+  });
+});

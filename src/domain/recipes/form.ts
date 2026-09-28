@@ -3,7 +3,12 @@ import { fromCanonical, unitsForKind } from "../units";
 import type { Ingredient } from "../ingredients/schemas";
 import type { CanonicalQuantity, MeasureKind, Unit } from "../units/schemas";
 import { createId, IdSchema } from "../shared/primitives";
-import type { Recipe, RecipeLine } from "./schemas";
+import {
+  RecipeKindSchema,
+  type Recipe,
+  type RecipeKind,
+  type RecipeLine,
+} from "./schemas";
 import {
   EntryMeasureSchema,
   entryToCanonical,
@@ -28,6 +33,8 @@ export const RecipeFormSchema = z.object({
     .number({ invalid_type_error: "Servings is required" })
     .finite()
     .positive("Servings must be greater than 0"),
+  /** V3 — ADR-010. Display/filter metadata; derivations must not read it. */
+  kind: RecipeKindSchema,
   lines: z.array(RecipeLineDraftSchema),
   steps: z.array(z.string()),
   /** Comma-separated in the form; parsed to string[] on submit. */
@@ -52,6 +59,7 @@ export type RecipeLineBuildError = {
 export type BuiltRecipeFields = {
   name: string;
   servings: number;
+  kind: RecipeKind;
   lines: RecipeLine[];
   steps: string[];
   tags: string[];
@@ -149,6 +157,7 @@ export function buildRecipeFields(
     fields: {
       name: values.name,
       servings: values.servings,
+      kind: values.kind,
       lines: [...byIngredient.values()].map((line) => ({
         ...line,
         entryHint: line.entryHint ?? null,
@@ -232,6 +241,7 @@ export function emptyRecipeFormValues(): RecipeFormValues {
   return {
     name: "",
     servings: 1,
+    kind: "dish",
     lines: [],
     steps: [""],
     tagsText: "",
@@ -243,6 +253,7 @@ export function recipeToFormValues(recipe: Recipe): RecipeFormValues {
   return {
     name: recipe.name,
     servings: recipe.servings,
+    kind: recipe.kind,
     lines: recipe.lines.map(draftFromRecipeLine),
     steps: recipe.steps.length > 0 ? [...recipe.steps] : [""],
     tagsText: recipe.tags.join(", "),
@@ -284,6 +295,7 @@ export function draftsToRecipeInput(
     {
       name: name.trim() || "Draft",
       servings: servings > 0 ? servings : 1,
+      kind: "dish",
       lines,
       steps: [],
       tagsText: "",

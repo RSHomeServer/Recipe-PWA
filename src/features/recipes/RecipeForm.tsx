@@ -40,9 +40,8 @@ import {
   rememberPickerRecent,
 } from "@/ui/picker-recents";
 import { Textarea } from "@/ui/textarea";
-import {
-  EntryMeasureChoice,
-} from "@/ui/unit-choice";
+import { EntryMeasureChoice } from "@/ui/unit-choice";
+import { SegmentedGroup } from "@/ui/segmented-group";
 
 export type RecipeFormProps = {
   activeIngredients: Ingredient[];
@@ -313,6 +312,34 @@ export function RecipeForm({
             <FieldError
               id={servingsErrorId}
               message={errors.servings?.message}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label id="recipe-kind-label">Kind</Label>
+            <p
+              id="recipe-kind-help"
+              className="text-sm text-muted-foreground"
+            >
+              Mix is for Flavour Lab seasonings; dish is a normal recipe. Nutrition
+              is the same either way.
+            </p>
+            <Controller
+              control={control}
+              name="kind"
+              render={({ field }) => (
+                <SegmentedGroup
+                  id="recipe-kind"
+                  aria-labelledby="recipe-kind-label"
+                  aria-describedby="recipe-kind-help"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  options={[
+                    { value: "dish", label: "Dish" },
+                    { value: "mix", label: "Mix" },
+                  ]}
+                />
+              )}
             />
           </div>
 

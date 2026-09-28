@@ -14,6 +14,7 @@ export const primaryNavItems: NavItem[] = [
 ];
 
 export const secondaryNavItems: NavItem[] = [
+  { id: "flavour", label: "Flavour Lab", href: "/flavour", icon: "🌶" },
   { id: "ingredients", label: "Ingredients", href: "/ingredients", icon: "◆" },
   { id: "recipes", label: "Recipes", href: "/recipes", icon: "📖" },
   { id: "meals", label: "Meals", href: "/meals", icon: "🍽" },
