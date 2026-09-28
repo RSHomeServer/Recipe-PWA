@@ -266,6 +266,43 @@ describe("history immutability (batch snapshot path)", () => {
   });
 });
 
+describe("flavourTags invariance for expand/insights (R4.3)", () => {
+  it("expand and folds stay byte-identical when flavourTags are permuted", () => {
+    const meal = log({
+      id: "66666666-6666-4666-8666-666666666666",
+      date: "2026-09-22",
+      slotId: "slot-lunch",
+      entry: { kind: "recipeServings", recipeId: recipe.id, servings: 1 },
+    });
+    const baselineCtx = ctx();
+    const baselineExpand = expand(meal, baselineCtx);
+    const baselineAll = expandAll([meal], baselineCtx);
+    const baselineFolds = {
+      byDay: byDay(baselineAll),
+      byMeal: byMeal(baselineAll),
+      byRecipe: byRecipe(baselineAll),
+      byIngredient: byIngredient(baselineAll),
+    };
+
+    const taggedChicken: Ingredient = {
+      ...chicken,
+      flavourTags: ["smoky", "spicy", "umami"],
+    };
+    const taggedRice: Ingredient = {
+      ...rice,
+      flavourTags: ["earthy", "aromatic"],
+    };
+    const taggedCtx = ctx([recipe], [batch], [taggedChicken, taggedRice]);
+    expect(expand(meal, taggedCtx)).toEqual(baselineExpand);
+    const taggedAll = expandAll([meal], taggedCtx);
+    expect(taggedAll).toEqual(baselineAll);
+    expect(byDay(taggedAll)).toEqual(baselineFolds.byDay);
+    expect(byMeal(taggedAll)).toEqual(baselineFolds.byMeal);
+    expect(byRecipe(taggedAll)).toEqual(baselineFolds.byRecipe);
+    expect(byIngredient(taggedAll)).toEqual(baselineFolds.byIngredient);
+  });
+});
+
 describe("folds and reconciliation", () => {
   const meals: LoggedMeal[] = [
     log({

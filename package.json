@@ -17,8 +17,9 @@
     "flavour-pack:generate": "node scripts/usda/transcode.mjs",
     "flavour-pack:validate": "node scripts/usda/validate-flavour-pack.mjs",
     "flavour-pack:fetch-branded": "node scripts/usda/fetch-branded-cache.mjs",
-    "pretest": "npm run starter-pack:validate && npm run flavour-pack:validate",
-    "prebuild": "npm run starter-pack:validate && npm run flavour-pack:validate"
+    "flavour-tags:apply": "node scripts/flavour-tags/apply-to-packs.mjs",
+    "pretest": "npm run flavour-tags:apply && npm run starter-pack:validate && npm run flavour-pack:validate",
+    "prebuild": "npm run flavour-tags:apply && npm run starter-pack:validate && npm run flavour-pack:validate"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

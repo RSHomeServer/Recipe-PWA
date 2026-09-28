@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 /**
  * Validate flavour-pack.json (R1.2–R1.4, R1.7) and allow-list integrity.
+ * Also applies / checks sensory tags from flavour-tags.json (R4.2).
  */
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import {
+  flavourTagKey,
+  loadFlavourTagsMap,
+} from "./flavour-tags.mjs";
+import { assertFlavourTagsMatch } from "../flavour-tags/apply.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "../..");
@@ -78,6 +84,7 @@ async function main() {
   const allow = JSON.parse(await readFile(allowPath, "utf8"));
   const equiv = JSON.parse(await readFile(equivPath, "utf8"));
   const branded = JSON.parse(await readFile(brandedPath, "utf8"));
+  const tagMap = await loadFlavourTagsMap();
 
   if (pack.dataset?.datasetId !== "usda-sr-legacy") {
     throw new Error(`Expected datasetId usda-sr-legacy; got ${pack.dataset?.datasetId}`);
@@ -86,6 +93,12 @@ async function main() {
   if (!Array.isArray(pack.ingredients) || pack.ingredients.length === 0) {
     throw new Error("flavour-pack.json has no ingredients");
   }
+
+  // Tags are baked by `npm run flavour-tags:apply` — assert only (R4.2).
+  assertFlavourTagsMatch(pack.ingredients, tagMap.tags, {
+    datasetIds: ["usda-sr-legacy", "usda-branded"],
+    requireFullCoverage: true,
+  });
 
   const allowIds = new Set(allow.entries.map((e) => String(e.fdcId)));
   const overlapIds = new Set((equiv.overlaps ?? []).map((e) => String(e.fdcId)));
@@ -128,6 +141,17 @@ async function main() {
     }
     byCode.set(code, parsed.data);
 
+    const key = flavourTagKey(parsed.data);
+    if (!key || !(key in tagMap.tags)) {
+      throw new Error(`Pack ingredient missing flavour-tags.json entry: ${key}`);
+    }
+    const expected = tagMap.tags[key];
+    if (JSON.stringify(parsed.data.flavourTags) !== JSON.stringify(expected)) {
+      throw new Error(
+        `flavourTags mismatch for ${key}: pack=${JSON.stringify(parsed.data.flavourTags)} map=${JSON.stringify(expected)}`,
+      );
+    }
+
     // Full-pack spot check against published figures (ADR-006 verification 4).
     if (parsed.data.source.datasetId === "usda-branded") {
       const cached = branded.foods[code].nutritionPer100g;
@@ -154,8 +178,13 @@ async function main() {
     }
   }
 
+  const paprika = byCode.get("171329");
+  if (!paprika?.flavourTags.includes("smoky")) {
+    throw new Error("Paprika (171329) must be tagged smoky (ticket 4)");
+  }
+
   console.log(
-    `OK: flavour-pack ${pack.ingredients.length} ingredients, all common, schema + allow-list + overlap checks passed`,
+    `OK: flavour-pack ${pack.ingredients.length} ingredients, all common, schema + allow-list + overlap + flavour-tags checks passed`,
   );
 }
 

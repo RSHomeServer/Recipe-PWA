@@ -76,6 +76,9 @@ export const FlavourTagSchema = z.enum([
 ]);
 export type FlavourTag = z.infer<typeof FlavourTagSchema>;
 
+/** Stable vocabulary order for UI and derived union profiles. */
+export const FLAVOUR_TAGS = FlavourTagSchema.options;
+
 export const IngredientSchema = z.object({
   id: IdSchema,
   name: z.string().min(1),

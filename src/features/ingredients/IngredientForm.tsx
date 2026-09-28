@@ -2,14 +2,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import * as ToggleGroup from "@radix-ui/react-toggle-group";
+import { Check } from "lucide-react";
 import {
   createId,
   emptyIngredientFormValues,
+  FLAVOUR_TAGS,
   hasDivergedFromReference,
   IngredientFormSchema,
   kcalPerSpoon,
   nutritionBasisLabel,
   resizeRecipeImage,
+  type FlavourTag,
   type Ingredient,
   type IngredientCategory,
   type IngredientFormParsed,
@@ -24,6 +28,7 @@ import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import { SegmentedGroup } from "@/ui/segmented-group";
 import { Textarea } from "@/ui/textarea";
+import { cn } from "@/ui/lib/utils";
 
 const MEASURE_KIND_OPTIONS: {
   value: MeasureKind;
@@ -94,6 +99,7 @@ export function IngredientForm({
           notes: initial.notes ?? "",
           gramsPerTsp: initial.gramsPerTsp,
           gramsPerTbsp: initial.gramsPerTbsp,
+          flavourTags: [...initial.flavourTags],
         }
       : emptyIngredientFormValues(),
   });
@@ -119,6 +125,7 @@ export function IngredientForm({
       notes: initial.notes ?? "",
       gramsPerTsp: initial.gramsPerTsp,
       gramsPerTbsp: initial.gramsPerTbsp,
+      flavourTags: [...initial.flavourTags],
     });
   }, [initial, reset]);
 
@@ -595,6 +602,63 @@ export function IngredientForm({
           ) : null}
         </fieldset>
       ) : null}
+
+      <div className="space-y-2">
+        <Label id="ingredient-flavour-tags-label">Flavour tags</Label>
+        <p
+          id="ingredient-flavour-tags-help"
+          className="text-sm text-muted-foreground"
+        >
+          Sensory words for filtering later — not nutrition. Leave empty when
+          unsure.
+        </p>
+        <Controller
+          control={control}
+          name="flavourTags"
+          render={({ field }) => (
+            <ToggleGroup.Root
+              type="multiple"
+              id="ingredient-flavour-tags"
+              value={field.value ?? []}
+              onValueChange={(next) => {
+                field.onChange(next as FlavourTag[]);
+              }}
+              aria-labelledby="ingredient-flavour-tags-label"
+              aria-describedby="ingredient-flavour-tags-help"
+              className="flex flex-wrap gap-2"
+              data-testid="ingredient-flavour-tags"
+            >
+              {FLAVOUR_TAGS.map((tag) => {
+                const selected = (field.value ?? []).includes(tag);
+                return (
+                  <ToggleGroup.Item
+                    key={tag}
+                    value={tag}
+                    className={cn(
+                      "inline-flex min-h-11 flex-none items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium capitalize transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                      selected
+                        ? "border-[var(--color-accent)] bg-[var(--color-accent-muted)] text-[var(--color-accent)]"
+                        : "border-border bg-[var(--color-surface-raised)] text-foreground hover:bg-muted",
+                    )}
+                  >
+                    {selected ? (
+                      <Check className="size-4 shrink-0" aria-hidden="true" />
+                    ) : null}
+                    <span>{tag}</span>
+                  </ToggleGroup.Item>
+                );
+              })}
+            </ToggleGroup.Root>
+          )}
+        />
+        {errors.flavourTags ? (
+          <FieldError
+            id="ingredient-flavour-tags-error"
+            message={errors.flavourTags.message ?? "Invalid flavour tags"}
+          />
+        ) : null}
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="ingredient-notes">Notes</Label>

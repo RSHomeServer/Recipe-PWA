@@ -174,6 +174,28 @@ describe("provenance invariance (R2.2)", () => {
   });
 });
 
+describe("flavourTags invariance (R4.3)", () => {
+  it("does not change derived results when flavourTags are permuted", () => {
+    const baseline = deriveBundle([chicken, rice]);
+    const tagSets = [
+      [],
+      ["smoky"],
+      ["sour", "spicy"],
+      ["umami", "salty", "fermented", "aromatic"],
+    ] as const;
+
+    for (const chickenTags of tagSets) {
+      for (const riceTags of tagSets) {
+        const mutated = [
+          { ...chicken, flavourTags: [...chickenTags] },
+          { ...rice, flavourTags: [...riceTags] },
+        ];
+        expect(deriveBundle(mutated)).toEqual(baseline);
+      }
+    }
+  });
+});
+
 describe("reference divergence (R2.4)", () => {
   const referenceChicken = baseIngredient({
     id: chickenId,

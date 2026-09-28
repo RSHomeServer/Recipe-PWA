@@ -6,6 +6,8 @@ export * from "./shared/meal-entry";
 export * from "./ingredients/schemas";
 export * from "./ingredients/references";
 export * from "./ingredients/form";
+export * from "./ingredients/predicates";
+export * from "./ingredients/flavour-profile";
 export * from "./meals";
 export * from "./recipes/schemas";
 export * from "./recipes/form";

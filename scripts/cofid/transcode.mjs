@@ -17,6 +17,10 @@ import {
   measureKindForGroup,
 } from "./group-to-category.mjs";
 import { parseRequiredMacros, parseSodiumMg } from "./parse-macros.mjs";
+import {
+  applyFlavourTags,
+  loadFlavourTagsMap,
+} from "../usda/flavour-tags.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "../..");
@@ -298,6 +302,11 @@ async function main() {
 
   const { ingredients, sodiumIndex, stats } = transcodeWorkbook(opts.xlsx);
   const withCommon = applyCommonFlags(ingredients, commonRaw.codes);
+  const tagMap = await loadFlavourTagsMap();
+  applyFlavourTags(withCommon, tagMap.tags, {
+    datasetIds: ["cofid-2021"],
+    requireFullCoverage: false,
+  });
 
   const pack = {
     version: STARTER_PACK_VERSION,
