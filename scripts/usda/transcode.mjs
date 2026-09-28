@@ -28,7 +28,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "../..");
 
 /** Bumped for cited spoon weights + smoked-paprika alias (V3 ticket 3). */
-export const FLAVOUR_PACK_VERSION = "usda-sr-legacy-v1.1";
+export const FLAVOUR_PACK_VERSION = "usda-sr-legacy-v1.2";
 
 const SR_DATASET = {
   datasetId: "usda-sr-legacy",

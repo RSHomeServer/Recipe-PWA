@@ -1,5 +1,5 @@
 {
-  "version": "usda-sr-legacy-v1.1",
+  "version": "usda-sr-legacy-v1.2",
   "dataset": {
     "datasetId": "usda-sr-legacy",
     "datasetName": "USDA FoodData Central — SR Legacy (April 2018)",

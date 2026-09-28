@@ -194,8 +194,10 @@ export default function SettingsPage() {
           Starter ingredients
         </h2>
         <p className="text-sm text-muted-foreground">
-          Adds any missing CoFID and USDA flavour-pack reference ingredients.
-          Existing rows are never overwritten — including ones you have edited.
+          Adds any missing CoFID and USDA flavour-pack reference ingredients,
+          fills cited spoon weights where still blank, and archives retired
+          flavour rows (for example the old branded smoked paprika). Existing
+          nutrition figures you edited are never overwritten.
         </p>
         <ul className="space-y-1 text-sm text-muted-foreground">
           <li>
@@ -224,24 +226,58 @@ export default function SettingsPage() {
               const report = await seedBothPacks(db);
               const formatPack = (
                 label: string,
-                pack: { added: number; skippedExisting: number; skippedInvalid: number },
-              ) =>
-                `${label}: added ${pack.added}, skipped ${pack.skippedExisting} already present${
-                  pack.skippedInvalid > 0
-                    ? `, ${pack.skippedInvalid} invalid`
-                    : ""
-                }`;
+                pack: {
+                  added: number;
+                  skippedExisting: number;
+                  skippedInvalid: number;
+                  enriched: number;
+                  archivedRetired: number;
+                },
+              ) => {
+                const parts = [
+                  `added ${pack.added}`,
+                  `skipped ${pack.skippedExisting} already present`,
+                ];
+                if (pack.enriched > 0) {
+                  parts.push(`updated ${pack.enriched} with spoon weights/aliases`);
+                }
+                if (pack.archivedRetired > 0) {
+                  parts.push(`archived ${pack.archivedRetired} retired`);
+                }
+                if (pack.skippedInvalid > 0) {
+                  parts.push(`${pack.skippedInvalid} invalid`);
+                }
+                return `${label}: ${parts.join(", ")}`;
+              };
               const summary = [
                 formatPack("CoFID", report.starter),
                 formatPack("Flavour", report.flavour),
               ].join(". ");
               setLastTopUp(summary);
               const totalAdded = report.starter.added + report.flavour.added;
-              toast.success(
-                totalAdded > 0
-                  ? `Added ${report.starter.added} CoFID + ${report.flavour.added} flavour ingredients`
-                  : "No missing starter or flavour ingredients",
-              );
+              const totalEnriched =
+                report.starter.enriched + report.flavour.enriched;
+              const totalArchived =
+                report.starter.archivedRetired + report.flavour.archivedRetired;
+              if (totalAdded > 0 || totalEnriched > 0 || totalArchived > 0) {
+                toast.success(
+                  [
+                    totalAdded > 0
+                      ? `Added ${report.starter.added} CoFID + ${report.flavour.added} flavour`
+                      : null,
+                    totalEnriched > 0
+                      ? `filled spoon data on ${totalEnriched}`
+                      : null,
+                    totalArchived > 0
+                      ? `archived ${totalArchived} retired`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join("; "),
+                );
+              } else {
+                toast.success("Starter and flavour packs already up to date");
+              }
             } catch (error) {
               toast.error(
                 error instanceof Error
@@ -253,7 +289,7 @@ export default function SettingsPage() {
             }
           }}
         >
-          {topUpBusy ? "Adding…" : "Add missing starter ingredients"}
+          {topUpBusy ? "Updating…" : "Update starter & flavour ingredients"}
         </Button>
         {lastTopUp ? (
           <p className="text-sm text-muted-foreground" role="status">
@@ -266,6 +302,29 @@ export default function SettingsPage() {
         <h2 id="about-heading" className="text-lg font-semibold">
           About
         </h2>
+        <div className="space-y-1 text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">Dev tip</p>
+          <p>
+            Branch{" "}
+            <span className="font-mono text-foreground">
+              {import.meta.env.VITE_GIT_BRANCH ?? "unknown"}
+            </span>
+            {" · "}
+            commit{" "}
+            <span className="font-mono text-foreground">
+              {import.meta.env.VITE_GIT_COMMIT ?? "unknown"}
+            </span>
+          </p>
+          <p>
+            App version{" "}
+            <span className="font-mono text-foreground">
+              {import.meta.env.VITE_APP_VERSION ?? "unknown"}
+            </span>
+            {import.meta.env.VITE_APP_BUILT_AT
+              ? ` · built ${import.meta.env.VITE_APP_BUILT_AT}`
+              : null}
+          </p>
+        </div>
         <div className="space-y-2 text-sm text-muted-foreground">
           <p className="font-medium text-foreground">
             {STARTER_PACK_ATTRIBUTION.title}
