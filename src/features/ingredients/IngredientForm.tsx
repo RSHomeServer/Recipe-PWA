@@ -7,6 +7,7 @@ import {
   emptyIngredientFormValues,
   hasDivergedFromReference,
   IngredientFormSchema,
+  kcalPerSpoon,
   nutritionBasisLabel,
   resizeRecipeImage,
   type Ingredient,
@@ -91,6 +92,8 @@ export function IngredientForm({
           measureKind: initial.measureKind,
           nutrition: { ...initial.nutrition },
           notes: initial.notes ?? "",
+          gramsPerTsp: initial.gramsPerTsp,
+          gramsPerTbsp: initial.gramsPerTbsp,
         }
       : emptyIngredientFormValues(),
   });
@@ -114,6 +117,8 @@ export function IngredientForm({
       measureKind: initial.measureKind,
       nutrition: { ...initial.nutrition },
       notes: initial.notes ?? "",
+      gramsPerTsp: initial.gramsPerTsp,
+      gramsPerTbsp: initial.gramsPerTbsp,
     });
   }, [initial, reset]);
 
@@ -133,6 +138,9 @@ export function IngredientForm({
   const measureKind = useWatch({ control, name: "measureKind" }) ?? "mass";
   const watchedCategoryId = useWatch({ control, name: "categoryId" });
   const watchedName = useWatch({ control, name: "name" }) ?? "";
+  const watchedKcal = useWatch({ control, name: "nutrition.kcal" }) ?? 0;
+  const watchedGramsPerTsp = useWatch({ control, name: "gramsPerTsp" });
+  const watchedGramsPerTbsp = useWatch({ control, name: "gramsPerTbsp" });
   const basisLabel = nutritionBasisLabel(measureKind);
   const selectedCategory = useMemo(() => {
     if (watchedCategoryId == null || watchedCategoryId === "") return undefined;
@@ -485,6 +493,108 @@ export function IngredientForm({
           </div>
         </div>
       </fieldset>
+
+      {measureKind === "mass" ? (
+        <fieldset className="space-y-4">
+          <legend className="text-base font-semibold text-foreground">
+            Spoon weights (optional)
+          </legend>
+          <p className="text-sm text-muted-foreground">
+            Cited grams per teaspoon or tablespoon unlock tsp/tbsp entry on
+            recipes. Leave blank when you have no measured weight — never guess.
+            Editing these on a reference ingredient records your provenance.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="ingredient-grams-per-tsp">Grams per tsp</Label>
+              <Input
+                id="ingredient-grams-per-tsp"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                placeholder="Unknown"
+                {...register("gramsPerTsp", {
+                  setValueAs: (value) => {
+                    if (value === "" || value === null || value === undefined) {
+                      return null;
+                    }
+                    const n = typeof value === "number" ? value : Number(value);
+                    return Number.isNaN(n) ? null : n;
+                  },
+                })}
+              />
+              <FieldError message={errors.gramsPerTsp?.message} id="ingredient-tsp-error" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ingredient-grams-per-tbsp">Grams per tbsp</Label>
+              <Input
+                id="ingredient-grams-per-tbsp"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                placeholder="Unknown"
+                {...register("gramsPerTbsp", {
+                  setValueAs: (value) => {
+                    if (value === "" || value === null || value === undefined) {
+                      return null;
+                    }
+                    const n = typeof value === "number" ? value : Number(value);
+                    return Number.isNaN(n) ? null : n;
+                  },
+                })}
+              />
+              <FieldError
+                message={errors.gramsPerTbsp?.message}
+                id="ingredient-tbsp-error"
+              />
+            </div>
+          </div>
+          {typeof watchedGramsPerTsp === "number" && watchedGramsPerTsp > 0 ? (
+            <p className="text-sm text-muted-foreground">
+              ≈{" "}
+              {kcalPerSpoon(
+                {
+                  measureKind: "mass",
+                  nutrition: {
+                    kcal: Number(watchedKcal) || 0,
+                    proteinG: 0,
+                    carbsG: 0,
+                    fatG: 0,
+                    sodiumMg: null,
+                  },
+                  gramsPerTsp: watchedGramsPerTsp,
+                  gramsPerTbsp: null,
+                },
+                "tsp",
+              )?.toFixed(1)}{" "}
+              kcal per tsp (display only — not stored)
+            </p>
+          ) : null}
+          {typeof watchedGramsPerTbsp === "number" && watchedGramsPerTbsp > 0 ? (
+            <p className="text-sm text-muted-foreground">
+              ≈{" "}
+              {kcalPerSpoon(
+                {
+                  measureKind: "mass",
+                  nutrition: {
+                    kcal: Number(watchedKcal) || 0,
+                    proteinG: 0,
+                    carbsG: 0,
+                    fatG: 0,
+                    sodiumMg: null,
+                  },
+                  gramsPerTsp: null,
+                  gramsPerTbsp: watchedGramsPerTbsp,
+                },
+                "tbsp",
+              )?.toFixed(1)}{" "}
+              kcal per tbsp (display only — not stored)
+            </p>
+          ) : null}
+        </fieldset>
+      ) : null}
 
       <div className="space-y-2">
         <Label htmlFor="ingredient-notes">Notes</Label>

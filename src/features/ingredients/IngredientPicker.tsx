@@ -6,6 +6,7 @@ import {
   CommandPicker,
   type CommandPickerProps,
 } from "@/ui/command-picker";
+import displayAliases from "@/data/flavour-pack/display-aliases.json";
 
 type IngredientPickerProps = Omit<CommandPickerProps, "items"> & {
   ingredients: readonly Ingredient[];
@@ -15,9 +16,28 @@ type IngredientPickerProps = Omit<CommandPickerProps, "items"> & {
   contextFor?: (ingredient: Ingredient) => ReactNode;
 };
 
+type DisplayAlias = {
+  alias: string;
+  datasetId: string;
+  entryCode: string;
+  displayName: string;
+};
+
+const ALIASES = displayAliases.aliases as DisplayAlias[];
+
+function aliasesForIngredient(ingredient: Ingredient): string[] {
+  const datasetId = ingredient.source.datasetId;
+  const entryCode = ingredient.source.entryCode;
+  if (!datasetId || !entryCode) return [];
+  return ALIASES.filter(
+    (row) => row.datasetId === datasetId && row.entryCode === entryCode,
+  ).map((row) => row.alias);
+}
+
 /**
  * Ingredient CommandPicker with common-first / show-all behaviour (R2.9a)
- * and category identity icons (R2.11).
+ * and category identity icons (R2.11). Display aliases (e.g. smoked paprika →
+ * Paprika) are searchable keywords only — not second ingredients.
  */
 export function IngredientPicker({
   ingredients,
@@ -45,6 +65,7 @@ export function IngredientPicker({
             ingredient.categoryId == null
               ? undefined
               : categoriesById.get(ingredient.categoryId);
+          const aliasKeywords = aliasesForIngredient(ingredient);
           return {
             value: ingredient.id,
             label: ingredient.name,
@@ -54,6 +75,8 @@ export function IngredientPicker({
               ingredient.source.entryCode ?? "",
               ingredient.source.entryName ?? "",
               category?.name ?? "",
+              ingredient.notes ?? "",
+              ...aliasKeywords,
             ].filter(Boolean),
             leading: (
               <IngredientIdentity

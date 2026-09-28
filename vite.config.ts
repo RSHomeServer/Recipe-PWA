@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
@@ -11,7 +12,30 @@ const pwaBase = path.resolve(root, "../PWA-Base");
 const platform = (pkg: string, ...segments: string[]) =>
   path.join(pwaBase, "packages", pkg, ...segments);
 
+function gitInfo(field: "commit" | "branch"): string {
+  try {
+    const cmd =
+      field === "commit"
+        ? "git rev-parse --short HEAD"
+        : "git rev-parse --abbrev-ref HEAD";
+    return execSync(cmd, {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return "unknown";
+  }
+}
+
+const gitCommit = gitInfo("commit");
+const gitBranch = gitInfo("branch");
+
 export default defineConfig({
+  define: {
+    "import.meta.env.VITE_GIT_COMMIT": JSON.stringify(gitCommit),
+    "import.meta.env.VITE_GIT_BRANCH": JSON.stringify(gitBranch),
+  },
   plugins: [
     appVersionPlugin(),
     react(),

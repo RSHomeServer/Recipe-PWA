@@ -111,28 +111,25 @@ describe("buildRecipeFields", () => {
             id: lineA,
             ingredientId: chickenId,
             amount: 0.5,
-            displayUnit: "kg",
+            entryMeasure: "kg",
             optional: false,
             note: "diced",
-          entryHint: null,
           },
           {
             id: lineB,
             ingredientId: chickenId,
             amount: 200,
-            displayUnit: "g",
+            entryMeasure: "g",
             optional: true,
             note: "extra",
-          entryHint: null,
           },
           {
             id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
             ingredientId: riceId,
             amount: 300,
-            displayUnit: "g",
+            entryMeasure: "g",
             optional: false,
             note: "",
-          entryHint: null,
           },
         ],
         steps: ["Cook"],
@@ -163,10 +160,9 @@ describe("buildRecipeFields", () => {
             id: lineA,
             ingredientId: chickenId,
             amount: 1,
-            displayUnit: "ml",
+            entryMeasure: "ml",
             optional: false,
             note: "",
-          entryHint: null,
           },
         ],
         steps: [],
@@ -177,6 +173,45 @@ describe("buildRecipeFields", () => {
     );
     expect(result.ok).toBe(false);
   });
+
+  it("converts cited spoons to grams and keeps entryHint (R3.5–R3.6)", () => {
+    const paprika = chicken();
+    paprika.name = "Paprika";
+    paprika.gramsPerTsp = 2.3;
+    paprika.gramsPerTbsp = 6.8;
+    const map = new Map([[chickenId, paprika]]);
+    const result = buildRecipeFields(
+      RecipeFormSchema.parse({
+        name: "Seasoned",
+        servings: 1,
+        lines: [
+          {
+            id: lineA,
+            ingredientId: chickenId,
+            amount: 2,
+            entryMeasure: "tsp",
+            optional: false,
+            note: "",
+          },
+        ],
+        steps: [],
+        tagsText: "",
+        notes: "",
+      }),
+      map,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.fields.lines[0]?.quantity).toEqual({
+      amount: 4.6,
+      kind: "mass",
+    });
+    expect(result.fields.lines[0]?.entryHint).toEqual({
+      spoons: 2,
+      spoon: "tsp",
+    });
+    expect(result.fields.lines[0]?.displayUnit).toBe("g");
+  });
 });
 
 describe("mergeLineDrafts", () => {
@@ -186,7 +221,7 @@ describe("mergeLineDrafts", () => {
         id: lineA,
         ingredientId: chickenId,
         amount: 1,
-        displayUnit: "kg",
+        entryMeasure: "kg",
         optional: false,
         note: "",
       },
@@ -194,14 +229,15 @@ describe("mergeLineDrafts", () => {
         id: lineB,
         ingredientId: chickenId,
         amount: 250,
-        displayUnit: "g",
+        entryMeasure: "g",
         optional: false,
         note: "more",
       },
       "mass",
+      chicken(),
     );
     expect(merged.amount).toBe(1.25);
-    expect(merged.displayUnit).toBe("kg");
+    expect(merged.entryMeasure).toBe("kg");
     expect(merged.note).toBe("more");
   });
 });

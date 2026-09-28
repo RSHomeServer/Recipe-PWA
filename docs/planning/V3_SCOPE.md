@@ -229,7 +229,7 @@ picks one up sooner:
 | Gate | Status |
 | --- | --- |
 | **R2.12 — CoFID licence string** | **Resolved.** Product owner confirmed from the GOV.UK CoFID publication page footer (*All content is available under the Open Government Licence v3.0, except where otherwise stated*) and the CoFID 2021 user guide PDF OGL declaration. Pack meta, Settings → About, and `source.licence` now use `OGL-UK-3.0` with attribution: *Contains public sector information licensed under the Open Government Licence v3.0.* |
-| **USDA portion coverage** ([ADR-008](../adr/008-kitchen-spoons-as-an-entry-time-conversion.md) §Open gate) | Confirm that SR Legacy's `food_portion` data actually covers the allow-listed spices with tsp/tbsp measures, and in what proportion, **before ticket 3 is built**. If coverage is thin, ship the fields where data exists — do not guess the rest. |
+| **USDA portion coverage** ([ADR-008](../adr/008-kitchen-spoons-as-an-entry-time-conversion.md) §Open gate) | **Resolved in ticket 3.** SR Legacy `food_portion` covers ~79% of allow-listed SR foods with tsp and/or tbsp (45 tsp / 48 tbsp of 76). Fields ship only where cited; remainder stay `null`. No estimation or tbsp-from-tsp derivation. |
 
 ## Testing
 

@@ -19,6 +19,8 @@ export type StarterPackSeedReport = {
   added: number;
   skippedExisting: number;
   skippedInvalid: number;
+  enriched: number;
+  archivedRetired: number;
   version: string;
 };
 
@@ -31,6 +33,13 @@ export type DualPackSeedReport = {
   flavour: PackSeedReport;
 };
 
+/**
+ * Former allow-list entries removed by later packs. Untouched reference rows
+ * are archived on flavour top-up so pickers stop offering them (Architect
+ * option 1: branded smoked paprika 579084).
+ */
+const RETIRED_FLAVOUR_KEYS = new Set(["usda-branded::579084"]);
+
 function entryCodeKey(ingredient: Ingredient): string | null {
   const code = ingredient.source.entryCode;
   const datasetId = ingredient.source.datasetId;
@@ -42,7 +51,9 @@ type PackFile = StarterPackFile | FlavourPackFile;
 
 /**
  * Additive seed by source.entryCode (+ datasetId).
- * Never overwrites an existing row — edited or not (ADR-002 / R2.7 / R1.5).
+ * Never overwrites an existing row's macros or user edits (ADR-002 / R2.7 / R1.5).
+ * Soft-fills null spoon weights on untouched reference rows from the pack (ADR-008).
+ * Archives retired flavour-pack reference rows that are no longer allow-listed.
  */
 async function seedPackIngredients(
   db: Dexie,
@@ -58,6 +69,8 @@ async function seedPackIngredients(
     added: 0,
     skippedExisting: 0,
     skippedInvalid: 0,
+    enriched: 0,
+    archivedRetired: 0,
     version: options.version,
   };
 
@@ -73,6 +86,7 @@ async function seedPackIngredients(
       }
 
       const toAdd: Ingredient[] = [];
+      const toEnrich: Ingredient[] = [];
       for (const raw of pack.ingredients) {
         const parsed = IngredientSchema.safeParse(raw);
         if (!parsed.success) {
@@ -85,18 +99,90 @@ async function seedPackIngredients(
           report.skippedInvalid += 1;
           continue;
         }
-        if (byKey.has(key)) {
+        const prior = byKey.get(key);
+        if (prior) {
           report.skippedExisting += 1;
+          // Soft-fill cited spoon weights only when still null on an untouched
+          // reference row — never invent, never overwrite a user figure.
+          if (
+            options.packLabel === "flavour" &&
+            prior.source.kind === "reference" &&
+            prior.measureKind === "mass"
+          ) {
+            let next = prior;
+            let changed = false;
+            if (
+              prior.gramsPerTsp == null &&
+              ingredient.gramsPerTsp != null
+            ) {
+              next = { ...next, gramsPerTsp: ingredient.gramsPerTsp };
+              changed = true;
+            }
+            if (
+              prior.gramsPerTbsp == null &&
+              ingredient.gramsPerTbsp != null
+            ) {
+              next = { ...next, gramsPerTbsp: ingredient.gramsPerTbsp };
+              changed = true;
+            }
+            if (ingredient.notes != null) {
+              const priorNotes = prior.notes ?? "";
+              if (
+                priorNotes === "" ||
+                !priorNotes.toLowerCase().includes("smoked paprika")
+              ) {
+                // Prefer pack notes when they carry search aliases; keep any
+                // prior note text by appending if both are non-empty and distinct.
+                if (priorNotes === "") {
+                  next = { ...next, notes: ingredient.notes };
+                  changed = true;
+                } else if (priorNotes !== ingredient.notes) {
+                  next = {
+                    ...next,
+                    notes: `${priorNotes} ${ingredient.notes}`.trim(),
+                  };
+                  changed = true;
+                }
+              }
+            }
+            if (changed) {
+              toEnrich.push(next);
+              byKey.set(key, next);
+            }
+          }
           continue;
         }
         toAdd.push(ingredient);
         byKey.set(key, ingredient);
       }
 
+      const toArchive: Ingredient[] = [];
+      if (options.packLabel === "flavour") {
+        const now = new Date().toISOString();
+        for (const row of existing) {
+          const key = entryCodeKey(row);
+          if (!key || !RETIRED_FLAVOUR_KEYS.has(key)) continue;
+          if (row.archivedAt != null) continue;
+          // Only auto-archive untouched reference rows — user edits stay.
+          if (row.source.kind !== "reference") continue;
+          const archived = { ...row, archivedAt: now };
+          toArchive.push(archived);
+          byKey.set(key, archived);
+        }
+      }
+
       if (toAdd.length > 0) {
         await db.table("ingredients").bulkPut(toAdd);
       }
+      if (toEnrich.length > 0) {
+        await db.table("ingredients").bulkPut(toEnrich);
+      }
+      if (toArchive.length > 0) {
+        await db.table("ingredients").bulkPut(toArchive);
+      }
       report.added = toAdd.length;
+      report.enriched = toEnrich.length;
+      report.archivedRetired = toArchive.length;
 
       const settingsRow =
         ((await db.table("settings").get("singleton")) as Settings | undefined) ??
@@ -131,6 +217,8 @@ export async function seedStarterPack(
     added: report.added,
     skippedExisting: report.skippedExisting,
     skippedInvalid: report.skippedInvalid,
+    enriched: report.enriched,
+    archivedRetired: report.archivedRetired,
     version: report.version,
   };
 }

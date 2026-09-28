@@ -15,18 +15,19 @@ import {
   createId,
   draftsToRecipeInput,
   emptyRecipeFormValues,
+  entryMeasuresFor,
+  isSpoonKind,
   mergeLineDrafts,
   newLineDraft,
   recipeToFormValues,
   resizeRecipeImage,
-  unitsForKind,
   type BuiltRecipeFields,
+  type EntryMeasure,
   type Ingredient,
   type Recipe,
   type RecipeFormParsed,
   type RecipeFormValues,
   type RecipeImage,
-  type Unit,
 } from "@/domain";
 import { SINGLE_INGREDIENT_RECIPE_WARN } from "@/features/shared/entry-kind-copy";
 import { RecipeNutritionPanel } from "@/features/recipes/RecipeNutritionPanel";
@@ -39,7 +40,9 @@ import {
   rememberPickerRecent,
 } from "@/ui/picker-recents";
 import { Textarea } from "@/ui/textarea";
-import { UnitChoice } from "@/ui/unit-choice";
+import {
+  EntryMeasureChoice,
+} from "@/ui/unit-choice";
 
 export type RecipeFormProps = {
   activeIngredients: Ingredient[];
@@ -190,7 +193,7 @@ export function RecipeForm({
       const existing = getValues(`lines.${existingIndex}`);
       update(
         existingIndex,
-        mergeLineDrafts(existing, draft, ingredient.measureKind),
+        mergeLineDrafts(existing, draft, ingredient.measureKind, ingredient),
       );
       toast.message(`Added more ${ingredient.name} to the existing line`);
     } else {
@@ -375,8 +378,8 @@ export function RecipeForm({
                   const ingredient = ingredientsById.get(
                     watchedLines[index]?.ingredientId ?? field.ingredientId,
                   );
-                  const units: Unit[] = ingredient
-                    ? unitsForKind(ingredient.measureKind)
+                  const measures: EntryMeasure[] = ingredient
+                    ? entryMeasuresFor(ingredient)
                     : [];
                   return (
                     <li
@@ -433,16 +436,28 @@ export function RecipeForm({
                           </Label>
                           <Controller
                             control={control}
-                            name={`lines.${index}.displayUnit`}
+                            name={`lines.${index}.entryMeasure`}
                             render={({ field: unitField }) => (
-                              <UnitChoice
+                              <EntryMeasureChoice
                                 id={`recipe-line-unit-${index}`}
                                 aria-labelledby={`recipe-line-unit-${index}-label`}
-                                units={units}
-                                value={unitField.value}
-                                onValueChange={(unit) =>
-                                  unitField.onChange(unit)
+                                measures={measures}
+                                value={
+                                  (unitField.value as EntryMeasure | undefined) ??
+                                  measures[0] ??
+                                  "g"
                                 }
+                                onValueChange={(measure) => {
+                                  unitField.onChange(measure);
+                                  if (
+                                    isSpoonKind(measure) &&
+                                    (watchedLines[index]?.amount ?? 0) >= 100
+                                  ) {
+                                    setValue(`lines.${index}.amount`, 1, {
+                                      shouldDirty: true,
+                                    });
+                                  }
+                                }}
                               />
                             )}
                           />

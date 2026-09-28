@@ -4,15 +4,19 @@ import { MeasureKindSchema } from "../units/schemas";
 import { IdSchema } from "../shared/primitives";
 import { IngredientSchema } from "./schemas";
 
-/** RHF draft: id / archivedAt / provenance / V3 metadata assigned on save. */
+const optionalPositiveGrams = z.preprocess((value) => {
+  if (value === "" || value === undefined || value === null) return null;
+  if (typeof value === "number" && Number.isNaN(value)) return null;
+  return value;
+}, z.number().finite().positive().nullable());
+
+/** RHF draft: id / archivedAt / provenance / flavourTags assigned on save. */
 export const IngredientFormSchema = IngredientSchema.omit({
   id: true,
   archivedAt: true,
   source: true,
   imageId: true,
   common: true,
-  gramsPerTsp: true,
-  gramsPerTbsp: true,
   flavourTags: true,
 }).extend({
   name: z.string().trim().min(1, "Name is required"),
@@ -29,6 +33,9 @@ export const IngredientFormSchema = IngredientSchema.omit({
     const trimmed = value.trim();
     return trimmed.length === 0 ? null : trimmed;
   }),
+  /** User-supplied cited spoon weights (R3.9). Empty → null. */
+  gramsPerTsp: optionalPositiveGrams,
+  gramsPerTbsp: optionalPositiveGrams,
 });
 
 export type IngredientFormValues = z.input<typeof IngredientFormSchema>;
@@ -54,5 +61,7 @@ export function emptyIngredientFormValues(): IngredientFormValues {
     measureKind: "mass",
     nutrition: { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0, sodiumMg: null },
     notes: "",
+    gramsPerTsp: null,
+    gramsPerTbsp: null,
   };
 }

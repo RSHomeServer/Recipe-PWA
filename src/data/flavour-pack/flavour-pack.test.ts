@@ -16,6 +16,7 @@ import {
 import allowList from "@/data/flavour-pack/allow-list.json";
 import brandedCache from "@/data/flavour-pack/branded-cache.json";
 import cofidEquivalence from "@/data/flavour-pack/cofid-equivalence.json";
+import displayAliases from "@/data/flavour-pack/display-aliases.json";
 import flavourPackJson from "../../../public/starter-pack/flavour-pack.json";
 import packJson from "../../../public/starter-pack/pack.json";
 import type { FlavourPackFile } from "@/data/flavour-pack";
@@ -24,10 +25,9 @@ import type { StarterPackFile } from "@/data/starter-pack";
 const flavourPack = flavourPackJson as FlavourPackFile;
 const starterPack = packJson as StarterPackFile;
 
-/** R1.8 — named gaps → exactly one seeded ingredient each (by UK display name). */
+/** R1.8 — named gaps. Smoked paprika is satisfied by paprika + display alias. */
 const NAMED_GAPS = [
   "Paprika",
-  "Smoked paprika",
   "Cumin",
   "Turmeric",
   "Cinnamon",
@@ -122,6 +122,45 @@ describe("flavour pack coverage (R1.8)", () => {
       expect(hits, gap).toHaveLength(1);
     }
   });
+
+  it("covers smoked paprika via paprika + documented alias (Architect option 1)", () => {
+    expect(
+      flavourPack.ingredients.some((i) => i.source.entryCode === "579084"),
+    ).toBe(false);
+    expect(allowList.entries.some((e) => String(e.fdcId) === "579084")).toBe(
+      false,
+    );
+
+    const paprika = flavourPack.ingredients.filter(
+      (ingredient) => ingredient.name.toLowerCase() === "paprika",
+    );
+    expect(paprika).toHaveLength(1);
+    expect(paprika[0]?.source.entryCode).toBe("171329");
+    expect(paprika[0]?.notes?.toLowerCase()).toContain("smoked paprika");
+
+    const alias = displayAliases.aliases.find(
+      (row) => row.alias.toLowerCase() === "smoked paprika",
+    );
+    expect(alias).toMatchObject({
+      alias: "smoked paprika",
+      datasetId: "usda-sr-legacy",
+      entryCode: "171329",
+      displayName: "Paprika",
+    });
+  });
+
+  it("populates cited spoon weights without deriving tbsp from tsp (R3.1–R3.2)", () => {
+    const paprika = flavourPack.ingredients.find((i) => i.name === "Paprika")!;
+    expect(paprika.gramsPerTsp).toBe(2.3);
+    expect(paprika.gramsPerTbsp).toBe(6.8);
+
+    const withTsp = flavourPack.ingredients.filter((i) => i.gramsPerTsp != null);
+    const withTbsp = flavourPack.ingredients.filter(
+      (i) => i.gramsPerTbsp != null,
+    );
+    expect(withTsp.length).toBeGreaterThan(0);
+    expect(withTbsp.length).toBeGreaterThan(0);
+  });
 });
 
 describe("flavour pack seeding (R1.5–R1.6)", () => {
@@ -189,6 +228,49 @@ describe("flavour pack seeding (R1.5–R1.6)", () => {
     const after = await db.table("ingredients").get(cumin.id);
     expect(after?.nutrition.kcal).toBe(edited.nutrition.kcal);
     expect(after?.source.kind).toBe("userEntered");
+
+    await db.close();
+    await deleteRecipeDb(name);
+  });
+
+  it("soft-fills null spoon weights and archives retired smoked paprika", async () => {
+    const name = `flavour-pack-enrich-${crypto.randomUUID()}`;
+    const db = await openRecipeDb({ name, ephemeral: true });
+
+    const paprika = flavourPack.ingredients.find((i) => i.name === "Paprika")!;
+    const barePaprika = {
+      ...paprika,
+      gramsPerTsp: null,
+      gramsPerTbsp: null,
+      notes: null,
+    };
+    const retiredSmoked = {
+      ...paprika,
+      id: "99999999-9999-4999-8999-999999999999",
+      name: "Smoked paprika",
+      gramsPerTsp: null,
+      gramsPerTbsp: null,
+      notes: null,
+      source: {
+        ...paprika.source,
+        datasetId: "usda-branded",
+        entryCode: "579084",
+        entryName: "SMOKED PAPRIKA",
+      },
+    };
+    await db.table("ingredients").bulkPut([barePaprika, retiredSmoked]);
+
+    const report = await seedFlavourPack(db, { pack: flavourPack });
+    expect(report.enriched).toBeGreaterThanOrEqual(1);
+    expect(report.archivedRetired).toBe(1);
+
+    const afterPaprika = await db.table("ingredients").get(paprika.id);
+    expect(afterPaprika?.gramsPerTsp).toBe(paprika.gramsPerTsp);
+    expect(afterPaprika?.gramsPerTbsp).toBe(paprika.gramsPerTbsp);
+    expect(afterPaprika?.notes?.toLowerCase()).toContain("smoked paprika");
+
+    const afterSmoked = await db.table("ingredients").get(retiredSmoked.id);
+    expect(afterSmoked?.archivedAt).toBeTruthy();
 
     await db.close();
     await deleteRecipeDb(name);

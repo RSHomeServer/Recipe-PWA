@@ -19,6 +19,11 @@ export const SettingsSchema = z.object({
   starterPackVersion: z.string().nullable(),
   /** Flavour-pack seed watermark; null until first successful seed (ADR-006). */
   flavourPackVersion: z.string().nullable(),
+  /**
+   * Show the git tip banner at the top of every screen (dev/preview clarity).
+   * Defaults on so the served tip is obvious while validating feature branches.
+   */
+  showDevTipBanner: z.boolean(),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -31,6 +36,7 @@ export const DEFAULT_SETTINGS: Settings = {
   howItWorksDismissed: false,
   starterPackVersion: null,
   flavourPackVersion: null,
+  showDevTipBanner: true,
 };
 
 /** Normalize legacy settings rows that predate V1 shoppingWindow / V2–V3 fields. */
@@ -42,5 +48,8 @@ export function normalizeSettingsRow(row: unknown): unknown {
   if (!("howItWorksDismissed" in next)) next.howItWorksDismissed = false;
   if (!("starterPackVersion" in next)) next.starterPackVersion = null;
   if (!("flavourPackVersion" in next)) next.flavourPackVersion = null;
+  if (!("showDevTipBanner" in next) || typeof next.showDevTipBanner !== "boolean") {
+    next.showDevTipBanner = true;
+  }
   return next;
 }

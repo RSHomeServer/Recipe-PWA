@@ -15,11 +15,13 @@ import {
   FLAVOUR_PACK_VERSION,
 } from "@/data/flavour-pack";
 import { useSettings } from "@/features/shopping/hooks";
+import { servedGitTip } from "@/features/shared/servedGitTip";
 import { PageHeader } from "@/features/shared/RoutePlaceholder";
 import { RouteStatePanel } from "@/features/shared/RouteStatePanel";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
+import { SegmentedGroup } from "@/ui/segmented-group";
 
 const settingsSchema = z.object({
   dailyTarget: z
@@ -92,6 +94,59 @@ export default function SettingsPage() {
         description="Theme, calorie target, and preferences."
         actions={<ThemeToggle showLabels />}
       />
+
+      <section className="max-w-md space-y-3" aria-labelledby="dev-tip-banner-heading">
+        <h2 id="dev-tip-banner-heading" className="text-lg font-semibold">
+          Tip banner
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Show a high-visibility bar at the top of every screen with the git
+          branch and commit this site is serving. On by default while validating
+          feature tips.
+        </p>
+        <SegmentedGroup
+          id="dev-tip-banner"
+          aria-labelledby="dev-tip-banner-heading"
+          value={settings.showDevTipBanner ? "on" : "off"}
+          disabled={!repos}
+          onValueChange={(value) => {
+            if (!repos) return;
+            const showDevTipBanner = value === "on";
+            void repos.settings
+              .put({ ...settings, showDevTipBanner })
+              .then(() => {
+                toast.success(
+                  showDevTipBanner
+                    ? "Tip banner shown at the top of the screen"
+                    : "Tip banner hidden",
+                );
+              })
+              .catch((error: unknown) => {
+                toast.error(
+                  error instanceof Error
+                    ? error.message
+                    : "Could not update tip banner setting",
+                );
+              });
+          }}
+          options={[
+            {
+              value: "on",
+              label: "On",
+              helperText: "Green bar with branch and commit on every page.",
+            },
+            {
+              value: "off",
+              label: "Off",
+              helperText: "Tip details stay in About only.",
+            },
+          ]}
+        />
+        <p className="font-mono text-sm text-foreground">
+          {servedGitTip().branch} · {servedGitTip().commit}
+        </p>
+      </section>
+
       <form
         className="max-w-md space-y-4"
         noValidate
@@ -194,8 +249,10 @@ export default function SettingsPage() {
           Starter ingredients
         </h2>
         <p className="text-sm text-muted-foreground">
-          Adds any missing CoFID and USDA flavour-pack reference ingredients.
-          Existing rows are never overwritten — including ones you have edited.
+          Adds any missing CoFID and USDA flavour-pack reference ingredients,
+          fills cited spoon weights where still blank, and archives retired
+          flavour rows (for example the old branded smoked paprika). Existing
+          nutrition figures you edited are never overwritten.
         </p>
         <ul className="space-y-1 text-sm text-muted-foreground">
           <li>
@@ -224,24 +281,58 @@ export default function SettingsPage() {
               const report = await seedBothPacks(db);
               const formatPack = (
                 label: string,
-                pack: { added: number; skippedExisting: number; skippedInvalid: number },
-              ) =>
-                `${label}: added ${pack.added}, skipped ${pack.skippedExisting} already present${
-                  pack.skippedInvalid > 0
-                    ? `, ${pack.skippedInvalid} invalid`
-                    : ""
-                }`;
+                pack: {
+                  added: number;
+                  skippedExisting: number;
+                  skippedInvalid: number;
+                  enriched: number;
+                  archivedRetired: number;
+                },
+              ) => {
+                const parts = [
+                  `added ${pack.added}`,
+                  `skipped ${pack.skippedExisting} already present`,
+                ];
+                if (pack.enriched > 0) {
+                  parts.push(`updated ${pack.enriched} with spoon weights/aliases`);
+                }
+                if (pack.archivedRetired > 0) {
+                  parts.push(`archived ${pack.archivedRetired} retired`);
+                }
+                if (pack.skippedInvalid > 0) {
+                  parts.push(`${pack.skippedInvalid} invalid`);
+                }
+                return `${label}: ${parts.join(", ")}`;
+              };
               const summary = [
                 formatPack("CoFID", report.starter),
                 formatPack("Flavour", report.flavour),
               ].join(". ");
               setLastTopUp(summary);
               const totalAdded = report.starter.added + report.flavour.added;
-              toast.success(
-                totalAdded > 0
-                  ? `Added ${report.starter.added} CoFID + ${report.flavour.added} flavour ingredients`
-                  : "No missing starter or flavour ingredients",
-              );
+              const totalEnriched =
+                report.starter.enriched + report.flavour.enriched;
+              const totalArchived =
+                report.starter.archivedRetired + report.flavour.archivedRetired;
+              if (totalAdded > 0 || totalEnriched > 0 || totalArchived > 0) {
+                toast.success(
+                  [
+                    totalAdded > 0
+                      ? `Added ${report.starter.added} CoFID + ${report.flavour.added} flavour`
+                      : null,
+                    totalEnriched > 0
+                      ? `filled spoon data on ${totalEnriched}`
+                      : null,
+                    totalArchived > 0
+                      ? `archived ${totalArchived} retired`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join("; "),
+                );
+              } else {
+                toast.success("Starter and flavour packs already up to date");
+              }
             } catch (error) {
               toast.error(
                 error instanceof Error
@@ -253,7 +344,7 @@ export default function SettingsPage() {
             }
           }}
         >
-          {topUpBusy ? "Adding…" : "Add missing starter ingredients"}
+          {topUpBusy ? "Updating…" : "Update starter & flavour ingredients"}
         </Button>
         {lastTopUp ? (
           <p className="text-sm text-muted-foreground" role="status">
@@ -266,6 +357,36 @@ export default function SettingsPage() {
         <h2 id="about-heading" className="text-lg font-semibold">
           About
         </h2>
+        <div className="space-y-1 text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">Dev tip</p>
+          <p>
+            Branch{" "}
+            <span className="font-mono text-foreground">
+              {servedGitTip().branch}
+            </span>
+            {" · "}
+            commit{" "}
+            <span className="font-mono text-foreground">
+              {servedGitTip().commit}
+            </span>
+          </p>
+          <p>
+            App version{" "}
+            <span className="font-mono text-foreground">
+              {import.meta.env.VITE_APP_VERSION ?? "unknown"}
+            </span>
+            {import.meta.env.VITE_APP_BUILT_AT
+              ? ` · built ${import.meta.env.VITE_APP_BUILT_AT}`
+              : null}
+          </p>
+          <p>
+            Top banner:{" "}
+            <span className="font-medium text-foreground">
+              {settings.showDevTipBanner ? "on" : "off"}
+            </span>{" "}
+            (toggle under Tip banner above).
+          </p>
+        </div>
         <div className="space-y-2 text-sm text-muted-foreground">
           <p className="font-medium text-foreground">
             {STARTER_PACK_ATTRIBUTION.title}

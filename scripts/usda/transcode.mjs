@@ -5,8 +5,9 @@
  * Reads:
  *   - Hand-maintained allow-list of FDC ids
  *   - USDA SR Legacy CSVs (download once into data/usda/)
- *   - branded-cache.json for the three Branded exceptions (MSG, nutritional yeast,
- *     smoked paprika) when SR Legacy has no generic row
+ *   - branded-cache.json for Branded exceptions (MSG, nutritional yeast) when SR
+ *     Legacy has no generic row
+ *   - food_portion.csv for cited tsp/tbsp gram weights (ADR-008) — never estimated
  *
  * Emits public/starter-pack/flavour-pack.json. Never hand-types nutrition figures.
  *
@@ -21,11 +22,13 @@ import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import { deterministicId } from "./deterministic-id.mjs";
 import { categoryIdForUsdaCategory } from "./categories.mjs";
+import { loadSpoonWeights } from "./spoon-portions.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "../..");
 
-export const FLAVOUR_PACK_VERSION = "usda-sr-legacy-v1";
+/** Bumped for cited spoon weights + smoked-paprika alias (V3 ticket 3). */
+export const FLAVOUR_PACK_VERSION = "usda-sr-legacy-v1.2";
 
 const SR_DATASET = {
   datasetId: "usda-sr-legacy",
@@ -52,9 +55,14 @@ const NUTRIENT_IDS = {
   sodiumMg: 1093,
 };
 
-const DEFAULT_CSV_DIR = path.join(
+const LOCAL_CSV_DIR = path.join(
   root,
   "data/usda/FoodData_Central_sr_legacy_food_csv_2018-04",
+);
+/** KanDev worktrees may symlink/omit the large USDA download; fall back to primary. */
+const FALLBACK_CSV_DIR = path.join(
+  root,
+  "../Recipe-PWA/data/usda/FoodData_Central_sr_legacy_food_csv_2018-04",
 );
 const ALLOW_LIST_PATH = path.join(
   root,
@@ -68,15 +76,33 @@ const BRANDED_CACHE_PATH = path.join(
   root,
   "src/data/flavour-pack/branded-cache.json",
 );
+const ALIASES_PATH = path.join(
+  root,
+  "src/data/flavour-pack/display-aliases.json",
+);
 const COFID_PACK_PATH = path.join(root, "public/starter-pack/pack.json");
 
 /**
  * @param {string[]} argv
  */
-function parseArgs(argv) {
+async function resolveDefaultCsvDir() {
+  try {
+    await access(path.join(LOCAL_CSV_DIR, "food_portion.csv"));
+    return LOCAL_CSV_DIR;
+  } catch {
+    await access(path.join(FALLBACK_CSV_DIR, "food_portion.csv"));
+    return FALLBACK_CSV_DIR;
+  }
+}
+
+/**
+ * @param {string[]} argv
+ * @param {string} defaultCsvDir
+ */
+function parseArgs(argv, defaultCsvDir) {
   /** @type {{ csvDir: string; out: string }} */
   const opts = {
-    csvDir: DEFAULT_CSV_DIR,
+    csvDir: defaultCsvDir,
     out: path.join(root, "public/starter-pack/flavour-pack.json"),
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -223,12 +249,28 @@ function round(n, digits) {
 }
 
 async function main() {
-  const opts = parseArgs(process.argv.slice(2));
+  const opts = parseArgs(process.argv.slice(2), await resolveDefaultCsvDir());
 
   const allowList = JSON.parse(await readFile(ALLOW_LIST_PATH, "utf8"));
   const equivalence = JSON.parse(await readFile(EQUIV_PATH, "utf8"));
   const brandedCache = JSON.parse(await readFile(BRANDED_CACHE_PATH, "utf8"));
+  const displayAliases = JSON.parse(await readFile(ALIASES_PATH, "utf8"));
   const cofidPack = JSON.parse(await readFile(COFID_PACK_PATH, "utf8"));
+
+  /** @type {Map<string, string[]>} */
+  const aliasesByKey = new Map();
+  for (const row of displayAliases.aliases ?? []) {
+    const key = `${row.datasetId}::${row.entryCode}`;
+    const list = aliasesByKey.get(key) ?? [];
+    list.push(String(row.alias));
+    aliasesByKey.set(key, list);
+  }
+
+  function notesForEntry(datasetId, entryCode) {
+    const aliases = aliasesByKey.get(`${datasetId}::${entryCode}`);
+    if (!aliases || aliases.length === 0) return null;
+    return `Also searchable as: ${aliases.join(", ")}.`;
+  }
 
   if (!Array.isArray(allowList.entries) || allowList.entries.length === 0) {
     throw new Error("allow-list.json has no entries");
@@ -299,11 +341,14 @@ async function main() {
   }
 
   const { foods, nutrients } = await loadSrFoods(opts.csvDir, srIds);
+  const spoonWeights = await loadSpoonWeights(opts.csvDir, srIds, forEachCsvRow);
 
   /** @type {object[]} */
   const ingredients = [];
   /** @type {string[]} */
   const missing = [];
+  let withTsp = 0;
+  let withTbsp = 0;
 
   for (const entry of allowList.entries) {
     const fdcId = Number(entry.fdcId);
@@ -317,6 +362,7 @@ async function main() {
       const cached = brandedCache.foods[entryCode];
       const n = cached.nutritionPer100g;
       const dataset = BRANDED_DATASET;
+      // Branded FDC snapshots do not ship reliable food_portion spoon rows.
       ingredients.push({
         id: deterministicId(`branded:${entryCode}`),
         name: ukName,
@@ -329,7 +375,7 @@ async function main() {
           fatG: round(requireFiniteNonNeg(n.fatG, "fatG", fdcId), 2),
           sodiumMg: round(requireFiniteNonNeg(n.sodiumMg, "sodiumMg", fdcId), 0),
         },
-        notes: null,
+        notes: notesForEntry(dataset.datasetId, entryCode),
         archivedAt: null,
         source: {
           kind: "reference",
@@ -372,6 +418,13 @@ async function main() {
         ? null
         : round(n.sodiumMg, 0);
 
+    const spoons = spoonWeights.get(fdcId) ?? {
+      gramsPerTsp: null,
+      gramsPerTbsp: null,
+    };
+    if (spoons.gramsPerTsp != null) withTsp += 1;
+    if (spoons.gramsPerTbsp != null) withTbsp += 1;
+
     ingredients.push({
       id: deterministicId(`sr-legacy:${entryCode}`),
       name: ukName,
@@ -384,7 +437,7 @@ async function main() {
         fatG: round(fatG, 2),
         sodiumMg,
       },
-      notes: null,
+      notes: notesForEntry(SR_DATASET.datasetId, entryCode),
       archivedAt: null,
       source: {
         kind: "reference",
@@ -399,8 +452,8 @@ async function main() {
       },
       imageId: null,
       common: true,
-      gramsPerTsp: null,
-      gramsPerTbsp: null,
+      gramsPerTsp: spoons.gramsPerTsp,
+      gramsPerTbsp: spoons.gramsPerTbsp,
       flavourTags: [],
     });
   }
@@ -425,6 +478,8 @@ async function main() {
         (i) => i.source.datasetId === BRANDED_DATASET.datasetId,
       ).length,
       commonCount: ingredients.filter((i) => i.common).length,
+      withGramsPerTsp: withTsp,
+      withGramsPerTbsp: withTbsp,
     },
     ingredients,
   };

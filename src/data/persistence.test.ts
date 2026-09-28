@@ -406,6 +406,7 @@ describe("JSON backup (format v1, schemaVersion tracks Dexie)", () => {
 
     const settings = await repos.settings.get();
     expect(settings.howItWorksDismissed).toBe(false);
+    expect(settings.showDevTipBanner).toBe(true);
     expect(settings.starterPackVersion).toBeNull();
     expect(settings.flavourPackVersion).toBeNull();
   });

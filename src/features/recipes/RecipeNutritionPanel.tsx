@@ -7,7 +7,7 @@ import {
 } from "@/features/components/domain-stubs";
 import {
   formatPct,
-  formatQuantity,
+  formatLineQuantity,
   macroEnergyShare,
   recipeBreakdown,
   recipePerServing,
@@ -109,6 +109,7 @@ export function RecipeNutritionPanel({
   }
 
   const hasOptional = recipe.lines.some((line) => line.optional);
+  const hasSpoonEntry = recipe.lines.some((line) => line.entryHint != null);
   const attributionItems = breakdown
     .filter((row) => !row.optional && row.shareOfKcal != null)
     .map((row) => ({
@@ -126,6 +127,12 @@ export function RecipeNutritionPanel({
         {hasOptional ? (
           <p className="text-sm text-muted-foreground">
             Totals exclude optional ingredients.
+          </p>
+        ) : null}
+        {hasSpoonEntry ? (
+          <p className="text-sm text-muted-foreground" role="note">
+            Approximate — one or more lines were entered in teaspoons or
+            tablespoons using a cited spoon weight.
           </p>
         ) : null}
         <div className="grid gap-6 sm:grid-cols-2">
@@ -216,6 +223,7 @@ function ScaledLinesList({
     quantity: RecipeLine["quantity"];
     displayUnit: RecipeLine["displayUnit"];
     optional: boolean;
+    entryHint?: RecipeLine["entryHint"];
   }>;
   ingredientsById: ReadonlyMap<string, Ingredient>;
 }) {
@@ -235,8 +243,10 @@ function ScaledLinesList({
             ) : null}
           </span>
           <Quantity
-            amount={formatQuantity(line.quantity, {
+            amount={formatLineQuantity({
+              quantity: line.quantity,
               displayUnit: line.displayUnit,
+              entryHint: line.entryHint ?? null,
             })}
           />
         </li>

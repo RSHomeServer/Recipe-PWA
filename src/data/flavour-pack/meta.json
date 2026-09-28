@@ -1,5 +1,5 @@
 {
-  "version": "usda-sr-legacy-v1",
+  "version": "usda-sr-legacy-v1.2",
   "dataset": {
     "datasetId": "usda-sr-legacy",
     "datasetName": "USDA FoodData Central — SR Legacy (April 2018)",
@@ -15,11 +15,13 @@
     "retrievedAt": "2026-09-26"
   },
   "stats": {
-    "allowListed": 79,
-    "seeded": 79,
+    "allowListed": 78,
+    "seeded": 78,
     "srLegacy": 76,
-    "brandedExceptions": 3,
-    "commonCount": 79
+    "brandedExceptions": 2,
+    "commonCount": 78,
+    "withGramsPerTsp": 45,
+    "withGramsPerTbsp": 48
   },
   "attributionNote": "SR Legacy and Branded Foods data from USDA FoodData Central are dedicated to the public domain under CC0 1.0. Attribution is given voluntarily."
 }
