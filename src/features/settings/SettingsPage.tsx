@@ -15,11 +15,13 @@ import {
   FLAVOUR_PACK_VERSION,
 } from "@/data/flavour-pack";
 import { useSettings } from "@/features/shopping/hooks";
+import { servedGitTip } from "@/features/shared/servedGitTip";
 import { PageHeader } from "@/features/shared/RoutePlaceholder";
 import { RouteStatePanel } from "@/features/shared/RouteStatePanel";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
+import { SegmentedGroup } from "@/ui/segmented-group";
 
 const settingsSchema = z.object({
   dailyTarget: z
@@ -92,6 +94,59 @@ export default function SettingsPage() {
         description="Theme, calorie target, and preferences."
         actions={<ThemeToggle showLabels />}
       />
+
+      <section className="max-w-md space-y-3" aria-labelledby="dev-tip-banner-heading">
+        <h2 id="dev-tip-banner-heading" className="text-lg font-semibold">
+          Tip banner
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Show a high-visibility bar at the top of every screen with the git
+          branch and commit this site is serving. On by default while validating
+          feature tips.
+        </p>
+        <SegmentedGroup
+          id="dev-tip-banner"
+          aria-labelledby="dev-tip-banner-heading"
+          value={settings.showDevTipBanner ? "on" : "off"}
+          disabled={!repos}
+          onValueChange={(value) => {
+            if (!repos) return;
+            const showDevTipBanner = value === "on";
+            void repos.settings
+              .put({ ...settings, showDevTipBanner })
+              .then(() => {
+                toast.success(
+                  showDevTipBanner
+                    ? "Tip banner shown at the top of the screen"
+                    : "Tip banner hidden",
+                );
+              })
+              .catch((error: unknown) => {
+                toast.error(
+                  error instanceof Error
+                    ? error.message
+                    : "Could not update tip banner setting",
+                );
+              });
+          }}
+          options={[
+            {
+              value: "on",
+              label: "On",
+              helperText: "Green bar with branch and commit on every page.",
+            },
+            {
+              value: "off",
+              label: "Off",
+              helperText: "Tip details stay in About only.",
+            },
+          ]}
+        />
+        <p className="font-mono text-sm text-foreground">
+          {servedGitTip().branch} · {servedGitTip().commit}
+        </p>
+      </section>
+
       <form
         className="max-w-md space-y-4"
         noValidate
@@ -307,12 +362,12 @@ export default function SettingsPage() {
           <p>
             Branch{" "}
             <span className="font-mono text-foreground">
-              {import.meta.env.VITE_GIT_BRANCH ?? "unknown"}
+              {servedGitTip().branch}
             </span>
             {" · "}
             commit{" "}
             <span className="font-mono text-foreground">
-              {import.meta.env.VITE_GIT_COMMIT ?? "unknown"}
+              {servedGitTip().commit}
             </span>
           </p>
           <p>
@@ -323,6 +378,13 @@ export default function SettingsPage() {
             {import.meta.env.VITE_APP_BUILT_AT
               ? ` · built ${import.meta.env.VITE_APP_BUILT_AT}`
               : null}
+          </p>
+          <p>
+            Top banner:{" "}
+            <span className="font-medium text-foreground">
+              {settings.showDevTipBanner ? "on" : "off"}
+            </span>{" "}
+            (toggle under Tip banner above).
           </p>
         </div>
         <div className="space-y-2 text-sm text-muted-foreground">

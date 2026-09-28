@@ -80,6 +80,7 @@ describe("in-memory repositories", () => {
       howItWorksDismissed: false,
       starterPackVersion: null,
       flavourPackVersion: null,
+      showDevTipBanner: true,
     });
     await repos.settings.put(settings);
     expect(await repos.settings.get()).toEqual(settings);

@@ -1,6 +1,7 @@
 import { ThemeToggle } from "@songara/pwa-base/ui";
 import { NavLink, Outlet } from "react-router-dom";
 import { primaryNavItems, secondaryNavItems } from "@/app/shell/navigation";
+import { DevTipBanner } from "@/features/shared/DevTipBanner";
 
 function NavIcon({ label }: { label: string }) {
   return (
@@ -49,6 +50,7 @@ export function ShellLayout() {
       </aside>
 
       <div className="app-main">
+        <DevTipBanner />
         <Outlet />
       </div>
 
