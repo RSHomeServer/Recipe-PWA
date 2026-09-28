@@ -64,9 +64,11 @@ describe("IngredientFormSchema", () => {
       measureKind: "mass",
       nutrition: { kcal: 350, proteinG: 7, carbsG: 78, fatG: 1, sodiumMg: null },
       notes: "   ",
+      flavourTags: ["smoky", "smoky", "earthy"],
     });
     expect(parsed.name).toBe("Rice");
     expect(parsed.notes).toBeNull();
+    expect(parsed.flavourTags).toEqual(["earthy", "smoky"]);
   });
 });
 
@@ -185,6 +187,7 @@ describe("isIngredientReferenced", () => {
         measureKind: ingredient.measureKind,
         nutrition: ingredient.nutrition,
         notes: "",
+        flavourTags: ingredient.flavourTags,
       }).name,
     ).toBe("Chicken");
   });

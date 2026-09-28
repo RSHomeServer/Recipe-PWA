@@ -23,6 +23,7 @@ import { createInterface } from "node:readline";
 import { deterministicId } from "./deterministic-id.mjs";
 import { categoryIdForUsdaCategory } from "./categories.mjs";
 import { loadSpoonWeights } from "./spoon-portions.mjs";
+import { applyFlavourTags, loadFlavourTagsMap } from "./flavour-tags.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "../..");
@@ -463,6 +464,12 @@ async function main() {
       `Allow-listed FDC id(s) not found in SR Legacy CSV (${missing.length}): ${missing.slice(0, 20).join(", ")}`,
     );
   }
+
+  const tagMap = await loadFlavourTagsMap();
+  applyFlavourTags(ingredients, tagMap.tags, {
+    datasetIds: ["usda-sr-legacy", "usda-branded"],
+    requireFullCoverage: true,
+  });
 
   const pack = {
     version: FLAVOUR_PACK_VERSION,

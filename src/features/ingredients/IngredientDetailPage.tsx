@@ -114,7 +114,6 @@ export default function IngredientDetailPage() {
         },
         imageId,
         common: true,
-        flavourTags: [],
         archivedAt: null,
       };
       await repos.ingredients.put(row);

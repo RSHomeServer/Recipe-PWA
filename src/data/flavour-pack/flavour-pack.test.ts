@@ -195,6 +195,7 @@ describe("flavour pack seeding (R1.5–R1.6)", () => {
       .filter((row) => row.name === "Paprika")
       .toArray();
     expect(paprika).toHaveLength(1);
+    expect(paprika[0]?.flavourTags).toContain("smoky");
 
     const second = await seedBothPacks(db, {
       starterPack,

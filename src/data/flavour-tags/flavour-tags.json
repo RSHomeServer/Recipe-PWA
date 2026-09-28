@@ -1,0 +1,385 @@
+{
+  "version": 1,
+  "notes": "Hand-maintained sensory tags keyed by datasetId::entryCode (ADR-009 / R4.2). Closed FlavourTag vocabulary only. Tags are editorial selection metadata — never nutrition figures. Unresolved keys fail the build. Flavour-pack entries require full coverage; CoFID keys are opt-in. Paprika (usda-sr-legacy::171329) includes smoky.",
+  "tags": {
+    "usda-sr-legacy::171329": [
+      "smoky",
+      "earthy",
+      "aromatic"
+    ],
+    "usda-sr-legacy::170923": [
+      "earthy",
+      "aromatic"
+    ],
+    "usda-sr-legacy::172231": [
+      "earthy",
+      "bitter",
+      "aromatic"
+    ],
+    "usda-sr-legacy::171320": [
+      "sweet",
+      "aromatic"
+    ],
+    "usda-sr-legacy::171328": [
+      "aromatic",
+      "earthy",
+      "fresh"
+    ],
+    "usda-sr-legacy::170931": [
+      "spicy",
+      "aromatic",
+      "earthy"
+    ],
+    "usda-sr-legacy::171327": [
+      "aromatic",
+      "umami"
+    ],
+    "usda-branded::2449440": [
+      "umami",
+      "salty"
+    ],
+    "usda-sr-legacy::172442": [
+      "umami",
+      "salty",
+      "fermented"
+    ],
+    "usda-sr-legacy::174531": [
+      "umami",
+      "salty",
+      "fermented"
+    ],
+    "usda-branded::2273557": [
+      "umami",
+      "nutty"
+    ],
+    "usda-sr-legacy::172238": [
+      "salty",
+      "sour"
+    ],
+    "usda-sr-legacy::172241": [
+      "sour",
+      "sweet",
+      "rich"
+    ],
+    "usda-sr-legacy::173469": [
+      "sour",
+      "fresh"
+    ],
+    "usda-sr-legacy::170933": [
+      "spicy",
+      "aromatic"
+    ],
+    "usda-sr-legacy::171319": [
+      "spicy",
+      "earthy",
+      "aromatic"
+    ],
+    "usda-sr-legacy::170922": [
+      "aromatic",
+      "earthy",
+      "fresh"
+    ],
+    "usda-sr-legacy::170919": [
+      "aromatic",
+      "floral",
+      "earthy"
+    ],
+    "usda-sr-legacy::171321": [
+      "aromatic",
+      "sweet"
+    ],
+    "usda-sr-legacy::171326": [
+      "aromatic",
+      "nutty"
+    ],
+    "usda-sr-legacy::171315": [
+      "aromatic",
+      "sweet"
+    ],
+    "usda-sr-legacy::171316": [
+      "aromatic",
+      "sweet",
+      "floral"
+    ],
+    "usda-sr-legacy::171324": [
+      "bitter",
+      "earthy",
+      "aromatic"
+    ],
+    "usda-sr-legacy::170918": [
+      "aromatic",
+      "earthy"
+    ],
+    "usda-sr-legacy::170920": [
+      "aromatic"
+    ],
+    "usda-sr-legacy::171323": [
+      "aromatic",
+      "sweet",
+      "fresh"
+    ],
+    "usda-sr-legacy::170925": [
+      "aromatic",
+      "fresh"
+    ],
+    "usda-sr-legacy::170927": [
+      "aromatic",
+      "nutty"
+    ],
+    "usda-sr-legacy::171330": [
+      "nutty",
+      "earthy"
+    ],
+    "usda-sr-legacy::171331": [
+      "aromatic"
+    ],
+    "usda-sr-legacy::171332": [
+      "aromatic",
+      "sweet"
+    ],
+    "usda-sr-legacy::170936": [
+      "aromatic",
+      "fresh"
+    ],
+    "usda-sr-legacy::171318": [
+      "aromatic",
+      "fresh"
+    ],
+    "usda-sr-legacy::173471": [
+      "sweet",
+      "aromatic"
+    ],
+    "usda-sr-legacy::172234": [
+      "sour",
+      "spicy"
+    ],
+    "usda-sr-legacy::172240": [
+      "sour",
+      "fruity"
+    ],
+    "usda-sr-legacy::174529": [
+      "umami",
+      "salty",
+      "rich"
+    ],
+    "usda-sr-legacy::172886": [
+      "sweet",
+      "umami",
+      "salty"
+    ],
+    "usda-sr-legacy::174527": [
+      "spicy",
+      "sour",
+      "salty"
+    ],
+    "usda-sr-legacy::174528": [
+      "spicy",
+      "sour",
+      "salty"
+    ],
+    "usda-sr-legacy::171186": [
+      "spicy",
+      "sour"
+    ],
+    "usda-sr-legacy::171167": [
+      "sweet",
+      "umami",
+      "salty"
+    ],
+    "usda-sr-legacy::171560": [
+      "umami",
+      "salty"
+    ],
+    "usda-sr-legacy::171562": [
+      "umami",
+      "salty"
+    ],
+    "usda-sr-legacy::171613": [
+      "umami",
+      "salty"
+    ],
+    "usda-sr-legacy::171016": [
+      "nutty",
+      "rich",
+      "aromatic"
+    ],
+    "usda-sr-legacy::171831": [
+      "spicy"
+    ],
+    "usda-sr-legacy::168570": [
+      "spicy",
+      "smoky",
+      "earthy"
+    ],
+    "usda-sr-legacy::172232": [
+      "fresh",
+      "aromatic"
+    ],
+    "usda-sr-legacy::172233": [
+      "fresh",
+      "aromatic"
+    ],
+    "usda-sr-legacy::173470": [
+      "aromatic",
+      "earthy"
+    ],
+    "usda-sr-legacy::173473": [
+      "aromatic"
+    ],
+    "usda-sr-legacy::173474": [
+      "fresh",
+      "aromatic"
+    ],
+    "usda-sr-legacy::173475": [
+      "fresh",
+      "aromatic"
+    ],
+    "usda-sr-legacy::172239": [
+      "aromatic",
+      "fresh"
+    ],
+    "usda-sr-legacy::170257": [
+      "sweet"
+    ],
+    "usda-sr-legacy::169657": [
+      "sweet"
+    ],
+    "usda-sr-legacy::170679": [
+      "sweet"
+    ],
+    "usda-sr-legacy::169072": [
+      "sweet"
+    ],
+    "usda-sr-legacy::172243": [
+      "spicy",
+      "aromatic"
+    ],
+    "usda-sr-legacy::173476": [
+      "spicy",
+      "aromatic",
+      "earthy"
+    ],
+    "usda-sr-legacy::172242": [
+      "aromatic",
+      "umami"
+    ],
+    "usda-sr-legacy::174066": [
+      "sweet",
+      "sour"
+    ],
+    "usda-sr-legacy::174067": [
+      "sweet",
+      "sour"
+    ],
+    "usda-sr-legacy::171826": [
+      "creamy",
+      "sour"
+    ],
+    "usda-sr-legacy::174523": [
+      "smoky",
+      "sweet"
+    ],
+    "usda-sr-legacy::171604": [
+      "spicy",
+      "sour"
+    ],
+    "usda-sr-legacy::170106": [
+      "spicy",
+      "fresh"
+    ],
+    "usda-sr-legacy::170497": [
+      "spicy",
+      "fresh"
+    ],
+    "usda-sr-legacy::169766": [
+      "spicy",
+      "sour",
+      "salty"
+    ],
+    "usda-sr-legacy::168561": [
+      "sweet",
+      "sour",
+      "fresh"
+    ],
+    "usda-sr-legacy::170392": [
+      "fermented",
+      "spicy",
+      "sour",
+      "umami"
+    ],
+    "usda-sr-legacy::169279": [
+      "fermented",
+      "sour",
+      "salty"
+    ],
+    "usda-sr-legacy::172883": [
+      "umami"
+    ],
+    "usda-sr-legacy::172884": [
+      "umami"
+    ],
+    "usda-sr-legacy::172885": [
+      "umami"
+    ],
+    "usda-sr-legacy::167748": [
+      "sour",
+      "fresh",
+      "fruity"
+    ],
+    "usda-sr-legacy::168157": [
+      "sour",
+      "fresh",
+      "fruity"
+    ],
+    "cofid-2021::14-847": [
+      "nutty",
+      "rich",
+      "creamy"
+    ],
+    "cofid-2021::17-339": [
+      "sour"
+    ],
+    "cofid-2021::13-244": [
+      "aromatic",
+      "spicy"
+    ],
+    "cofid-2021::17-721": [
+      "umami",
+      "salty",
+      "fermented"
+    ],
+    "cofid-2021::17-723": [
+      "umami",
+      "salty",
+      "sour",
+      "spicy"
+    ],
+    "cofid-2021::17-362": [
+      "spicy",
+      "earthy"
+    ],
+    "cofid-2021::17-685": [
+      "rich",
+      "creamy",
+      "salty"
+    ],
+    "cofid-2021::17-680": [
+      "umami",
+      "salty"
+    ],
+    "cofid-2021::16-448": [
+      "umami",
+      "salty"
+    ],
+    "cofid-2021::17-705": [
+      "sweet",
+      "smoky",
+      "spicy"
+    ],
+    "cofid-2021::17-031": [
+      "rich",
+      "sweet",
+      "creamy"
+    ]
+  }
+}

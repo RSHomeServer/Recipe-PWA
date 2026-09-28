@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 /**
  * Validate starter-pack/pack.json through IngredientSchema (R2.9).
- * Also re-checks common-code resolution (R2.5b / test 3a).
+ * Also re-checks common-code resolution (R2.5b / test 3a) and flavour tags (R4.2).
  */
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import {
+  flavourTagKey,
+  loadFlavourTagsMap,
+} from "../usda/flavour-tags.mjs";
+import { assertFlavourTagsMatch } from "../flavour-tags/apply.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "../..");
@@ -75,15 +80,23 @@ const IngredientSchema = z.object({
 async function main() {
   const pack = JSON.parse(await readFile(packPath, "utf8"));
   const common = JSON.parse(await readFile(commonPath, "utf8"));
+  const tagMap = await loadFlavourTagsMap();
 
   if (!Array.isArray(pack.ingredients) || pack.ingredients.length === 0) {
     throw new Error("pack.json has no ingredients");
   }
 
+  // Tags are baked by `npm run flavour-tags:apply` — assert only (R4.2).
+  assertFlavourTagsMatch(pack.ingredients, tagMap.tags, {
+    datasetIds: ["cofid-2021"],
+    requireFullCoverage: false,
+  });
+
   const codes = new Set();
   let errors = 0;
   let sodiumNull = 0;
   let sodiumZero = 0;
+  let tagged = 0;
   for (const row of pack.ingredients) {
     const parsed = IngredientSchema.safeParse(row);
     if (!parsed.success) {
@@ -102,6 +115,17 @@ async function main() {
     else if (parsed.data.nutrition.sodiumMg === 0) sodiumZero += 1;
     const code = parsed.data.source.entryCode;
     if (code) codes.add(code);
+    if (parsed.data.flavourTags.length > 0) tagged += 1;
+
+    const key = flavourTagKey(parsed.data);
+    if (key && key in tagMap.tags) {
+      const expected = tagMap.tags[key];
+      if (JSON.stringify(parsed.data.flavourTags) !== JSON.stringify(expected)) {
+        throw new Error(
+          `flavourTags mismatch for ${key}: pack=${JSON.stringify(parsed.data.flavourTags)} map=${JSON.stringify(expected)}`,
+        );
+      }
+    }
   }
 
   if (errors > 0) {
@@ -124,8 +148,15 @@ async function main() {
     throw new Error("Expected at least one volume (alcohol) entry");
   }
 
+  const tahini = pack.ingredients.find(
+    (i) => i.source?.entryCode === "14-847",
+  );
+  if (!tahini?.flavourTags?.includes("nutty")) {
+    throw new Error("Tahini (14-847) must be tagged nutty for predicate tests");
+  }
+
   console.log(
-    `OK: ${pack.ingredients.length} ingredients, ${common.codes.length} common, ${volume.length} volume, sodium null=${sodiumNull} zero=${sodiumZero}`,
+    `OK: ${pack.ingredients.length} ingredients, ${common.codes.length} common, ${volume.length} volume, ${tagged} tagged, sodium null=${sodiumNull} zero=${sodiumZero}`,
   );
 }
 
