@@ -3,7 +3,6 @@
   "notes": "Hand-maintained FDC id allow-list for the flavour pack (ADR-006 / R1.2). Nutrition is never typed here — only selection. source sr-legacy reads USDA SR Legacy CSVs; branded reads branded-cache.json (FDC API snapshots).",
   "entries": [
     { "fdcId": 171329, "ukName": "Paprika", "source": "sr-legacy" },
-    { "fdcId": 579084, "ukName": "Smoked paprika", "source": "branded" },
     { "fdcId": 170923, "ukName": "Cumin", "source": "sr-legacy" },
     { "fdcId": 172231, "ukName": "Turmeric", "source": "sr-legacy" },
     { "fdcId": 171320, "ukName": "Cinnamon", "source": "sr-legacy" },

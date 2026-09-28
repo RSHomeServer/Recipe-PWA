@@ -11,8 +11,10 @@ npm run flavour-pack:generate
 npm run flavour-pack:validate
 ```
 
-Branded exceptions (MSG, nutritional yeast, smoked paprika) are snapshotted in
-`src/data/flavour-pack/branded-cache.json`. Refresh with network access:
+Branded exceptions (MSG, nutritional yeast) are snapshotted in
+`src/data/flavour-pack/branded-cache.json`. Smoked paprika is not branded —
+search aliases to SR paprika (`171329`) via `display-aliases.json`. Refresh
+branded snapshots with network access:
 
 ```bash
 npm run flavour-pack:fetch-branded

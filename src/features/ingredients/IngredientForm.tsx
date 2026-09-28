@@ -91,6 +91,8 @@ export function IngredientForm({
           measureKind: initial.measureKind,
           nutrition: { ...initial.nutrition },
           notes: initial.notes ?? "",
+          gramsPerTsp: initial.gramsPerTsp,
+          gramsPerTbsp: initial.gramsPerTbsp,
         }
       : emptyIngredientFormValues(),
   });
@@ -114,6 +116,8 @@ export function IngredientForm({
       measureKind: initial.measureKind,
       nutrition: { ...initial.nutrition },
       notes: initial.notes ?? "",
+      gramsPerTsp: initial.gramsPerTsp,
+      gramsPerTbsp: initial.gramsPerTbsp,
     });
   }, [initial, reset]);
 
@@ -485,6 +489,66 @@ export function IngredientForm({
           </div>
         </div>
       </fieldset>
+
+      {measureKind === "mass" ? (
+        <fieldset className="space-y-4">
+          <legend className="text-base font-semibold text-foreground">
+            Spoon weights (optional)
+          </legend>
+          <p className="text-sm text-muted-foreground">
+            Cited grams per teaspoon or tablespoon unlock tsp/tbsp entry on
+            recipes. Leave blank when you have no measured weight — never guess.
+            Editing these on a reference ingredient records your provenance.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="ingredient-grams-per-tsp">Grams per tsp</Label>
+              <Input
+                id="ingredient-grams-per-tsp"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                placeholder="Unknown"
+                {...register("gramsPerTsp", {
+                  setValueAs: (value) => {
+                    if (value === "" || value === null || value === undefined) {
+                      return null;
+                    }
+                    const n = typeof value === "number" ? value : Number(value);
+                    return Number.isNaN(n) ? null : n;
+                  },
+                })}
+              />
+              <FieldError message={errors.gramsPerTsp?.message} id="ingredient-tsp-error" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ingredient-grams-per-tbsp">Grams per tbsp</Label>
+              <Input
+                id="ingredient-grams-per-tbsp"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="any"
+                placeholder="Unknown"
+                {...register("gramsPerTbsp", {
+                  setValueAs: (value) => {
+                    if (value === "" || value === null || value === undefined) {
+                      return null;
+                    }
+                    const n = typeof value === "number" ? value : Number(value);
+                    return Number.isNaN(n) ? null : n;
+                  },
+                })}
+              />
+              <FieldError
+                message={errors.gramsPerTbsp?.message}
+                id="ingredient-tbsp-error"
+              />
+            </div>
+          </div>
+        </fieldset>
+      ) : null}
 
       <div className="space-y-2">
         <Label htmlFor="ingredient-notes">Notes</Label>

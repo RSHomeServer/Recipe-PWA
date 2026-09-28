@@ -43,7 +43,7 @@ export const FLAVOUR_PACK_ATTRIBUTION = {
   licenceLabel: "CC0 1.0 Universal (public domain)",
   licenceConfirmed: true,
   body: [
-    "Seasonings and flavourings that CoFID does not cover well are transcribed by script from USDA FoodData Central (SR Legacy), plus a few Branded Foods exceptions where SR Legacy has no generic row (MSG, nutritional yeast, smoked paprika).",
+    "Seasonings and flavourings that CoFID does not cover well are transcribed by script from USDA FoodData Central (SR Legacy), plus Branded Foods exceptions where SR Legacy has no generic row (MSG, nutritional yeast). Smoked paprika resolves to SR paprika via a search alias — not a second ingredient.",
     flavourPackMeta.attributionNote,
   ].join(" "),
 };

@@ -1,4 +1,5 @@
 export * from "./units";
+export * from "./spoons";
 export * from "./nutrition";
 export * from "./shared/primitives";
 export * from "./shared/meal-entry";

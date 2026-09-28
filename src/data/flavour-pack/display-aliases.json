@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "notes": "Search/display aliases for flavour-pack ingredients. An alias is not a second Ingredient and must not copy macros — it resolves to an existing datasetId::entryCode (Architect option 1 for smoked paprika).",
+  "aliases": [
+    {
+      "alias": "smoked paprika",
+      "datasetId": "usda-sr-legacy",
+      "entryCode": "171329",
+      "displayName": "Paprika"
+    }
+  ]
+}

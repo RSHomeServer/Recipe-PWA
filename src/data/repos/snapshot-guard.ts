@@ -50,7 +50,7 @@ export function assertOriginUnchanged(
 
 /**
  * Enforce write-once origin fields and flip `reference` → `userEntered` when
- * nutrition is edited (ADR-002 / R2.3–R2.4).
+ * nutrition or cited spoon weights are edited (ADR-002 / ADR-008 R3.9).
  */
 export function prepareIngredientPut(
   existing: Ingredient | undefined,
@@ -60,13 +60,26 @@ export function prepareIngredientPut(
 
   assertOriginUnchanged(existing, next);
 
+  const spoonChanged =
+    existing.gramsPerTsp !== next.gramsPerTsp ||
+    existing.gramsPerTbsp !== next.gramsPerTbsp;
+  const nutritionChanged = !nutritionEqual(existing.nutrition, next.nutrition);
+
   if (
     existing.source.kind === "reference" &&
-    !nutritionEqual(existing.nutrition, next.nutrition)
+    (nutritionChanged || spoonChanged)
   ) {
     return {
       ...next,
-      source: { ...next.source, kind: "userEntered" },
+      source: {
+        ...next.source,
+        kind: "userEntered",
+        note:
+          spoonChanged && !nutritionChanged
+            ? (next.source.note ??
+              "Spoon weights edited by you (user provenance).")
+            : next.source.note,
+      },
     };
   }
 

@@ -42,7 +42,8 @@ type PackFile = StarterPackFile | FlavourPackFile;
 
 /**
  * Additive seed by source.entryCode (+ datasetId).
- * Never overwrites an existing row — edited or not (ADR-002 / R2.7 / R1.5).
+ * Never overwrites an existing row's macros or user edits (ADR-002 / R2.7 / R1.5).
+ * Soft-fills null spoon weights on untouched reference rows from the pack (ADR-008).
  */
 async function seedPackIngredients(
   db: Dexie,
@@ -73,6 +74,7 @@ async function seedPackIngredients(
       }
 
       const toAdd: Ingredient[] = [];
+      const toEnrich: Ingredient[] = [];
       for (const raw of pack.ingredients) {
         const parsed = IngredientSchema.safeParse(raw);
         if (!parsed.success) {
@@ -85,8 +87,44 @@ async function seedPackIngredients(
           report.skippedInvalid += 1;
           continue;
         }
-        if (byKey.has(key)) {
+        const prior = byKey.get(key);
+        if (prior) {
           report.skippedExisting += 1;
+          // Soft-fill cited spoon weights only when still null on an untouched
+          // reference row — never invent, never overwrite a user figure.
+          if (
+            options.packLabel === "flavour" &&
+            prior.source.kind === "reference" &&
+            prior.measureKind === "mass"
+          ) {
+            let next = prior;
+            let changed = false;
+            if (
+              prior.gramsPerTsp == null &&
+              ingredient.gramsPerTsp != null
+            ) {
+              next = { ...next, gramsPerTsp: ingredient.gramsPerTsp };
+              changed = true;
+            }
+            if (
+              prior.gramsPerTbsp == null &&
+              ingredient.gramsPerTbsp != null
+            ) {
+              next = { ...next, gramsPerTbsp: ingredient.gramsPerTbsp };
+              changed = true;
+            }
+            if (
+              (prior.notes == null || prior.notes === "") &&
+              ingredient.notes != null
+            ) {
+              next = { ...next, notes: ingredient.notes };
+              changed = true;
+            }
+            if (changed) {
+              toEnrich.push(next);
+              byKey.set(key, next);
+            }
+          }
           continue;
         }
         toAdd.push(ingredient);
@@ -95,6 +133,9 @@ async function seedPackIngredients(
 
       if (toAdd.length > 0) {
         await db.table("ingredients").bulkPut(toAdd);
+      }
+      if (toEnrich.length > 0) {
+        await db.table("ingredients").bulkPut(toEnrich);
       }
       report.added = toAdd.length;
 

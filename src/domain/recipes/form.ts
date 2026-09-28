@@ -1,17 +1,22 @@
 import { z } from "zod";
-import { toCanonical, fromCanonical, unitsForKind } from "../units";
+import { fromCanonical, unitsForKind } from "../units";
 import type { Ingredient } from "../ingredients/schemas";
 import type { CanonicalQuantity, MeasureKind, Unit } from "../units/schemas";
-import { UnitSchema } from "../units/schemas";
 import { createId, IdSchema } from "../shared/primitives";
 import type { Recipe, RecipeLine } from "./schemas";
+import {
+  EntryMeasureSchema,
+  entryToCanonical,
+  isSpoonKind,
+  type EntryMeasure,
+} from "../spoons";
 
-/** RHF draft line — display amount + unit; converted to canonical on save. */
+/** RHF draft line — amount + entry measure (units or cited spoons). */
 export const RecipeLineDraftSchema = z.object({
   id: IdSchema,
   ingredientId: IdSchema,
   amount: z.number().finite().nonnegative("Quantity must be zero or more"),
-  displayUnit: UnitSchema,
+  entryMeasure: EntryMeasureSchema,
   optional: z.boolean(),
   note: z.string(),
 });
@@ -54,13 +59,15 @@ export type BuiltRecipeFields = {
 };
 
 /**
- * Convert draft lines to stored `RecipeLine`s: in-family units only, kind matches
- * ingredient, at most one line per ingredient (quantities summed in canonical space).
+ * Convert draft lines to stored `RecipeLine`s. Spoons convert once at the
+ * boundary into grams; entryHint is display-only (ADR-008).
  */
 export function buildRecipeFields(
   values: RecipeFormParsed,
   ingredientsById: ReadonlyMap<string, Ingredient>,
-): { ok: true; fields: BuiltRecipeFields } | { ok: false; errors: RecipeLineBuildError[] } {
+):
+  | { ok: true; fields: BuiltRecipeFields }
+  | { ok: false; errors: RecipeLineBuildError[] } {
   const errors: RecipeLineBuildError[] = [];
   const byIngredient = new Map<
     string,
@@ -92,15 +99,13 @@ export function buildRecipeFields(
       continue;
     }
 
-    const converted = toCanonical(
-      { value: draft.amount, unit: draft.displayUnit },
-      ingredient.measureKind,
+    const converted = entryToCanonical(
+      draft.amount,
+      draft.entryMeasure,
+      ingredient,
     );
     if (!converted.ok) {
-      errors.push({
-        lineId: draft.id,
-        message: `Use ${converted.allowed.join(" / ")} for ${ingredient.name}`,
-      });
+      errors.push({ lineId: draft.id, message: converted.message });
       continue;
     }
 
@@ -111,11 +116,11 @@ export function buildRecipeFields(
         amount: existing.quantity.amount + converted.canonical.amount,
         kind: existing.quantity.kind,
       };
-      // Optional if either line marked optional? Prefer required if either is required.
       existing.optional = existing.optional && draft.optional;
       if (note) {
         existing.note = existing.note ? `${existing.note}; ${note}` : note;
       }
+      existing.entryHint = null;
       continue;
     }
 
@@ -123,10 +128,10 @@ export function buildRecipeFields(
       id: draft.id,
       ingredientId: draft.ingredientId,
       quantity: converted.canonical,
-      displayUnit: draft.displayUnit,
+      displayUnit: converted.displayUnit,
       optional: draft.optional,
       note,
-      entryHint: null,
+      entryHint: converted.entryHint,
     });
   }
 
@@ -158,58 +163,66 @@ export function buildRecipeFields(
   };
 }
 
-/** Merge a new draft onto an existing line for the same ingredient (UI entry path). */
+/** Merge a new draft onto an existing line for the same ingredient. */
 export function mergeLineDrafts(
   existing: RecipeLineDraft,
   incoming: RecipeLineDraft,
   measureKind: MeasureKind,
+  ingredient?: Ingredient,
 ): RecipeLineDraft {
-  const a = toCanonical(
-    { value: existing.amount, unit: existing.displayUnit },
-    measureKind,
-  );
-  const b = toCanonical(
-    { value: incoming.amount, unit: incoming.displayUnit },
-    measureKind,
-  );
-  if (!a.ok || !b.ok) {
-    return {
-      ...existing,
-      amount: existing.amount + incoming.amount,
-      optional: existing.optional && incoming.optional,
-      note: [existing.note, incoming.note]
-        .map((n) => n.trim())
-        .filter(Boolean)
-        .join("; "),
-    };
+  if (ingredient) {
+    const a = entryToCanonical(existing.amount, existing.entryMeasure, ingredient);
+    const b = entryToCanonical(incoming.amount, incoming.entryMeasure, ingredient);
+    if (a.ok && b.ok) {
+      const summed: CanonicalQuantity = {
+        amount: a.canonical.amount + b.canonical.amount,
+        kind: measureKind,
+      };
+      const keepMeasure: EntryMeasure = isSpoonKind(existing.entryMeasure)
+        ? "g"
+        : existing.entryMeasure;
+      const display = fromCanonical(summed, keepMeasure);
+      return {
+        ...existing,
+        amount: display.ok ? display.quantity.value : summed.amount,
+        entryMeasure: keepMeasure,
+        optional: existing.optional && incoming.optional,
+        note: [existing.note, incoming.note]
+          .map((n) => n.trim())
+          .filter(Boolean)
+          .join("; "),
+      };
+    }
   }
-  const summed: CanonicalQuantity = {
-    amount: a.canonical.amount + b.canonical.amount,
-    kind: measureKind,
-  };
-  const displayUnit = existing.displayUnit;
-  const display = fromCanonical(summed, displayUnit);
-  const amount = display.ok ? display.quantity.value : summed.amount;
-  const note = [existing.note, incoming.note]
-    .map((n) => n.trim())
-    .filter(Boolean)
-    .join("; ");
+
   return {
     ...existing,
-    amount,
-    displayUnit,
+    amount: existing.amount + incoming.amount,
     optional: existing.optional && incoming.optional,
-    note,
+    note: [existing.note, incoming.note]
+      .map((n) => n.trim())
+      .filter(Boolean)
+      .join("; "),
   };
 }
 
 export function draftFromRecipeLine(line: RecipeLine): RecipeLineDraft {
+  if (line.entryHint != null) {
+    return {
+      id: line.id,
+      ingredientId: line.ingredientId,
+      amount: line.entryHint.spoons,
+      entryMeasure: line.entryHint.spoon,
+      optional: line.optional,
+      note: line.note ?? "",
+    };
+  }
   const display = fromCanonical(line.quantity, line.displayUnit);
   return {
     id: line.id,
     ingredientId: line.ingredientId,
     amount: display.ok ? display.quantity.value : line.quantity.amount,
-    displayUnit: line.displayUnit,
+    entryMeasure: line.displayUnit,
     optional: line.optional,
     note: line.note ?? "",
   };
@@ -249,7 +262,7 @@ export function newLineDraft(
     id: createId(),
     ingredientId,
     amount: 0,
-    displayUnit: defaultUnitForKind(measureKind),
+    entryMeasure: defaultUnitForKind(measureKind),
     optional: false,
     note: "",
   };
