@@ -1,12 +1,6 @@
 import { Link } from "react-router-dom";
 import { useSettings } from "@/features/shopping/hooks";
-
-export function servedGitTip() {
-  return {
-    branch: import.meta.env.VITE_GIT_BRANCH ?? "unknown",
-    commit: import.meta.env.VITE_GIT_COMMIT ?? "unknown",
-  };
-}
+import { servedGitTip } from "@/features/shared/servedGitTip";
 
 /**
  * High-visibility banner for the git tip currently served by Vite.
