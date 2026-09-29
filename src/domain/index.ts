@@ -8,6 +8,7 @@ export * from "./ingredients/references";
 export * from "./ingredients/form";
 export * from "./ingredients/predicates";
 export * from "./ingredients/flavour-profile";
+export * from "./flavour";
 export * from "./meals";
 export * from "./recipes/schemas";
 export * from "./recipes/form";

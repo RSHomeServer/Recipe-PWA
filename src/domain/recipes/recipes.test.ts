@@ -73,6 +73,7 @@ describe("RecipeFormSchema", () => {
     const parsed = RecipeFormSchema.parse({
       name: "  Curry  ",
       servings: 4,
+      kind: "dish",
       lines: [],
       steps: ["  Mix  ", ""],
       tagsText: " dinner ",
@@ -87,6 +88,7 @@ describe("RecipeFormSchema", () => {
       RecipeFormSchema.parse({
         name: "Curry",
         servings: 0,
+        kind: "dish",
         lines: [],
         steps: [],
         tagsText: "",
@@ -106,6 +108,7 @@ describe("buildRecipeFields", () => {
       RecipeFormSchema.parse({
         name: "Curry",
         servings: 2,
+        kind: "mix",
         lines: [
           {
             id: lineA,
@@ -140,6 +143,7 @@ describe("buildRecipeFields", () => {
     );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
+    expect(result.fields.kind).toBe("mix");
     expect(result.fields.lines).toHaveLength(2);
     const chickenLine = result.fields.lines.find(
       (l) => l.ingredientId === chickenId,
@@ -155,6 +159,7 @@ describe("buildRecipeFields", () => {
       RecipeFormSchema.parse({
         name: "Bad",
         servings: 1,
+        kind: "dish",
         lines: [
           {
             id: lineA,
@@ -184,6 +189,7 @@ describe("buildRecipeFields", () => {
       RecipeFormSchema.parse({
         name: "Seasoned",
         servings: 1,
+        kind: "dish",
         lines: [
           {
             id: lineA,
