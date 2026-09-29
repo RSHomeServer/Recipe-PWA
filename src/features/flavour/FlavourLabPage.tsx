@@ -633,48 +633,49 @@ export default function FlavourLabPage() {
                   : (["g"] as const);
                 const name = ingredient?.name ?? "Unknown";
                 return (
-                  <li
-                    key={line.id}
-                    className="flex flex-wrap items-center gap-2 py-2"
-                  >
-                    <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                      {name}
-                    </p>
-                    <Input
-                      id={`flavour-mix-amount-${line.id}`}
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      step="any"
-                      className="h-9 w-16 shrink-0"
-                      aria-label={`${name} amount`}
-                      value={line.amount}
-                      onChange={(event) =>
-                        updateLine(index, {
-                          amount: Number(event.target.value) || 0,
-                        })
-                      }
-                    />
-                    <EntryMeasureChoice
-                      id={`flavour-mix-measure-${line.id}`}
-                      aria-label={`${name} measure`}
-                      measures={measures}
-                      value={line.entryMeasure}
-                      onValueChange={(measure) =>
-                        updateLine(index, { entryMeasure: measure })
-                      }
-                      className="w-[5.5rem] shrink-0"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-9 shrink-0"
-                      aria-label={`Remove ${name}`}
-                      onClick={() => removeLine(index)}
-                    >
-                      <Trash2 className="size-4" aria-hidden="true" />
-                    </Button>
+                  <li key={line.id} className="space-y-1.5 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                        {name}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-9 shrink-0"
+                        aria-label={`Remove ${name}`}
+                        onClick={() => removeLine(index)}
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                      </Button>
+                    </div>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Input
+                        id={`flavour-mix-amount-${line.id}`}
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="any"
+                        className="h-9 w-16 shrink-0"
+                        aria-label={`${name} amount`}
+                        value={line.amount}
+                        onChange={(event) =>
+                          updateLine(index, {
+                            amount: Number(event.target.value) || 0,
+                          })
+                        }
+                      />
+                      <EntryMeasureChoice
+                        id={`flavour-mix-measure-${line.id}`}
+                        aria-label={`${name} measure`}
+                        measures={measures}
+                        value={line.entryMeasure}
+                        onValueChange={(measure) =>
+                          updateLine(index, { entryMeasure: measure })
+                        }
+                        className="min-w-0 flex-1"
+                      />
+                    </div>
                   </li>
                 );
               })}
