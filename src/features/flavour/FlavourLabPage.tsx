@@ -448,8 +448,8 @@ export default function FlavourLabPage() {
         }
       />
 
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
-        <div className="space-y-8">
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)] lg:items-start">
+        <div className="min-w-0 space-y-8">
           <section className="space-y-4" aria-labelledby="flavour-filters-heading">
             <h2
               id="flavour-filters-heading"
@@ -574,10 +574,13 @@ export default function FlavourLabPage() {
         </div>
 
         <aside
-          className="space-y-6 lg:sticky lg:top-4 lg:self-start"
+          className={cn(
+            "order-first space-y-4 rounded-lg border border-border bg-[var(--color-surface-raised)] p-4",
+            "lg:order-none lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto lg:overscroll-contain",
+          )}
           aria-labelledby="flavour-mix-heading"
         >
-          <div className="space-y-2">
+          <div className="space-y-1">
             <h2
               id="flavour-mix-heading"
               className="text-lg font-semibold text-foreground"
@@ -590,30 +593,31 @@ export default function FlavourLabPage() {
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="flavour-mix-name">Mix name</Label>
-            <Input
-              id="flavour-mix-name"
-              value={mixName}
-              onChange={(event) => setMixName(event.target.value)}
-              placeholder="e.g. Chilli Garlic Vinegar"
-              autoComplete="off"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="flavour-mix-servings">Servings</Label>
-            <Input
-              id="flavour-mix-servings"
-              type="number"
-              inputMode="decimal"
-              min={0.1}
-              step="any"
-              value={mixServings}
-              onChange={(event) =>
-                setMixServings(Number(event.target.value) || 1)
-              }
-            />
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[10rem] flex-1 space-y-1">
+              <Label htmlFor="flavour-mix-name">Mix name</Label>
+              <Input
+                id="flavour-mix-name"
+                value={mixName}
+                onChange={(event) => setMixName(event.target.value)}
+                placeholder="e.g. Chilli Garlic Vinegar"
+                autoComplete="off"
+              />
+            </div>
+            <div className="w-24 space-y-1">
+              <Label htmlFor="flavour-mix-servings">Servings</Label>
+              <Input
+                id="flavour-mix-servings"
+                type="number"
+                inputMode="decimal"
+                min={0.1}
+                step="any"
+                value={mixServings}
+                onChange={(event) =>
+                  setMixServings(Number(event.target.value) || 1)
+                }
+              />
+            </div>
           </div>
 
           {mixLines.length === 0 ? (
@@ -621,72 +625,56 @@ export default function FlavourLabPage() {
               Nothing in the mix yet — use Add to mix on the list.
             </p>
           ) : (
-            <ul className="space-y-3">
+            <ul className="divide-y divide-border border-y border-border">
               {mixLines.map((line, index) => {
                 const ingredient = ingredientsById.get(line.ingredientId);
                 const measures = ingredient
                   ? entryMeasuresFor(ingredient)
                   : (["g"] as const);
+                const name = ingredient?.name ?? "Unknown";
                 return (
                   <li
                     key={line.id}
-                    className="space-y-2 rounded-md border border-border p-3"
+                    className="flex flex-wrap items-center gap-2 py-2"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-medium text-foreground">
-                        {ingredient?.name ?? "Unknown"}
-                      </p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-11 shrink-0"
-                        aria-label={`Remove ${ingredient?.name ?? "line"}`}
-                        onClick={() => removeLine(index)}
-                      >
-                        <Trash2 className="size-4" aria-hidden="true" />
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap items-end gap-2">
-                      <div className="w-24 space-y-1">
-                        <Label
-                          htmlFor={`flavour-mix-amount-${line.id}`}
-                          className="text-xs"
-                        >
-                          Amount
-                        </Label>
-                        <Input
-                          id={`flavour-mix-amount-${line.id}`}
-                          type="number"
-                          inputMode="decimal"
-                          min={0}
-                          step="any"
-                          value={line.amount}
-                          onChange={(event) =>
-                            updateLine(index, {
-                              amount: Number(event.target.value) || 0,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="min-w-[6rem] flex-1 space-y-1">
-                        <Label
-                          id={`flavour-mix-measure-label-${line.id}`}
-                          className="text-xs"
-                        >
-                          Measure
-                        </Label>
-                        <EntryMeasureChoice
-                          id={`flavour-mix-measure-${line.id}`}
-                          aria-labelledby={`flavour-mix-measure-label-${line.id}`}
-                          measures={measures}
-                          value={line.entryMeasure}
-                          onValueChange={(measure) =>
-                            updateLine(index, { entryMeasure: measure })
-                          }
-                        />
-                      </div>
-                    </div>
+                    <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                      {name}
+                    </p>
+                    <Input
+                      id={`flavour-mix-amount-${line.id}`}
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step="any"
+                      className="h-9 w-16 shrink-0"
+                      aria-label={`${name} amount`}
+                      value={line.amount}
+                      onChange={(event) =>
+                        updateLine(index, {
+                          amount: Number(event.target.value) || 0,
+                        })
+                      }
+                    />
+                    <EntryMeasureChoice
+                      id={`flavour-mix-measure-${line.id}`}
+                      aria-label={`${name} measure`}
+                      measures={measures}
+                      value={line.entryMeasure}
+                      onValueChange={(measure) =>
+                        updateLine(index, { entryMeasure: measure })
+                      }
+                      className="w-[5.5rem] shrink-0"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-9 shrink-0"
+                      aria-label={`Remove ${name}`}
+                      onClick={() => removeLine(index)}
+                    >
+                      <Trash2 className="size-4" aria-hidden="true" />
+                    </Button>
                   </li>
                 );
               })}
