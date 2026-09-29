@@ -53,6 +53,19 @@ export {
   type StarterPackMeta,
   type CommonFirstPartition,
 } from "./starter-pack";
+export {
+  EXAMPLE_MIX_IDS,
+  EXAMPLE_SNACK_IDS,
+  EXAMPLE_MIXES,
+  EXAMPLE_SNACKS,
+  allExamplePackRefs,
+  installExampleContent,
+  type PackIngredientRef,
+  type ExampleMixDef,
+  type ExampleSnackDef,
+  type ExampleMixLineDef,
+  type ExampleContentInstallReport,
+} from "./example-content";
 export { ParseOnReadError, parseRow, parseRows } from "./parse";
 export {
   SnapshotImmutabilityError,

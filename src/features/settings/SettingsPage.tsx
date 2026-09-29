@@ -7,6 +7,7 @@ import { z } from "zod";
 import {
   STARTER_PACK_ATTRIBUTION,
   STARTER_PACK_VERSION,
+  installExampleContent,
   seedBothPacks,
   useRecipeData,
 } from "@/data";
@@ -45,6 +46,8 @@ export default function SettingsPage() {
   const settings = useSettings();
   const [topUpBusy, setTopUpBusy] = useState(false);
   const [lastTopUp, setLastTopUp] = useState<string | null>(null);
+  const [examplesBusy, setExamplesBusy] = useState(false);
+  const [lastExamples, setLastExamples] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -349,6 +352,66 @@ export default function SettingsPage() {
         {lastTopUp ? (
           <p className="text-sm text-muted-foreground" role="status">
             {lastTopUp}
+          </p>
+        ) : null}
+      </section>
+
+      <section className="max-w-lg space-y-3" aria-labelledby="example-content-heading">
+        <h2 id="example-content-heading" className="text-lg font-semibold">
+          Example mixes &amp; snacks
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Adds a small library of ordinary seasoning mixes and snacks so you can
+          try Flavour Lab ideas without building from scratch. Nothing is added
+          until you ask — recipes stay your space. Running again skips what is
+          already there and never overwrites edits. Built only from starter and
+          flavour-pack ingredients (no hand-typed nutrition).
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!db || examplesBusy}
+          onClick={async () => {
+            if (!db) return;
+            setExamplesBusy(true);
+            try {
+              const report = await installExampleContent(db);
+              const summary = [
+                `mixes: added ${report.mixesAdded}, skipped ${report.mixesSkippedExisting} already present`,
+                `snacks: added ${report.snacksAdded}, skipped ${report.snacksSkippedExisting} already present`,
+              ].join(". ");
+              setLastExamples(
+                report.missingIngredientRefs.length > 0
+                  ? `${summary}. Missing ingredients: ${report.missingIngredientRefs.join(", ")}`
+                  : summary,
+              );
+              if (report.missingIngredientRefs.length > 0) {
+                toast.error(
+                  `Could not resolve ${report.missingIngredientRefs.length} pack ingredient(s). Top up starter ingredients first.`,
+                );
+              } else if (report.mixesAdded > 0 || report.snacksAdded > 0) {
+                toast.success(
+                  `Added ${report.mixesAdded} mix${report.mixesAdded === 1 ? "" : "es"} and ${report.snacksAdded} snack${report.snacksAdded === 1 ? "" : "s"}`,
+                );
+              } else {
+                toast.success("Example mixes and snacks already installed");
+              }
+            } catch (error) {
+              toast.error(
+                error instanceof Error
+                  ? error.message
+                  : "Could not install example mixes and snacks",
+              );
+            } finally {
+              setExamplesBusy(false);
+            }
+          }}
+        >
+          {examplesBusy ? "Installing…" : "Add example mixes & snacks"}
+        </Button>
+        {lastExamples ? (
+          <p className="text-sm text-muted-foreground" role="status">
+            {lastExamples}
           </p>
         ) : null}
       </section>
