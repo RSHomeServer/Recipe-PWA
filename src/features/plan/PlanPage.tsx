@@ -987,7 +987,7 @@ export default function PlanPage() {
           initialSlotId={
             applyTemplate.defaultSlotId ?? slots[0]?.id ?? undefined
           }
-          initialDates={days}
+          initialDates={[selectedDay]}
         />
       ) : null}
     </div>
