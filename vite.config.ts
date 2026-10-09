@@ -72,11 +72,38 @@ export default defineConfig({
     }),
   ],
   resolve: {
-    // preview/dexie is aliased into PWA-Base source, which otherwise pulls a
-    // nested dexie (e.g. 4.4.4) while the app + dexie-react-hooks use another.
-    dedupe: ["dexie", "dexie-react-hooks"],
+    // PWA-Base is compiled from sibling source. Without forcing one copy,
+    // Vite resolves `react` from PWA-Base's pnpm store (e.g. 19.2.7) for
+    // foundation modules and from Recipe's node_modules (e.g. 19.2.8) for
+    // the app — production then ships multiple React copies and hooks fail
+    // with "Cannot read properties of null (reading 'useState')".
+    // Same pattern as the dexie alias below.
+    dedupe: [
+      "react",
+      "react-dom",
+      "react-router",
+      "react-router-dom",
+      "dexie",
+      "dexie-react-hooks",
+    ],
     alias: {
       "@": path.resolve(root, "./src"),
+      react: path.resolve(root, "node_modules/react"),
+      "react-dom": path.resolve(root, "node_modules/react-dom"),
+      "react/jsx-runtime": path.resolve(
+        root,
+        "node_modules/react/jsx-runtime.js",
+      ),
+      "react/jsx-dev-runtime": path.resolve(
+        root,
+        "node_modules/react/jsx-dev-runtime.js",
+      ),
+      // Do not alias `react-router` itself — it breaks `react-router/dom`
+      // package exports. Dedupe + forcing `react-router-dom` is enough.
+      "react-router-dom": path.resolve(
+        root,
+        "node_modules/react-router-dom",
+      ),
       dexie: path.resolve(root, "node_modules/dexie"),
       "@platform/config/tsconfig.base.json": platform(
         "config",
